@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "title": "eTabeeb — Online Medical Consultation",
+    "description": "Online telemedicine platform — Kozhak Specialist Clinic, Chaman, Balochistan"
+  },
+  "home": {
+    "title": "eTabeeb",
+    "subtitle": "Online medical consultation with verified specialists"
+  },
+  "nav": {
+    "home": "Home",
+    "doctors": "Doctors",
+    "services": "Services",
+    "howItWorks": "How It Works",
+    "bookAppointment": "Book Appointment",
+    "login": "Log In",
+    "portal": "My Portal"
+  },
+  "booking": {
+    "title": "Book Appointment",
+    "selectService": "Select a service",
+    "selectDoctor": "Select a doctor",
+    "selectDateTime": "Choose date & time",
+    "patientInfo": "Patient information",
+    "intake": "Health information",
+    "fee": "Consultation fee",
+    "consent": "Your consent",
+    "confirm": "Confirm booking",
+    "emergencyWarning": "If your condition is an emergency, go to the nearest hospital immediately."
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "unauthorized": "You are not authorized to view this."
+  }
+}

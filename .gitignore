@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Environment files - NEVER commit secrets
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# Keep example env files
+!.env.example
+!apps/**/.env.example
+
+# Turbo
+.turbo/
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# Database
+*.sqlite
+*.db
+
+# Docker
+.docker-data/
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Generated
+*.generated.ts
+src/generated/
+
+# Medical documents and uploads - never in source control
+uploads/
+private-uploads/
+
+# Certificates
+*.pem
+*.key
+*.crt
+*.p12

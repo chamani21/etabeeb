@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+   eTabeeb Global Styles
+   Design tokens from Stitch project 15674520729408700343
+   ========================================================= */
+
+@layer base {
+  :root {
+    /* RTL default for Pashto-first experience */
+    direction: rtl;
+
+    /* Urdu / Arabic script: letter-spacing MUST be 0 */
+    --letter-spacing-rtl: 0;
+
+    /* Tabular numbers for clinical data */
+    --font-feature-tnum: 'tnum';
+  }
+
+  /* LTR override for English locale */
+  [dir='ltr'] {
+    direction: ltr;
+  }
+
+  /* RTL isolation for Latin runs inside Urdu text */
+  .ltr-isolate {
+    unicode-bidi: isolate;
+    direction: ltr;
+    display: inline;
+  }
+
+  /* Naskh: never use letter-spacing */
+  .font-naskh,
+  .font-nastaliq {
+    letter-spacing: 0 !important;
+  }
+
+  /* Nastaliq needs extra vertical room */
+  .font-nastaliq {
+    line-height: 1.9;
+    padding-block: 0.25em;
+    overflow: visible !important;
+  }
+
+  /* Tabular numerals for clinical data */
+  .tabular-nums {
+    font-feature-settings: 'tnum';
+  }
+
+  /* Focus visible — WCAG 2.2 AA */
+  :focus-visible {
+    outline: 3px solid #0b5a3a;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Minimum touch target 44x44px (WCAG 2.5.5) */
+  button,
+  [role='button'],
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@layer components {
+  /* Kozhak Arch device */
+  .kozhak-arch {
+    border-radius: 999px 999px 0 0;
+  }
+
+  /* CTA pill primary */
+  .cta-pill {
+    @apply bg-brand-green text-white font-naskh font-semibold rounded-full px-8 py-3 min-h-[52px] min-w-[180px] transition-colors hover:bg-brand-green-deep focus-visible:outline-2;
+  }
+
+  /* Schedule card */
+  .schedule-card {
+    @apply bg-brand-green text-white font-naskh rounded-lg px-6 py-5;
+  }
+
+  /* Red flag marker */
+  .red-flag-item {
+    @apply border-s-[6px] border-caution bg-canvas-off-white rounded-md px-4 py-3;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse bg-green-100 rounded;
+  }
+}

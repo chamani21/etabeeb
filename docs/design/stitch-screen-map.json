@@ -1,0 +1,242 @@
+{
+  "stitch_project": {
+    "id": "15674520729408700343",
+    "name": "Kozhak Clinic Design System",
+    "visibility": "PRIVATE",
+    "type": "TEXT_TO_UI_PRO",
+    "device_type": "DESKTOP",
+    "updated_at": "2026-09-20T08:33:25.392706Z"
+  },
+  "screens": [
+    {
+      "id": "688d1f6761364919944610a1c8d2c2b1",
+      "title": "eTabeeb (ای طبیب) - Redesigned Telemedicine Platform",
+      "role": "public",
+      "proposed_route": "/",
+      "viewport": { "width": 2560, "height": 7646 },
+      "device_type": "DESKTOP",
+      "has_html": true,
+      "language": "ps",
+      "direction": "rtl",
+      "workflow_state": "home_landing",
+      "implementation_status": "PENDING",
+      "missing_states": ["loading", "offline", "maintenance"],
+      "components": ["hero", "doctor_directory_preview", "how_it_works_teaser", "services_overview", "language_selector", "footer"],
+      "notes": "Primary homepage. Also serves as entry point for language/locale selection."
+    },
+    {
+      "id": "be61309cf1c04bc18e125159518e0349",
+      "title": "How It Works - eTabeeb (د کار او کتنې طریقه)",
+      "role": "public",
+      "proposed_route": "/how-it-works",
+      "viewport": { "width": 2560, "height": 7208 },
+      "device_type": "DESKTOP",
+      "has_html": true,
+      "language": "ps",
+      "direction": "rtl",
+      "workflow_state": "info_page",
+      "implementation_status": "PENDING",
+      "missing_states": ["loading", "offline"],
+      "components": ["step_timeline", "trust_badges", "faq_section"],
+      "notes": "Public informational page explaining the consultation flow."
+    },
+    {
+      "id": "5049330fac964b3380e5690c4ad8ff7f",
+      "title": "Doctor Profile - eTabeeb (ډاکټر جلال الدین)",
+      "role": "public",
+      "proposed_route": "/doctors/:slug",
+      "viewport": { "width": 2560, "height": 3788 },
+      "device_type": "DESKTOP",
+      "has_html": true,
+      "language": "ps",
+      "direction": "rtl",
+      "workflow_state": "doctor_profile",
+      "implementation_status": "PENDING",
+      "missing_states": ["loading_skeleton", "not_published", "unavailable"],
+      "components": ["doctor_header", "credential_badge", "availability_calendar", "book_cta", "specialty_info"],
+      "notes": "Public doctor profile. Must not show until admin verifies and publishes the clinician."
+    },
+    {
+      "id": "2bc3a37ff738443b827f18048b72df3b",
+      "title": "Book Appointment - eTabeeb (نوبت واخلئ)",
+      "role": "patient",
+      "proposed_route": "/book",
+      "viewport": { "width": 2560, "height": 6302 },
+      "device_type": "DESKTOP",
+      "has_html": true,
+      "language": "ps",
+      "direction": "rtl",
+      "workflow_state": "booking_flow",
+      "implementation_status": "PENDING",
+      "missing_states": ["hold_expired", "payment_pending", "conflict_error", "network_retry", "draft_resumed"],
+      "components": ["service_selector", "doctor_selector", "date_time_picker", "patient_selector", "intake_form", "fee_display", "consent_checkbox", "payment_step", "confirmation"],
+      "notes": "Full booking wizard. Must be: language → service → emergency_check → consultation_type → doctor → datetime → patient → intake → fee → consent → payment → confirmed."
+    },
+    {
+      "id": "a08a0ce66e9f4c5c807be480e261308d",
+      "title": "Patient Portal - eTabeeb (د ناروغ پورټل)",
+      "role": "patient",
+      "proposed_route": "/portal",
+      "viewport": { "width": 2560, "height": 4450 },
+      "device_type": "DESKTOP",
+      "has_html": true,
+      "language": "ps",
+      "direction": "rtl",
+      "workflow_state": "patient_dashboard",
+      "implementation_status": "PENDING",
+      "missing_states": ["empty_appointments", "expired_session", "loading_skeleton"],
+      "components": ["appointment_list", "upcoming_appointment_card", "past_encounters", "document_downloads", "notification_preferences"],
+      "notes": "Authenticated patient home. Shows appointments, documents, follow-ups."
+    },
+    {
+      "id": "d25573f138864b519ab4633c79c00bb6",
+      "title": "ویډیو مشوره - eTabeeb (آنلاین کتنځی)",
+      "role": "patient",
+      "proposed_route": "/consult/:appointmentId",
+      "viewport": { "width": 2560, "height": 2640 },
+      "device_type": "DESKTOP",
+      "has_html": true,
+      "language": "ps",
+      "direction": "rtl",
+      "workflow_state": "consultation_room",
+      "implementation_status": "PENDING",
+      "missing_states": ["pre_call_check", "audio_only_fallback", "reconnecting", "call_interrupted", "permission_denied", "provider_error", "telephone_fallback"],
+      "components": ["video_grid", "audio_controls", "video_toggle", "mute_button", "network_indicator", "end_call", "patient_info_sidebar"],
+      "notes": "Audio-first consultation room. Video optional. TURN required. No room name or PHI in URL."
+    },
+    {
+      "id": "40d973ce5216473b99deae504bf935ab",
+      "title": "ډیجیټل طبي نسخه - eTabeeb (رسمي نسخه)",
+      "role": "patient",
+      "proposed_route": "/prescriptions/:prescriptionId",
+      "viewport": { "width": 2560, "height": 5550 },
+      "device_type": "DESKTOP",
+      "has_html": true,
+      "language": "ps",
+      "direction": "rtl",
+      "workflow_state": "prescription_view",
+      "implementation_status": "PENDING",
+      "missing_states": ["revoked", "expired", "replaced", "unauthorized"],
+      "components": ["prescription_header", "patient_info", "medicine_list", "doctor_signature", "qr_code", "download_button"],
+      "notes": "Signed, immutable prescription PDF view. QR code links to public verification page."
+    },
+    {
+      "id": "f615456ce17847d6a697d015251d9930",
+      "title": "Doctor Profile Poster - Modern Editorial",
+      "role": "marketing",
+      "proposed_route": "PRINT_ASSET",
+      "viewport": { "width": 2560, "height": 2700 },
+      "device_type": "DESKTOP",
+      "has_html": true,
+      "language": "ur",
+      "direction": "rtl",
+      "workflow_state": "social_media_poster",
+      "implementation_status": "DEFERRED",
+      "notes": "Social media / print poster. Not a web app screen. Governed by poster design system."
+    },
+    {
+      "id": "96b7c819e69e454581ee4b71c04b23b7",
+      "title": "Doctor Profile Poster - Kozhak Specialist Clinic",
+      "role": "marketing",
+      "proposed_route": "PRINT_ASSET",
+      "viewport": { "width": 2560, "height": 2700 },
+      "device_type": "DESKTOP",
+      "has_html": true,
+      "language": "ur",
+      "direction": "rtl",
+      "workflow_state": "social_media_poster",
+      "implementation_status": "DEFERRED",
+      "notes": "Social media / print poster. Governed by poster design system in DESIGN_2.md."
+    }
+  ],
+  "missing_screens": [
+    {
+      "title": "OTP Verification / Login",
+      "role": "patient",
+      "proposed_route": "/auth/verify",
+      "reason": "Required for phone-based auth (+92/+93). Not yet in Stitch.",
+      "implementation_status": "BUILD_FROM_SPEC"
+    },
+    {
+      "title": "Language & Timezone Selection",
+      "role": "patient",
+      "proposed_route": "/onboard",
+      "reason": "Required first step in booking flow. Not in Stitch.",
+      "implementation_status": "BUILD_FROM_SPEC"
+    },
+    {
+      "title": "Emergency / Red-Flag Screen",
+      "role": "patient",
+      "proposed_route": "/emergency",
+      "reason": "Safety-critical. Must interrupt booking on red-flag answers. Not in Stitch.",
+      "implementation_status": "BUILD_FROM_SPEC"
+    },
+    {
+      "title": "Prescription Verification (Public QR)",
+      "role": "public",
+      "proposed_route": "/verify/:token",
+      "reason": "Privacy-minimized public verification. Not in Stitch.",
+      "implementation_status": "BUILD_FROM_SPEC"
+    },
+    {
+      "title": "Doctor Workspace",
+      "role": "doctor",
+      "proposed_route": "/doctor/",
+      "reason": "Full clinical workspace. Not in Stitch.",
+      "implementation_status": "BUILD_FROM_SPEC"
+    },
+    {
+      "title": "Staff Portal",
+      "role": "staff",
+      "proposed_route": "/staff/",
+      "reason": "Operations/support. Not in Stitch.",
+      "implementation_status": "BUILD_FROM_SPEC"
+    },
+    {
+      "title": "Admin Portal",
+      "role": "admin",
+      "proposed_route": "/admin/",
+      "reason": "Full admin. Not in Stitch.",
+      "implementation_status": "BUILD_FROM_SPEC"
+    },
+    {
+      "title": "Pre-Call Check / Waiting Room",
+      "role": "patient",
+      "proposed_route": "/waiting/:appointmentId",
+      "reason": "Required before entering consultation room. Not in Stitch.",
+      "implementation_status": "BUILD_FROM_SPEC"
+    }
+  ],
+  "assets": [
+    {
+      "id": "83907adf2fff46f4917459cfe9a86ae6",
+      "type": "logo",
+      "description": "eTabeeb logo PNG",
+      "use": "Favicon and app identity"
+    },
+    {
+      "id": "13726596242847357671",
+      "type": "logo",
+      "description": "Kozhak Clinic logo JPG",
+      "use": "Brand identity on all screens"
+    },
+    {
+      "id": "c067cc401c9f436896847cd2e49aa115",
+      "type": "placeholder_photo",
+      "description": "Sample doctor portrait (AI-generated placeholder — NOT to be used for any real doctor)",
+      "use": "UI development placeholder only. Real doctor photos require consent and verification."
+    }
+  ],
+  "design_references": [
+    {
+      "id": "16422656123901093965",
+      "title": "DESIGN.md",
+      "content_summary": "Simple brief: 'analyse my website and make improved design'"
+    },
+    {
+      "id": "16422656123901092539",
+      "title": "DESIGN_2.md",
+      "content_summary": "Full Kozhak Poster Design System v1.0.0 — 1000+ line specification governing colors, typography, layout families, components, imagery rules, logo lock, carousel system, medical safety rules, and rendering engine specification."
+    }
+  ]
+}

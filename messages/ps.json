@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "title": "ای طبیب — آنلاین طبي مشوره",
+    "description": "د آنلاین طبي مشورې پلیټفارم — کوژک اسپیشلسٹ کلینک، چمن"
+  },
+  "home": {
+    "title": "ای طبیب",
+    "subtitle": "آنلاین طبي مشوره — [MACHINE_TRANSLATED — AWAITING NATIVE REVIEW]"
+  },
+  "nav": {
+    "home": "کور",
+    "doctors": "ډاکتران",
+    "services": "خدمات",
+    "howItWorks": "د کار طریقه",
+    "bookAppointment": "نوبت واخلئ",
+    "login": "ننوتل",
+    "portal": "پورټل"
+  },
+  "booking": {
+    "title": "نوبت واخلئ",
+    "selectService": "خدمت غوره کړئ",
+    "selectDoctor": "ډاکتر غوره کړئ",
+    "selectDateTime": "نیټه او وخت",
+    "patientInfo": "د ناروغ معلومات",
+    "intake": "د روغتیا معلومات",
+    "fee": "فیس",
+    "consent": "موافقت",
+    "confirm": "تایید کړئ",
+    "emergencyWarning": "[MACHINE_TRANSLATED — AWAITING CLINICAL REVIEW] که چیرې ستاسو وضعیت بیړني وي، سمدستي روغتون ته لاړ شئ."
+  },
+  "errors": {
+    "generic": "یو ستونزه رامنځته شوه. بیا هڅه وکړئ.",
+    "network": "د شبکې ستونزه. خپل اتصال وګورئ.",
+    "sessionExpired": "ستاسو ناسته پای ته ورسیده. بیا ننوتل وکړئ.",
+    "unauthorized": "تاسو اجازه نلرئ."
+  }
+}

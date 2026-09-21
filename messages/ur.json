@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "title": "ای طبیب — آن لائن طبی مشاورہ",
+    "description": "آن لائن طبی مشاورہ پلیٹ فارم — کوژک اسپیشلسٹ کلینک، چمن، بلوچستان [MACHINE_TRANSLATED — AWAITING NATIVE REVIEW]"
+  },
+  "home": {
+    "title": "ای طبیب",
+    "subtitle": "تصدیق شدہ ماہرین کے ساتھ آن لائن طبی مشاورہ [MACHINE_TRANSLATED — AWAITING NATIVE REVIEW]"
+  },
+  "nav": {
+    "home": "ہوم",
+    "doctors": "ڈاکٹرز",
+    "services": "خدمات",
+    "howItWorks": "یہ کیسے کام کرتا ہے",
+    "bookAppointment": "اپوائنٹمنٹ لیں",
+    "login": "لاگ ان",
+    "portal": "پورٹل"
+  },
+  "booking": {
+    "title": "اپوائنٹمنٹ بک کریں",
+    "selectService": "سروس منتخب کریں",
+    "selectDoctor": "ڈاکٹر منتخب کریں",
+    "selectDateTime": "تاریخ اور وقت",
+    "patientInfo": "مریض کی معلومات",
+    "intake": "صحت کی معلومات",
+    "fee": "فیس",
+    "consent": "آپ کی رضامندی",
+    "confirm": "تصدیق کریں",
+    "emergencyWarning": "اگر آپ کی حالت ہنگامی ہو تو فوری طور پر قریبی ہسپتال جائیں۔ [MACHINE_TRANSLATED — AWAITING CLINICAL REVIEW]"
+  },
+  "errors": {
+    "generic": "کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔",
+    "network": "نیٹ ورک کی خرابی۔ اپنا کنکشن چیک کریں۔",
+    "sessionExpired": "آپ کا سیشن ختم ہو گیا۔ دوبارہ لاگ ان کریں۔",
+    "unauthorized": "آپ کو یہ دیکھنے کی اجازت نہیں ہے۔"
+  }
+}

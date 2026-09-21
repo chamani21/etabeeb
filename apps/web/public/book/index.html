@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ps">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>نوبت واخلئ — ای طبیب | Book Appointment</title>
+  <meta name="description" content="آنلاین نوبت واخلئ د کوژک اسپیشلسټ کلینک ډاکټرانو سره">
+  <meta name="theme-color" content="#004f45">
+  <link rel="icon" href="/etabeeb-logo.png" type="image/png">
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&family=Noto+Serif:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  <style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}}::-webkit-scrollbar{display:none;}</style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-container":"#d7f4e9","on-primary-container":"#94e5d5","on-secondary-container":"#715000","outline-variant":"#bec9c5","status-busy":"#F59E0B","card-surface":"#FFFFFF","surface-tint":"#046b5e","secondary-container":"#fdc350","secondary-fixed":"#ffdea7","surface-container-high":"#d1efe3","on-primary":"#ffffff","surface-variant":"#cce9de","on-primary-fixed":"#00201b","error":"#ba1a1a","surface-container-low":"#ddfaef","secondary":"#7c5800","surface-mint":"#F0F9F7","primary":"#004f45","on-background":"#052019","inverse-surface":"#1c352e","on-secondary":"#ffffff","on-tertiary":"#ffffff","surface-container-highest":"#cce9de","surface":"#e6fff5","surface-dim":"#c3e0d5","on-surface":"#052019","tertiary-container":"#2f665b","text-muted":"#4D6961","surface-bright":"#e6fff5","on-error":"#ffffff","background":"#e6fff5","on-tertiary-fixed":"#00201b","primary-fixed-dim":"#84d5c5","on-tertiary-container":"#a8e1d3","border-subtle":"#D4E8E3","inverse-primary":"#84d5c5","on-error-container":"#93000a","primary-fixed":"#a0f2e1","primary-container":"#00695c","on-surface-variant":"#3e4946","status-available":"#10B981","surface-container-lowest":"#ffffff","outline":"#6e7976","tertiary":"#124e44","tertiary-fixed":"#b5eee0","secondary-fixed-dim":"#f7bd4b"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-xs":"0.375rem","space-sm":"0.75rem","space-md":"1.25rem","gutter":"1.5rem","margin":"2rem","space-lg":"2rem","space-xl":"3.5rem"},"fontFamily":{"label-lg":["Inter"],"headline-md":["Noto Serif"],"headline-xl":["Noto Serif"],"label-md":["Inter"],"headline-sm":["Noto Serif"],"body-md":["Noto Sans"],"body-sm":["Noto Sans"],"label-sm":["Inter"],"headline-lg":["Noto Serif"],"body-lg":["Noto Sans"],"display-hero":["Noto Serif"]},"fontSize":{"label-lg":["15px",{"lineHeight":"1.4","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"1.6","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"1.7","fontWeight":"700"}],"label-md":["13px",{"lineHeight":"1.4","fontWeight":"500"}],"headline-sm":["17px",{"lineHeight":"1.6","fontWeight":"600"}],"body-md":["16px",{"lineHeight":"1.8","fontWeight":"400"}],"body-sm":["14px",{"lineHeight":"1.75","fontWeight":"400"}],"label-sm":["11px",{"lineHeight":"1.3","letterSpacing":"0.04em","fontWeight":"600"}],"headline-lg":["24px",{"lineHeight":"1.7","fontWeight":"600"}],"body-lg":["18px",{"lineHeight":"1.85","fontWeight":"400"}],"display-hero":["44px",{"lineHeight":"1.7","letterSpacing":"-0.01em","fontWeight":"700"}]}}}}};</script>
+</head>
+<body class="bg-surface font-body-md text-body-md text-on-surface antialiased">
+
+<!-- HEADER -->
+<header class="fixed top-0 left-0 right-0 z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+  <div class="bg-primary text-on-primary py-space-xs px-gutter">
+    <div class="w-full flex flex-wrap items-center justify-between gap-space-xs font-label-sm text-label-sm">
+      <div class="flex items-center gap-space-xs">
+        <span class="material-symbols-outlined text-secondary-container">emergency</span>
+        <span>بېړنۍ اړیکه: له ۷:۰۰ سهار تر ۱۱:۰۰ شپې پورې فعال</span>
+      </div>
+      <a class="flex items-center gap-space-xs hover:text-on-primary-container transition-colors" dir="ltr" href="tel:+923332357055">
+        <span class="material-symbols-outlined text-status-available">chat</span>
+        <span>0333 2357055</span>
+      </a>
+    </div>
+  </div>
+  <div class="h-16 bg-surface-container-lowest/90 backdrop-blur-xl px-gutter">
+    <div class="w-full h-full flex items-center justify-between gap-space-md">
+      <a href="/" class="flex items-center gap-space-md shrink-0">
+        <img alt="ای طبیب لوګو" class="h-7 w-auto object-contain" src="/etabeeb-logo.png" onerror="this.style.display='none'">
+        <span class="font-headline-md text-headline-md text-primary font-bold leading-none">ای طبیب</span>
+      </a>
+      <nav class="hidden lg:flex items-center gap-space-xs">
+        <a class="px-space-sm py-space-xs text-on-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md" href="/">سرپاڼه</a>
+        <a class="px-space-sm py-space-xs text-on-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md" href="/doctors">ډاکټران</a>
+        <a class="px-space-sm py-space-xs text-on-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md" href="/how-it-works">د کار طریقه</a>
+        <a aria-current="page" class="px-space-sm py-space-xs bg-surface-container text-primary font-bold rounded-lg font-label-md text-label-md" href="/book">نوبت واخلئ</a>
+      </nav>
+      <a href="/" class="inline-flex items-center gap-1 px-space-md py-space-xs rounded-full bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container transition-all">
+        <span class="material-symbols-outlined text-base">arrow_forward</span>
+        <span>سرپاڼه</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main class="w-full pt-24 pb-space-xl bg-surface min-h-screen">
+  <div class="mx-auto max-w-4xl px-gutter py-space-xl">
+    <!-- Page Header -->
+    <div class="text-center mb-space-xl">
+      <div class="inline-flex items-center gap-1 rounded-full bg-surface-container px-space-md py-1.5 font-label-sm text-label-sm text-primary mb-4">
+        <span class="h-2 w-2 rounded-full bg-status-available animate-pulse"></span>
+        <span>آنلاین نوبت ثبتول فعال دي</span>
+      </div>
+      <h1 class="font-headline-xl text-headline-xl text-primary">نوبت واخلئ</h1>
+      <p class="font-body-md text-body-md text-text-muted mt-2 max-w-lg mx-auto">
+        لاندې فورمه ډکه کړئ — زموږ ټیم به ۱ ساعت کې ستاسو سره د وټساپ له لارې اړیکه ونیسي.
+      </p>
+    </div>
+
+    <!-- Booking Form Card -->
+    <div class="bg-card-surface rounded-3xl shadow-xl p-space-lg">
+      <form id="bookingForm" onsubmit="submitBooking(event)" class="space-y-space-md">
+
+        <!-- Step 1: Doctor Selection -->
+        <div>
+          <h2 class="font-headline-sm text-headline-sm font-bold text-primary mb-space-sm flex items-center gap-2">
+            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-on-primary text-sm font-bold">۱</span>
+            ډاکټر وټاکئ
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
+
+            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
+              <input type="radio" name="doctor" value="jalaluddin" class="sr-only">
+              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-jalaluddin/dr-jalaluddin__headshot-white-coat-01.png" alt="ډاکټر جلال الدین">
+              <div class="min-w-0">
+                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټر جلال الدین</p>
+                <p class="font-label-sm text-label-sm text-text-muted">عمومي او باطني ناروغۍ</p>
+                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۳۰۰ افغانۍ</p>
+              </div>
+              <span class="check-icon absolute top-2 left-2 hidden h-5 w-5 items-center justify-center rounded-full bg-primary text-on-primary">
+                <span class="material-symbols-outlined text-xs">check</span>
+              </span>
+            </label>
+
+            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
+              <input type="radio" name="doctor" value="achakzai" class="sr-only">
+              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-muhammad-raheem-achakzai/dr-muhammad-raheem-achakzai__studio-office-01.png" alt="ډاکټر محمد رحیم اڅکزی">
+              <div class="min-w-0">
+                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټر محمد رحیم اڅکزی</p>
+                <p class="font-label-sm text-label-sm text-text-muted">د پوستکي متخصص</p>
+                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۳۵۰ افغانۍ</p>
+              </div>
+            </label>
+
+            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
+              <input type="radio" name="doctor" value="shahfahad" class="sr-only">
+              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-shah-fahad-photo-pack/dr-shah-fahad__paediatric-headshot-01.png" alt="ډاکټر شاه فهد">
+              <div class="min-w-0">
+                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټر شاه فهد</p>
+                <p class="font-label-sm text-label-sm text-text-muted">د ماشومانو متخصص</p>
+                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۳۰۰ افغانۍ</p>
+              </div>
+            </label>
+
+            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
+              <input type="radio" name="doctor" value="khilji" class="sr-only">
+              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-muhammad-rasool-khilji/dr-muhammad-rasool-khilji__studio-formal-01.png" alt="ډاکټر محمد رسول خلجي">
+              <div class="min-w-0">
+                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټر محمد رسول خلجي</p>
+                <p class="font-label-sm text-label-sm text-text-muted">د زړه متخصص / دویم نظر</p>
+                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۴۰۰ افغانۍ</p>
+              </div>
+            </label>
+
+            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
+              <input type="radio" name="doctor" value="ulusyar" class="sr-only">
+              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-ulus-yar-photo-pack/dr-ulus-yar__black-kurta-portrait-01.png" alt="ډاکټر اولس یار">
+              <div class="min-w-0">
+                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټر اولس یار</p>
+                <p class="font-label-sm text-label-sm text-text-muted">د هډوکو متخصص / دویم نظر</p>
+                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۴۰۰ افغانۍ</p>
+              </div>
+            </label>
+
+            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
+              <input type="radio" name="doctor" value="malka" class="sr-only">
+              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-malka-achakzai-masked/dr-malka-achakzai__masked-headshot-studio-01.png" alt="ډاکټره ملکه اڅکزۍ">
+              <div class="min-w-0">
+                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټره ملکه اڅکزۍ</p>
+                <p class="font-label-sm text-label-sm text-text-muted">لرې فیزیوتراپي ارزونه</p>
+                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۲۵۰ افغانۍ</p>
+              </div>
+            </label>
+
+          </div>
+        </div>
+
+        <!-- Step 2: Patient Details -->
+        <div class="border-t border-surface-variant/40 pt-space-md">
+          <h2 class="font-headline-sm text-headline-sm font-bold text-primary mb-space-sm flex items-center gap-2">
+            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container text-sm font-bold">۲</span>
+            ستاسو معلومات
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
+            <div>
+              <label class="block font-label-sm text-label-sm font-semibold text-text-muted mb-1">بشپړ نوم *</label>
+              <input required name="patientName" type="text" class="w-full rounded-xl bg-surface-mint border border-surface-variant p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary" placeholder="خپل بشپړ نوم دلته ولیکئ">
+            </div>
+            <div>
+              <label class="block font-label-sm text-label-sm font-semibold text-text-muted mb-1">د وټساپ شمېره *</label>
+              <input required name="phone" type="tel" dir="ltr" class="w-full text-right rounded-xl bg-surface-mint border border-surface-variant p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary" placeholder="07xxxxxxxx یا 0333xxxxxxx">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block font-label-sm text-label-sm font-semibold text-text-muted mb-1">د روغتیا ستونزه (لنډ توضیح) *</label>
+              <textarea required name="complaint" rows="3" class="w-full rounded-xl bg-surface-mint border border-surface-variant p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary resize-none" placeholder="مثلاً: د دریو ورځو راهیسې تبه، سر درد، او کمزوری..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Consultation Type & Preferred Time -->
+        <div class="border-t border-surface-variant/40 pt-space-md">
+          <h2 class="font-headline-sm text-headline-sm font-bold text-primary mb-space-sm flex items-center gap-2">
+            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-on-primary text-sm font-bold">۳</span>
+            د مشورې بڼه
+          </h2>
+          <div class="grid grid-cols-2 gap-space-sm">
+            <label class="flex flex-col items-center gap-2 rounded-2xl border-2 border-surface-variant p-space-md cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container text-center">
+              <input type="radio" name="mode" value="video" checked class="sr-only">
+              <span class="material-symbols-outlined text-primary text-3xl">videocam</span>
+              <span class="font-label-md text-label-md font-semibold text-primary">ویډیو کال</span>
+              <span class="font-label-sm text-label-sm text-text-muted">د مخامخ معاینې لپاره</span>
+            </label>
+            <label class="flex flex-col items-center gap-2 rounded-2xl border-2 border-surface-variant p-space-md cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container text-center">
+              <input type="radio" name="mode" value="whatsapp" class="sr-only">
+              <span class="material-symbols-outlined text-[#25D366] text-3xl">chat</span>
+              <span class="font-label-md text-label-md font-semibold text-primary">وټساپ چټ</span>
+              <span class="font-label-sm text-label-sm text-text-muted">د پیغامونو له لارې</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Payment Notice -->
+        <div class="bg-surface-container rounded-2xl p-space-md flex items-start gap-space-sm">
+          <span class="material-symbols-outlined text-secondary mt-0.5">payments</span>
+          <div>
+            <p class="font-label-md text-label-md font-semibold text-primary">د تادیې معلومات</p>
+            <p class="font-body-sm text-body-sm text-text-muted mt-1">
+              اوس مهال تادیه د مشورې د تایید وروسته د ادمین له لارې ترتیبیږي. ستاسو سره به د نوبت تایید له وروسته د شمیرې له لارې اړیکه ونیسو.
+            </p>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="w-full rounded-2xl bg-primary py-4 font-label-lg text-label-lg font-bold text-on-primary shadow-lg hover:bg-primary-container transition-all flex items-center justify-center gap-space-xs">
+          <span class="material-symbols-outlined">assignment_turned_in</span>
+          <span>د نوبت ثبتول او استول</span>
+        </button>
+        <p class="font-label-sm text-label-sm text-text-muted text-center">
+          یا مستقیم زموږ سره د وټساپ له لارې اړیکه ونیسئ:
+          <a class="font-bold text-primary" href="https://wa.me/923332357055" target="_blank" dir="ltr">0333 2357055</a>
+        </p>
+      </form>
+
+      <!-- Success State -->
+      <div id="successState" class="hidden text-center py-space-xl">
+        <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-surface-container-high">
+          <span class="material-symbols-outlined text-primary text-5xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+        </div>
+        <h2 class="font-headline-xl text-headline-xl font-bold text-primary">نوبت ثبت شو!</h2>
+        <p class="font-body-md text-body-md text-text-muted mt-2 max-w-sm mx-auto">
+          ستاسو غوښتنه ترلاسه شوه. زموږ ټیم به د <strong>۱ ساعت</strong> کې ستاسو د وټساپ شمیرې له لارې اړیکه ونیسي.
+        </p>
+        <div class="mt-space-lg flex flex-col sm:flex-row gap-space-sm justify-center">
+          <a href="https://wa.me/923332357055" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-space-xl py-3 font-label-md text-label-md font-bold text-white hover:opacity-90 transition">
+            <span class="material-symbols-outlined text-base">chat</span>
+            <span>وټساپ خلاص کړئ</span>
+          </a>
+          <a href="/" class="inline-flex items-center gap-2 rounded-full bg-surface-container px-space-xl py-3 font-label-md text-label-md font-bold text-primary hover:bg-surface-container-high transition">
+            <span class="material-symbols-outlined text-base">home</span>
+            <span>سرپاڼه ته ستنیدل</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  // Pre-select doctor from URL param
+  const urlParams = new URLSearchParams(window.location.search);
+  const doctorParam = urlParams.get('doctor');
+  if (doctorParam) {
+    const radio = document.querySelector(`input[name="doctor"][value="${doctorParam}"]`);
+    if (radio) radio.checked = true;
+  }
+
+  function submitBooking(e) {
+    e.preventDefault();
+    const form = document.getElementById('bookingForm');
+    const success = document.getElementById('successState');
+    form.classList.add('hidden');
+    success.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
