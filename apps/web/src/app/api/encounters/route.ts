@@ -97,10 +97,14 @@ export async function POST(req: NextRequest) {
     const [encounter] = await db.insert(encounters).values({
       appointmentId,
       practitionerId: session.user.id,
-      ...noteFields,
+      subjective: noteFields.subjective ?? null,
+      objective: noteFields.objective ?? null,
+      assessment: noteFields.assessment ?? null,
+      plan: noteFields.plan ?? null,
+      safetyNet: noteFields.safetyNet ?? null,
+      followUpDays: noteFields.followUpDays ?? null,
       status: sign ? 'signed' : 'in_progress',
-      signedAt: sign ? new Date() : null,
-      signedBy: sign ? session.user.id : null,
+      ...(sign ? { signedAt: new Date(), signedBy: session.user.id } : {}),
       createdBy: session.user.id,
       updatedBy: session.user.id,
     }).returning()
@@ -146,10 +150,14 @@ export async function PATCH(req: NextRequest) {
     }
 
     const [updated] = await db.update(encounters).set({
-      ...noteFields,
+      subjective: noteFields.subjective ?? existing.subjective,
+      objective: noteFields.objective ?? existing.objective,
+      assessment: noteFields.assessment ?? existing.assessment,
+      plan: noteFields.plan ?? existing.plan,
+      safetyNet: noteFields.safetyNet ?? existing.safetyNet,
+      followUpDays: noteFields.followUpDays ?? existing.followUpDays,
       status: sign ? 'signed' : 'in_progress',
-      signedAt: sign ? new Date() : existing.signedAt,
-      signedBy: sign ? session.user.id : existing.signedBy,
+      ...(sign ? { signedAt: new Date(), signedBy: session.user.id } : {}),
       updatedAt: new Date(),
       updatedBy: session.user.id,
       version: existing.version + 1,
