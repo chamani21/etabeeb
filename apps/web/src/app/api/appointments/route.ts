@@ -47,13 +47,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid slot time range' }, { status: 400 })
     }
 
+    // Resolve practitioner publicId → internal id
+    const [practRecord] = await db
+      .select({ id: practitioners.id })
+      .from(practitioners)
+      .where(eq(practitioners.publicId, practitionerId))
+      .limit(1)
+
+    if (!practRecord) {
+      return NextResponse.json({ error: 'Doctor not found' }, { status: 404 })
+    }
+    const practInternalId = practRecord.id
+
     // Check for double booking
     const conflicting = await db
       .select({ id: appointments.id })
       .from(appointments)
       .where(
         and(
-          eq(appointments.practitionerId, practitionerId),
+          eq(appointments.practitionerId, practInternalId),
           lt(appointments.slotStart, new Date(slotEnd)),
           gte(appointments.slotEnd, new Date(slotStart)),
           or(
@@ -91,7 +103,7 @@ export async function POST(req: NextRequest) {
         .values({
           patientUserId: session.user.id,
           patientId: patientId,
-          practitionerId,
+          practitionerId: practInternalId,
           slotStart: new Date(slotStart),
           slotEnd: new Date(slotEnd),
           timezone,
