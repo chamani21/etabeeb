@@ -145,11 +145,27 @@ export async function GET(req: NextRequest) {
     }
 
     const url = new URL(req.url)
-    const status = url.searchParams.get('status')
-    const upcoming = url.searchParams.get('upcoming') === 'true'
+    const publicId = url.searchParams.get('publicId')
     const role = session.user.role
 
-    const conditions = []
+
+    // Direct publicId lookup
+    if (publicId) {
+      const results = await db
+        .select()
+        .from(appointments)
+        .where(eq(appointments.publicId, publicId))
+        .limit(1)
+      const appt = results[0]
+      if (!appt) return NextResponse.json({ appointments: [] })
+      // Access control
+      if (role === 'patient' && appt.patientUserId !== session.user.id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      return NextResponse.json({ appointments: [appt] })
+    }
+
+    const conditions: any[] = []
 
     if (role === 'patient') {
       conditions.push(eq(appointments.patientUserId, session.user.id))
@@ -165,7 +181,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    if (upcoming) conditions.push(gte(appointments.slotStart, new Date()))
+    const upcoming = url.searchParams.get('upcoming')
+    if (upcoming === 'true') conditions.push(gte(appointments.slotStart, new Date()))
+    if (upcoming === 'false') conditions.push(lt(appointments.slotStart, new Date()))
     if (status) conditions.push(eq(appointments.status, status as any))
 
     const results = await db

@@ -180,11 +180,18 @@ export async function GET(
       }
     }
 
+    // Return only available slots
+    const availableSlots = allSlots.filter(s => s.available).map(s => ({
+      start: s.start,
+      end: s.end,
+      consultationType: s.consultationType,
+    }))
+
     return NextResponse.json({
       doctorId: params.id,
       doctorName: practitioner.displayName,
       date: dateStr,
-      slots: allSlots,
+      slots: availableSlots,
     })
   } catch (error) {
     console.error('Slots fetch error:', error)

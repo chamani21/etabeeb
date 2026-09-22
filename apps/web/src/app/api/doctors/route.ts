@@ -11,15 +11,25 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url)
     const specialty = url.searchParams.get('specialty')
-    const all = url.searchParams.get('all') === 'true' // admin: show all including unpublished
+    const all = url.searchParams.get('all') === 'true' // admin: show all including unpublished/unverified
 
-    const conditions = []
-
-    // Only show published doctors to public
-    if (!all) {
-      conditions.push(eq(practitioners.isPublished, true))
+    // Admin auth check for all=true
+    let isAdmin = false
+    if (all) {
+      const session = await getServerSession(authOptions)
+      isAdmin = session?.user?.role === 'administrator'
+      if (!isAdmin) {
+        return NextResponse.json({ error: 'Admin required' }, { status: 403 })
+      }
     }
-    conditions.push(eq(practitioners.credentialStatus, 'verified'))
+
+    const conditions: any[] = []
+
+    // Only show published+verified to public
+    if (!isAdmin) {
+      conditions.push(eq(practitioners.isPublished, true))
+      conditions.push(eq(practitioners.credentialStatus, 'verified'))
+    }
 
     if (specialty) {
       conditions.push(eq(practitioners.specialty, specialty))
@@ -40,6 +50,7 @@ export async function GET(req: NextRequest) {
         consultationFee: practitioners.consultationFeeDefaultPkr,
         telemedicineEligible: practitioners.telemedicineEligible,
         isPublished: practitioners.isPublished,
+        credentialStatus: practitioners.credentialStatus,
       })
       .from(practitioners)
       .where(conditions.length > 0 ? and(...conditions) : undefined)

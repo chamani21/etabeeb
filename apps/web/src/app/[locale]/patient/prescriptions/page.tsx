@@ -1,92 +1,94 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 
-export default function PrescriptionsPage() {
-  const [expandedId, setExpandedId] = useState<number | null>(1);
+export default function PatientPrescriptionsPage() {
+  const params = useParams()
+  const locale = (params?.locale as string) || 'ps'
+  const [prescriptions, setPrescriptions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const prescriptions = [
-    {
-      id: 1,
-      doctor: 'Dr. Sarah Ahmed',
-      date: 'Oct 12, 2023',
-      diagnosis: 'Hypertension',
-      status: 'Active',
-      medications: [
-        { name: 'Amlodipine', dose: '5mg', frequency: '1x daily', duration: '30 days' },
-        { name: 'Lisinopril', dose: '10mg', frequency: '1x daily', duration: '30 days' }
-      ]
-    },
-    {
-      id: 2,
-      doctor: 'Dr. Usman Ali',
-      date: 'Sep 10, 2023',
-      diagnosis: 'Viral Infection',
-      status: 'Expired',
-      medications: [
-        { name: 'Paracetamol', dose: '500mg', frequency: '3x daily as needed', duration: '5 days' },
-        { name: 'Vitamin C', dose: '1000mg', frequency: '1x daily', duration: '10 days' }
-      ]
-    }
-  ];
+  useEffect(() => {
+    fetch('/api/prescriptions')
+      .then(r => r.json())
+      .then(data => setPrescriptions(data.prescriptions || []))
+      .catch(() => setPrescriptions([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const formatDate = (d: string) => d ? new Date(d).toLocaleDateString() : ''
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#05201a]">Prescriptions</h1>
-        <p className="text-[#5D6F69] text-sm mt-1">View and download your digital prescriptions</p>
-      </div>
+      <h1 className="text-2xl font-bold text-[#05201a] mb-4">
+        {locale === 'ps' ? 'نسخې' : locale === 'ur' ? 'نسخے' : 'Prescriptions'}
+      </h1>
 
-      <div className="space-y-4">
-        {prescriptions.map((px) => (
-          <div key={px.id} className="bg-white rounded-xl shadow-sm border border-[#DDE7E2] overflow-hidden">
-            <div 
-              className="p-4 cursor-pointer hover:bg-gray-50 transition flex justify-between items-start"
-              onClick={() => setExpandedId(expandedId === px.id ? null : px.id)}
-            >
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-[#05201a]">{px.diagnosis}</h3>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${px.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
-                    {px.status}
-                  </span>
+      {loading ? (
+        <div className="text-center py-10">
+          <div className="w-8 h-8 border-4 border-[#00523a] border-t-transparent rounded-full animate-spin mx-auto" />
+        </div>
+      ) : prescriptions.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-[#DDE7E2]">
+          <svg className="w-12 h-12 text-[#DDE7E2] mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <p className="text-[#5D6F69]">
+            {locale === 'ps' ? 'هیڅ نسخه نشته' : locale === 'ur' ? 'کوئی نسخہ نہیں' : 'No prescriptions yet'}
+          </p>
+          <p className="text-sm text-[#5D6F69] mt-1">
+            {locale === 'ps' ? 'د مشوري وروسته نسخه ستاسو دلته ښکاره کیږي' : 'Prescriptions from your consultations will appear here'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {prescriptions.map(rx => (
+            <div key={rx.publicId || rx.id} className="bg-white rounded-xl shadow-sm border border-[#DDE7E2] p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="font-semibold text-[#05201a]">
+                    {locale === 'ps' ? 'نسخه' : 'Prescription'} #{rx.publicId?.toString().slice(-8)}
+                  </p>
+                  <p className="text-xs text-[#5D6F69]">
+                    {formatDate(rx.createdAt)}
+                    {rx.signedAt ? ` · Signed: ${formatDate(rx.signedAt)}` : ''}
+                  </p>
                 </div>
-                <p className="text-sm text-[#05201a]">Prescribed by {px.doctor}</p>
-                <p className="text-xs text-[#5D6F69] mt-1">{px.date}</p>
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  rx.status === 'active' ? 'bg-green-100 text-green-700' :
+                  rx.status === 'expired' ? 'bg-gray-100 text-gray-600' :
+                  'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {rx.status}
+                </span>
               </div>
-              <svg className={`w-5 h-5 text-[#5D6F69] transform transition-transform ${expandedId === px.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
 
-            {expandedId === px.id && (
-              <div className="px-4 pb-4 pt-2 border-t border-[#DDE7E2] bg-gray-50">
-                <h4 className="text-xs font-bold text-[#5D6F69] uppercase tracking-wider mb-2">Medications</h4>
-                <div className="space-y-3 mb-4">
-                  {px.medications.map((med, idx) => (
-                    <div key={idx} className="bg-white p-3 rounded border border-[#DDE7E2]">
-                      <div className="font-medium text-[#05201a]">{med.name} <span className="text-sm font-normal text-[#5D6F69]">({med.dose})</span></div>
-                      <div className="text-sm text-[#05201a] mt-1">{med.frequency}</div>
-                      <div className="text-xs text-[#5D6F69] mt-1">Duration: {med.duration}</div>
+              {rx.items && rx.items.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  {rx.items.map((item: any, i: number) => (
+                    <div key={i} className="text-sm bg-[#f0faf5] rounded-lg p-2">
+                      <span className="font-medium text-[#00523a]">{item.genericName}</span>
+                      {item.strength && <span className="text-[#5D6F69]"> {item.strength}</span>}
+                      <span className="text-[#5D6F69]"> · {item.dose} {item.frequency}</span>
+                      {item.timing && <span className="text-[#5D6F69]"> {item.timing}</span>}
                     </div>
                   ))}
                 </div>
-                
-                <div className="flex gap-2">
-                  <button className="flex-1 bg-white border border-[#DDE7E2] hover:bg-gray-50 text-[#00523a] py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2 shadow-sm">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Download PDF
-                  </button>
-                  <button className="flex-1 bg-[#00523a] hover:bg-[#006d4e] text-white py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2 shadow-sm">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
-                    Pharmacy QR
-                  </button>
+              )}
+
+              {rx.verificationToken && (
+                <div className="flex items-center gap-2 text-xs text-[#5D6F69] border-t border-[#DDE7E2] pt-2 mt-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  <span>QR verification available at pharmacy</span>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </>
-  );
+  )
 }
