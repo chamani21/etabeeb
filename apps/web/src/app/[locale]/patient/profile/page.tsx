@@ -1,162 +1,259 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 
 export default function PatientProfilePage() {
-  const [formData, setFormData] = useState({
-    fullName: 'John Doe',
-    dob: '1985-06-15',
-    sex: 'Male',
-    phone: '+92 300 1234567',
-    whatsapp: '+92 300 1234567',
-    email: 'john.doe@example.com',
-    country: 'Pakistan',
-    city: 'Lahore',
-    address: '123 Main St, Gulberg',
-    emName: 'Jane Doe',
-    emPhone: '+92 300 7654321',
-    emRel: 'Spouse',
-    allergies: 'Penicillin',
-    chronic: 'Hypertension',
-    medications: 'Amlodipine 5mg',
-    smoking: 'No',
-    pregnancy: 'N/A'
-  });
+  const params = useParams()
+  const locale = (params?.locale as string) || 'ps'
+  const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState('')
+  const [form, setForm] = useState({
+    displayName: '',
+    email: '',
+    givenName: '',
+    familyName: '',
+    dateOfBirth: '',
+    biologicalSex: '',
+    allergiesSummary: '',
+    currentPassword: '',
+    newPassword: '',
+    preferredLocale: locale,
+  })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then(data => {
+        setProfile(data)
+        setForm(prev => ({
+          ...prev,
+          displayName: data.user?.displayName || '',
+          email: data.user?.email || '',
+          givenName: data.patient?.givenName || '',
+          familyName: data.patient?.familyName || '',
+          dateOfBirth: data.patient?.dateOfBirth || '',
+          biologicalSex: data.patient?.biologicalSex || '',
+          allergiesSummary: data.patient?.allergiesSummary || '',
+          preferredLocale: data.user?.preferredLocale || locale,
+        }))
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [locale])
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setSaveMsg('')
+    try {
+      const body: any = {
+        displayName: form.displayName,
+        email: form.email,
+        givenName: form.givenName,
+        familyName: form.familyName,
+        dateOfBirth: form.dateOfBirth || undefined,
+        biologicalSex: form.biologicalSex || undefined,
+        allergiesSummary: form.allergiesSummary,
+        preferredLocale: form.preferredLocale as any,
+      }
+      if (form.newPassword) {
+        body.currentPassword = form.currentPassword
+        body.newPassword = form.newPassword
+      }
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setSaveMsg(locale === 'ps' ? '✓ پروفایل خوندي شو' : locale === 'ur' ? '✓ پروفائل محفوظ ہو گئی' : '✓ Profile saved')
+        setForm(prev => ({ ...prev, currentPassword: '', newPassword: '' }))
+      } else {
+        setSaveMsg('Error: ' + (data.error || 'Failed to save'))
+      }
+    } catch {
+      setSaveMsg('Error: An error occurred')
+    } finally {
+      setSaving(false)
+      setTimeout(() => setSaveMsg(''), 4000)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-8 h-8 border-4 border-[#00523a] border-t-transparent rounded-full animate-spin mx-auto" />
+      </div>
+    )
+  }
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#05201a]">My Profile</h1>
-        <p className="text-[#5D6F69] text-sm mt-1">Update your personal and medical details</p>
-      </div>
+      <h1 className="text-2xl font-bold text-[#05201a] mb-4">
+        {locale === 'ps' ? 'زما پروفایل' : locale === 'ur' ? 'میری پروفائل' : 'My Profile'}
+      </h1>
 
-      <div className="space-y-6">
-        {/* Personal Info */}
-        <section className="bg-white rounded-xl shadow-sm border border-[#DDE7E2] p-4">
-          <h2 className="text-lg font-bold text-[#00523a] mb-4 border-b pb-2">Personal Information</h2>
-          <div className="space-y-4">
+      <form onSubmit={handleSave} className="space-y-4">
+        {/* Basic Info */}
+        <div className="bg-white rounded-xl shadow-sm border border-[#DDE7E2] p-4">
+          <h2 className="text-lg font-bold text-[#00523a] mb-3">
+            {locale === 'ps' ? 'اساسي معلومات' : locale === 'ur' ? 'بنیادی معلومات' : 'Basic Information'}
+          </h2>
+          <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-[#05201a] mb-1">Full Name</label>
-              <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" />
+              <label className="block text-sm font-medium text-[#05201a] mb-1">
+                {locale === 'ps' ? 'ډکه نوم' : 'Display Name'}
+              </label>
+              <input
+                type="text"
+                value={form.displayName}
+                onChange={e => setForm(p => ({ ...p, displayName: e.target.value }))}
+                className="w-full border border-[#DDE7E2] rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-[#05201a] mb-1">Date of Birth</label>
-                <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" />
+                <label className="block text-sm font-medium text-[#05201a] mb-1">
+                  {locale === 'ps' ? 'نوم' : 'Given Name'}
+                </label>
+                <input
+                  type="text"
+                  value={form.givenName}
+                  onChange={e => setForm(p => ({ ...p, givenName: e.target.value }))}
+                  className="w-full border border-[#DDE7E2] rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#05201a] mb-1">Sex</label>
-                <select name="sex" value={formData.sex} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]">
-                  <option>Male</option>
-                  <option>Female</option>
-                  <option>Other</option>
+                <label className="block text-sm font-medium text-[#05201a] mb-1">
+                  {locale === 'ps' ? 'تخلص' : 'Family Name'}
+                </label>
+                <input
+                  type="text"
+                  value={form.familyName}
+                  onChange={e => setForm(p => ({ ...p, familyName: e.target.value }))}
+                  className="w-full border border-[#DDE7E2] rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#05201a] mb-1">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                className="w-full border border-[#DDE7E2] rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+                placeholder="optional"
+                dir="ltr"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-[#05201a] mb-1">
+                  {locale === 'ps' ? 'د زیږیدنې نیټه' : 'Date of Birth'}
+                </label>
+                <input
+                  type="date"
+                  value={form.dateOfBirth}
+                  onChange={e => setForm(p => ({ ...p, dateOfBirth: e.target.value }))}
+                  className="w-full border border-[#DDE7E2] rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#05201a] mb-1">
+                  {locale === 'ps' ? 'جنس' : 'Biological Sex'}
+                </label>
+                <select
+                  value={form.biologicalSex}
+                  onChange={e => setForm(p => ({ ...p, biologicalSex: e.target.value }))}
+                  className="w-full border border-[#DDE7E2] rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+                >
+                  <option value="">{locale === 'ps' ? 'غوره کړئ' : 'Select...'}</option>
+                  <option value="male">{locale === 'ps' ? 'نارینه' : 'Male'}</option>
+                  <option value="female">{locale === 'ps' ? 'ښځینه' : 'Female'}</option>
+                  <option value="not_stated">{locale === 'ps' ? 'نه ویل کیږي' : 'Prefer not to state'}</option>
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#05201a] mb-1">Phone</label>
-                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#05201a] mb-1">WhatsApp</label>
-                <input type="tel" name="whatsapp" value={formData.whatsapp} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-[#05201a] mb-1">
+                {locale === 'ps' ? 'الرژیونه' : 'Known Allergies'}
+              </label>
+              <textarea
+                value={form.allergiesSummary}
+                onChange={e => setForm(p => ({ ...p, allergiesSummary: e.target.value }))}
+                className="w-full border border-[#DDE7E2] rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a] resize-none"
+                rows={2}
+                placeholder={locale === 'ps' ? 'د الرژیونو لیست' : 'List known allergies...'}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#05201a] mb-1">Language</label>
+              <select
+                value={form.preferredLocale}
+                onChange={e => setForm(p => ({ ...p, preferredLocale: e.target.value }))}
+                className="w-full border border-[#DDE7E2] rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+              >
+                <option value="ps">پښتو</option>
+                <option value="fa">دری</option>
+                <option value="ur">اردو</option>
+                <option value="en">English</option>
+              </select>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Address */}
-        <section className="bg-white rounded-xl shadow-sm border border-[#DDE7E2] p-4">
-          <h2 className="text-lg font-bold text-[#00523a] mb-4 border-b pb-2">Address</h2>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#05201a] mb-1">Country</label>
-                <select name="country" value={formData.country} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]">
-                  <option>Pakistan</option>
-                  <option>Afghanistan</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#05201a] mb-1">City</label>
-                <input type="text" name="city" value={formData.city} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" />
-              </div>
+        {/* Change Password */}
+        <div className="bg-white rounded-xl shadow-sm border border-[#DDE7E2] p-4">
+          <h2 className="text-lg font-bold text-[#00523a] mb-3">
+            {locale === 'ps' ? 'پټنوم بدلول' : locale === 'ur' ? 'پاس ورڈ تبدیل کریں' : 'Change Password'}
+          </h2>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-[#05201a] mb-1">
+                {locale === 'ps' ? 'اوسنی پټنوم' : 'Current Password'}
+              </label>
+              <input
+                type="password"
+                value={form.currentPassword}
+                onChange={e => setForm(p => ({ ...p, currentPassword: e.target.value }))}
+                className="w-full border border-[#DDE7E2] rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+                autoComplete="current-password"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#05201a] mb-1">Detailed Address</label>
-              <textarea name="address" value={formData.address} onChange={handleChange} rows={2} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]"></textarea>
+              <label className="block text-sm font-medium text-[#05201a] mb-1">
+                {locale === 'ps' ? 'نوی پټنوم' : 'New Password (min 6 characters)'}
+              </label>
+              <input
+                type="password"
+                value={form.newPassword}
+                onChange={e => setForm(p => ({ ...p, newPassword: e.target.value }))}
+                className="w-full border border-[#DDE7E2] rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+                autoComplete="new-password"
+                minLength={6}
+              />
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Emergency Contact */}
-        <section className="bg-white rounded-xl shadow-sm border border-[#DDE7E2] p-4">
-          <h2 className="text-lg font-bold text-[#00523a] mb-4 border-b pb-2">Emergency Contact</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#05201a] mb-1">Name</label>
-              <input type="text" name="emName" value={formData.emName} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#05201a] mb-1">Phone</label>
-                <input type="tel" name="emPhone" value={formData.emPhone} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#05201a] mb-1">Relationship</label>
-                <input type="text" name="emRel" value={formData.emRel} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" />
-              </div>
-            </div>
+        {saveMsg && (
+          <div className={`text-sm px-4 py-3 rounded-lg ${saveMsg.startsWith('Error') ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+            {saveMsg}
           </div>
-        </section>
+        )}
 
-        {/* Medical History */}
-        <section className="bg-white rounded-xl shadow-sm border border-[#DDE7E2] p-4">
-          <h2 className="text-lg font-bold text-[#00523a] mb-4 border-b pb-2">Medical Profile</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#05201a] mb-1">Allergies</label>
-              <input type="text" name="allergies" value={formData.allergies} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" placeholder="None" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#05201a] mb-1">Chronic Conditions</label>
-              <input type="text" name="chronic" value={formData.chronic} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" placeholder="None" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#05201a] mb-1">Current Medications</label>
-              <textarea name="medications" value={formData.medications} onChange={handleChange} rows={2} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" placeholder="List any current medications"></textarea>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#05201a] mb-1">Smoking</label>
-                <select name="smoking" value={formData.smoking} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]">
-                  <option>No</option>
-                  <option>Yes</option>
-                  <option>Former</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#05201a] mb-1">Pregnancy Status</label>
-                <select name="pregnancy" value={formData.pregnancy} onChange={handleChange} className="w-full border border-[#DDE7E2] rounded-md p-2 text-sm focus:outline-none focus:border-[#00523a]" disabled={formData.sex === 'Male'}>
-                  <option>N/A</option>
-                  <option>Not Pregnant</option>
-                  <option>Pregnant</option>
-                  <option>Nursing</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <button className="w-full bg-[#00523a] text-white font-bold py-3 rounded-xl hover:bg-[#006d4e] transition shadow-sm mb-4">
-          Save Profile
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full bg-[#00523a] text-white py-3 rounded-xl font-semibold hover:bg-[#006d4e] transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? (locale === 'ps' ? 'روان دی...' : 'Saving...') : (locale === 'ps' ? 'پروفایل خوندي کول' : locale === 'ur' ? 'محفوظ کریں' : 'Save Profile')}
         </button>
-      </div>
+      </form>
     </>
-  );
+  )
 }

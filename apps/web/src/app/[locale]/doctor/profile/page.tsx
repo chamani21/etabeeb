@@ -1,81 +1,181 @@
-'use client';
-import React from 'react';
+'use client'
 
-export default function DoctorProfile() {
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
+
+export default function DoctorProfilePage() {
+  const params = useParams()
+  const locale = (params?.locale as string) || 'ps'
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState('')
+  const [form, setForm] = useState({
+    displayName: '',
+    email: '',
+    specialty: '',
+    qualifications: '',
+    bio: '',
+    currentPassword: '',
+    newPassword: '',
+  })
+
+  useEffect(() => {
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then(data => {
+        setForm(prev => ({
+          ...prev,
+          displayName: data.user?.displayName || '',
+          email: data.user?.email || '',
+        }))
+        // Also try to get practitioner info from doctors endpoint
+        return fetch('/api/doctors/me')
+      })
+      .then(r => r?.ok ? r.json() : null)
+      .then(data => {
+        if (data?.doctor) {
+          setForm(prev => ({
+            ...prev,
+            specialty: data.doctor.specialty || '',
+            qualifications: data.doctor.qualifications || '',
+            bio: data.doctor.bio || '',
+          }))
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setSaveMsg('')
+    try {
+      const body: any = {
+        displayName: form.displayName,
+        email: form.email,
+      }
+      if (form.newPassword) {
+        body.currentPassword = form.currentPassword
+        body.newPassword = form.newPassword
+      }
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setSaveMsg('✓ Profile saved')
+        setForm(prev => ({ ...prev, currentPassword: '', newPassword: '' }))
+      } else {
+        setSaveMsg('Error: ' + (data.error || 'Failed to save'))
+      }
+    } catch {
+      setSaveMsg('Error saving profile')
+    } finally {
+      setSaving(false)
+      setTimeout(() => setSaveMsg(''), 4000)
+    }
+  }
+
+  if (loading) {
+    return <div className="text-center py-12"><div className="w-8 h-8 border-4 border-[#00523a] border-t-transparent rounded-full animate-spin mx-auto" /></div>
+  }
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-[#00523a] font-serif">Doctor Profile</h1>
+    <div className="space-y-6 max-w-2xl">
+      <h1 className="text-2xl font-bold text-[#00523a]">
+        {locale === 'ps' ? 'زما پروفایل' : 'My Profile'}
+      </h1>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b bg-gray-50">
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 overflow-hidden relative">
-              <span className="text-3xl">👤</span>
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer text-white text-xs font-semibold">
-                Upload
-              </div>
+      <form onSubmit={handleSave} className="space-y-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-800">
+            {locale === 'ps' ? 'اساسي معلومات' : 'Basic Information'}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <input
+                type="text"
+                value={form.displayName}
+                onChange={e => setForm(p => ({ ...p, displayName: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+              />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Dr. Ahmad</h2>
-              <p className="text-[#006d4e] font-medium">Cardiologist</p>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+                dir="ltr"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Specialty</label>
+            <input
+              type="text"
+              value={form.specialty}
+              readOnly
+              className="w-full border border-gray-100 rounded-lg p-2.5 text-sm bg-gray-50 text-gray-500"
+              placeholder="Set by administrator"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Qualifications</label>
+            <input
+              type="text"
+              value={form.qualifications}
+              readOnly
+              className="w-full border border-gray-100 rounded-lg p-2.5 text-sm bg-gray-50 text-gray-500"
+              placeholder="Set by administrator"
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-800">Change Password</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+              <input
+                type="password"
+                value={form.currentPassword}
+                onChange={e => setForm(p => ({ ...p, currentPassword: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+              <input
+                type="password"
+                value={form.newPassword}
+                onChange={e => setForm(p => ({ ...p, newPassword: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#00523a]"
+                minLength={6}
+              />
             </div>
           </div>
         </div>
 
-        <form className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name (English)</label>
-              <input type="text" className="w-full border rounded-md p-2 focus:ring-[#006d4e] focus:border-[#006d4e]" defaultValue="Dr. Ahmad" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name (Urdu)</label>
-              <input type="text" className="w-full border rounded-md p-2 focus:ring-[#006d4e] focus:border-[#006d4e]" defaultValue="ڈاکٹر احمد" dir="rtl" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name (Pashto)</label>
-              <input type="text" className="w-full border rounded-md p-2 focus:ring-[#006d4e] focus:border-[#006d4e]" defaultValue="ډاکټر احمد" dir="rtl" />
-            </div>
+        {saveMsg && (
+          <div className={`text-sm px-4 py-3 rounded-lg ${saveMsg.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+            {saveMsg}
           </div>
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Specialty</label>
-              <select className="w-full border rounded-md p-2 focus:ring-[#006d4e] focus:border-[#006d4e]">
-                <option>Cardiology</option>
-                <option>General Practice</option>
-                <option>Pediatrics</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Licence Number</label>
-              <input type="text" className="w-full border rounded-md p-2 focus:ring-[#006d4e] focus:border-[#006d4e]" defaultValue="AMC-12345" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Qualifications</label>
-            <input type="text" className="w-full border rounded-md p-2 focus:ring-[#006d4e] focus:border-[#006d4e]" defaultValue="MBBS, MD (Cardiology)" />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Consultation Fee (in AFN)</label>
-            <input type="number" className="w-full border rounded-md p-2 focus:ring-[#006d4e] focus:border-[#006d4e]" defaultValue="1000" />
-            <p className="text-xs text-gray-500 mt-1">Represented in integer minor units in DB, but displayed in AFN.</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Professional Bio</label>
-            <textarea rows={4} className="w-full border rounded-md p-2 focus:ring-[#006d4e] focus:border-[#006d4e]" defaultValue="Experienced cardiologist with over 10 years of practice..." />
-          </div>
-
-          <div className="flex justify-end pt-4 border-t">
-            <button type="button" className="bg-[#006d4e] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#00523a]">
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
+        <button
+          type="submit"
+          disabled={saving}
+          className="bg-[#00523a] text-white py-2.5 px-8 rounded-lg font-semibold hover:bg-[#006d4e] transition disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save Profile'}
+        </button>
+      </form>
     </div>
-  );
+  )
 }

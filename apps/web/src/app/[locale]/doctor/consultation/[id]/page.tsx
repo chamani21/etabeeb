@@ -409,8 +409,11 @@ export default function ConsultationPage() {
               type="number"
               min={1}
               max={365}
-              value={encounter.followUpDays || ''}
-              onChange={e => setEncounter(prev => ({ ...prev, followUpDays: parseInt(e.target.value) || undefined }))}
+              value={encounter.followUpDays ?? ''}
+              onChange={e => {
+                const val = parseInt(e.target.value)
+                setEncounter(prev => ({ ...prev, followUpDays: isNaN(val) ? 0 : val }))
+              }}
               disabled={encounter.status === 'signed'}
               className="border border-gray-200 rounded-lg p-2 text-sm w-32 focus:outline-none focus:border-[#00523a] disabled:bg-gray-50"
               placeholder="e.g. 7"
