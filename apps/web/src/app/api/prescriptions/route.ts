@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { db } from '@etabeeb/db'
+import { prescriptions, prescriptionItems, practitioners } from '@etabeeb/db/schema'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { eq, desc } from 'drizzle-orm'
+import { randomUUID } from 'crypto'
 
 const prescriptionItemSchema = z.object({
   genericName: z.string().min(1),
@@ -28,8 +34,6 @@ const createPrescriptionSchema = z.object({
 // POST /api/prescriptions — Create or finalize a prescription
 export async function POST(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
@@ -52,9 +56,6 @@ export async function POST(req: NextRequest) {
     }
 
     const { encounterId, appointmentId, patientUserId, items, finalize } = parsed.data
-    const { db } = await import('@etabeeb/db')
-    const { prescriptions, prescriptionItems } = await import('@etabeeb/db/schema')
-    const { randomUUID } = await import('crypto')
 
     const verificationToken = randomUUID().replace(/-/g, '').substring(0, 16).toUpperCase()
 
@@ -73,30 +74,40 @@ export async function POST(req: NextRequest) {
           signedBy: finalize ? session.user.id : null,
         })
         .returning()
+        
+      if (!prescription) {
+        throw new Error('Failed to insert prescription')
+      }
 
       // Create prescription items
-      for (let i = 0; i < items.length; i++) {
+      let sortOrder = 0;
+      for (const item of items) {
+        if (!item) continue;
         await tx.insert(prescriptionItems).values({
           prescriptionId: prescription.id,
-          genericName: items[i].genericName,
-          strength: items[i].strength || null,
-          formulation: items[i].formulation || null,
-          route: items[i].route || null,
-          dose: items[i].dose,
-          frequency: items[i].frequency,
-          timing: items[i].timing || null,
-          durationDays: items[i].durationDays || null,
-          quantity: items[i].quantity || null,
-          indication: items[i].indication || null,
-          substitutionAllowed: items[i].substitutionAllowed,
-          patientInstructions: items[i].patientInstructions || null,
-          isControlled: items[i].isControlled,
-          sortOrder: i,
+          genericName: item.genericName,
+          strength: item.strength || null,
+          formulation: item.formulation || null,
+          route: item.route || null,
+          dose: item.dose,
+          frequency: item.frequency,
+          timing: item.timing || null,
+          durationDays: item.durationDays || null,
+          quantity: item.quantity || null,
+          indication: item.indication || null,
+          substitutionAllowed: item.substitutionAllowed,
+          patientInstructions: item.patientInstructions || null,
+          isControlled: item.isControlled,
+          sortOrder: sortOrder++,
         })
       }
 
       return prescription
     })
+
+    if (!result) {
+      return NextResponse.json({ error: 'Failed to create prescription' }, { status: 500 })
+    }
 
     // TODO: Generate PDF if finalized
     // TODO: Send WhatsApp/email notification to patient
@@ -125,17 +136,11 @@ export async function POST(req: NextRequest) {
 // GET /api/prescriptions — List prescriptions for current user
 export async function GET(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const { db } = await import('@etabeeb/db')
-    const { prescriptions, prescriptionItems, practitioners } = await import('@etabeeb/db/schema')
-    const { eq, desc } = await import('drizzle-orm')
 
     const role = session.user.role
 

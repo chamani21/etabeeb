@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@etabeeb/db'
+import { users, practitioners, userRoles, roles } from '@etabeeb/db/schema'
+import { eq, and } from 'drizzle-orm'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { hash } from 'bcryptjs'
 
 // GET /api/doctors — List published doctors
 export async function GET(req: NextRequest) {
   try {
-    const { db } = await import('@etabeeb/db')
-    const { practitioners } = await import('@etabeeb/db/schema')
-    const { eq, and } = await import('drizzle-orm')
-
     const url = new URL(req.url)
     const specialty = url.searchParams.get('specialty')
     const all = url.searchParams.get('all') === 'true' // admin: show all including unpublished
@@ -55,8 +57,6 @@ export async function GET(req: NextRequest) {
 // POST /api/doctors — Create doctor (admin only)
 export async function POST(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id || session.user.role !== 'administrator') {
@@ -64,11 +64,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { db } = await import('@etabeeb/db')
-    const { users, practitioners, userRoles, roles } = await import('@etabeeb/db/schema')
-    const { eq } = await import('drizzle-orm')
-    const { hash } = await import('bcryptjs')
-
+    
     // Create user account for doctor
     const passwordHash = await hash(body.password || 'changeme123', 12)
 
@@ -84,6 +80,8 @@ export async function POST(req: NextRequest) {
           preferredLocale: 'ps',
         })
         .returning()
+
+      if (!user) throw new Error('Failed to create user')
 
       // Create practitioner
       const [practitioner] = await tx
@@ -104,6 +102,8 @@ export async function POST(req: NextRequest) {
           createdBy: session.user.id,
         })
         .returning()
+        
+      if (!practitioner) throw new Error('Failed to create practitioner')
 
       // Assign practitioner role
       const [practRole] = await tx
@@ -122,6 +122,10 @@ export async function POST(req: NextRequest) {
 
       return { user, practitioner }
     })
+
+    if (!result?.practitioner) {
+      throw new Error('Transaction failed')
+    }
 
     return NextResponse.json(
       { success: true, doctor: { id: result.practitioner.publicId } },

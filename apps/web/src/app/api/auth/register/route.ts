@@ -32,22 +32,30 @@ export async function POST(req: Request) {
     const passwordHash = await bcryptjs.hash(password, 10)
 
     const newUser = await db.transaction(async (tx) => {
-      const [user] = await tx.insert(users).values({
+      const inserted = await tx.insert(users).values({
         phoneE164: phone,
         passwordHash,
         displayName,
         email: email || null,
       }).returning()
+      
+      const user = inserted[0]
+      if (!user) throw new Error('Failed to create user')
 
       await tx.insert(patients).values({
         userId: user.id,
+        givenName: displayName.split(' ')[0] || displayName,
+        familyName: displayName.split(' ').slice(1).join(' ') || null,
       })
 
-      const [patientRole] = await tx.select().from(roles).where(eq(roles.name, 'patient'))
+      // Get or create patient role
+      const existingRole = await tx.select().from(roles).where(eq(roles.name, 'patient'))
+      let roleId = existingRole[0]?.id
       
-      let roleId = patientRole?.id
       if (!roleId) {
-        const [newRole] = await tx.insert(roles).values({ name: 'patient' }).returning()
+        const newRoles = await tx.insert(roles).values({ name: 'patient' as any }).returning()
+        const newRole = newRoles[0]
+        if (!newRole) throw new Error('Failed to create role')
         roleId = newRole.id
       }
 

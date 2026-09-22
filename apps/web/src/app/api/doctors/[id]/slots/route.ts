@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { db } from '@etabeeb/db'
+import { practitioners, availabilityRules, availabilityExceptions, appointments } from '@etabeeb/db/schema'
+import { eq, and, gte, lt, or } from 'drizzle-orm'
 
 // GET /api/doctors/[id]/slots?date=2026-09-22 — Get available slots for a doctor
 export async function GET(
@@ -24,10 +27,6 @@ export async function GET(
         { status: 400 }
       )
     }
-
-    const { db } = await import('@etabeeb/db')
-    const { practitioners, availabilityRules, availabilityExceptions, appointments } = await import('@etabeeb/db/schema')
-    const { eq, and, gte, lt, or } = await import('drizzle-orm')
 
     // Get practitioner
     const [practitioner] = await db
@@ -101,8 +100,13 @@ export async function GET(
     }> = []
 
     for (const rule of rules) {
-      const [startHour, startMin] = rule.slotStartTime.split(':').map(Number)
-      const [endHour, endMin] = rule.slotEndTime.split(':').map(Number)
+      const partsStart = rule.slotStartTime.split(':').map(Number)
+      const startHour = partsStart[0] ?? 0
+      const startMin = partsStart[1] ?? 0
+      
+      const partsEnd = rule.slotEndTime.split(':').map(Number)
+      const endHour = partsEnd[0] ?? 0
+      const endMin = partsEnd[1] ?? 0
 
       const ruleStart = new Date(targetDate)
       ruleStart.setUTCHours(startHour, startMin, 0, 0)
@@ -110,8 +114,8 @@ export async function GET(
       const ruleEnd = new Date(targetDate)
       ruleEnd.setUTCHours(endHour, endMin, 0, 0)
 
-      const slotDuration = rule.slotDurationMinutes
-      const buffer = rule.bufferMinutes
+      const slotDuration = rule.slotDurationMinutes || 15
+      const buffer = rule.bufferMinutes || 0
 
       let current = new Date(ruleStart)
       while (current < ruleEnd) {
@@ -159,6 +163,7 @@ export async function GET(
       const slotEnd = new Date(slot.end).getTime()
 
       for (const booked of bookedAppointments) {
+        if (!booked.slotStart || !booked.slotEnd) continue
         const bookedStart = new Date(booked.slotStart).getTime()
         const bookedEnd = new Date(booked.slotEnd).getTime()
 

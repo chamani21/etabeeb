@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { db } from '@etabeeb/db'
+import { practitioners, availabilityRules, availabilityExceptions } from '@etabeeb/db/schema'
+import { eq } from 'drizzle-orm'
 
 const scheduleRuleSchema = z.object({
   dayOfWeek: z.number().int().min(0).max(6),
@@ -17,22 +22,14 @@ const leaveSchema = z.object({
   isAvailable: z.boolean().default(false),
 })
 
-// GET /api/schedule — Get current doctor's schedule
+// GET /api/schedule
 export async function GET(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
     const session = await getServerSession(authOptions)
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { db } = await import('@etabeeb/db')
-    const { practitioners, availabilityRules, availabilityExceptions } = await import('@etabeeb/db/schema')
-    const { eq } = await import('drizzle-orm')
-
-    // Get practitioner
     const [practitioner] = await db
       .select()
       .from(practitioners)
@@ -43,13 +40,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Not a doctor' }, { status: 403 })
     }
 
-    // Get rules
     const rules = await db
       .select()
       .from(availabilityRules)
       .where(eq(availabilityRules.practitionerId, practitioner.id))
 
-    // Get exceptions (upcoming)
     const exceptions = await db
       .select()
       .from(availabilityExceptions)
@@ -66,62 +61,15 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/schedule — Add availability rule
+// POST /api/schedule
 export async function POST(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
     const session = await getServerSession(authOptions)
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await req.json()
-
-    // Handle leave dates
-    if (body.type === 'leave') {
-      const parsed = leaveSchema.safeParse(body)
-      if (!parsed.success) {
-        return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
-      }
-
-      const { db } = await import('@etabeeb/db')
-      const { practitioners, availabilityExceptions } = await import('@etabeeb/db/schema')
-      const { eq } = await import('drizzle-orm')
-
-      const [practitioner] = await db
-        .select()
-        .from(practitioners)
-        .where(eq(practitioners.userId, session.user.id))
-        .limit(1)
-
-      if (!practitioner) {
-        return NextResponse.json({ error: 'Not a doctor' }, { status: 403 })
-      }
-
-      const [exception] = await db
-        .insert(availabilityExceptions)
-        .values({
-          practitionerId: practitioner.id,
-          exceptionDate: new Date(parsed.data.exceptionDate),
-          reason: parsed.data.reason || null,
-          isAvailable: parsed.data.isAvailable,
-        })
-        .returning()
-
-      return NextResponse.json({ success: true, exception }, { status: 201 })
-    }
-
-    // Handle schedule rule
-    const parsed = scheduleRuleSchema.safeParse(body)
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
-    }
-
-    const { db } = await import('@etabeeb/db')
-    const { practitioners, availabilityRules } = await import('@etabeeb/db/schema')
-    const { eq } = await import('drizzle-orm')
 
     const [practitioner] = await db
       .select()
@@ -133,7 +81,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not a doctor' }, { status: 403 })
     }
 
-    const [rule] = await db
+    // Handle leave dates
+    if (body.type === 'leave') {
+      const parsed = leaveSchema.safeParse(body)
+      if (!parsed.success) {
+        return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
+      }
+
+      const inserted = await db
+        .insert(availabilityExceptions)
+        .values({
+          practitionerId: practitioner.id,
+          exceptionDate: new Date(parsed.data.exceptionDate),
+          reason: parsed.data.reason || null,
+          isAvailable: parsed.data.isAvailable,
+        })
+        .returning()
+
+      const exception = inserted[0]
+      return NextResponse.json({ success: true, exception }, { status: 201 })
+    }
+
+    // Handle schedule rule
+    const parsed = scheduleRuleSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
+    }
+
+    const inserted = await db
       .insert(availabilityRules)
       .values({
         practitionerId: practitioner.id,
@@ -141,6 +116,7 @@ export async function POST(req: NextRequest) {
       })
       .returning()
 
+    const rule = inserted[0]
     return NextResponse.json({ success: true, rule }, { status: 201 })
   } catch (error) {
     console.error('Schedule update error:', error)

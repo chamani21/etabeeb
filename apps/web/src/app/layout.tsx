@@ -38,7 +38,6 @@ export const metadata: Metadata = {
     template: '%s | ای طبیب',
   },
   description: 'ای طبیب — د آنلاین طبي مشورې پلیټفارم | Kozhak Specialist Clinic',
-  themeColor: '#004128',
   manifest: '/manifest.json',
   robots: {
     index: true,
@@ -53,6 +52,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <Providers>{children}</Providers>
+    <html
+      lang="ps"
+      dir="rtl"
+      className={`${inter.variable} ${notoNaskhArabic.variable} ${notoNastaliqUrdu.variable} ${notoSerif.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="bg-surface text-on-surface font-sans antialiased">
+        <Providers>{children}</Providers>
+      </body>
+    </html>
   )
 }

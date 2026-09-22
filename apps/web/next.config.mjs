@@ -63,10 +63,8 @@ const nextConfig = {
     domains: [],
   },
 
-  // Experimental
-  experimental: {
-    typedRoutes: true,
-  },
+  // Experimental — removed typedRoutes because portal layouts use dynamic href arrays
+  experimental: {},
 }
 
 export default withNextIntl(nextConfig)

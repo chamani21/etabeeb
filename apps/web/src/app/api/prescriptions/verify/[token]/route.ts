@@ -1,44 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@etabeeb/db'
+import { prescriptions, prescriptionItems, prescriptionVerifications, users } from '@etabeeb/db/schema'
+import { eq } from 'drizzle-orm'
 
 // GET /api/prescriptions/verify/[token] — Public prescription verification
-// This is the QR code endpoint — pharmacies scan to verify authenticity
 export async function GET(
   req: NextRequest,
   { params }: { params: { token: string } }
 ) {
   try {
-    const { db } = await import('@etabeeb/db')
-    const { prescriptions, prescriptionItems, prescriptionVerifications, practitioners, users } = await import('@etabeeb/db/schema')
-    const { eq } = await import('drizzle-orm')
-
-    // Find prescription by verification token
-    const [prescription] = await db
+    const results = await db
       .select()
       .from(prescriptions)
       .where(eq(prescriptions.verificationToken, params.token))
       .limit(1)
 
+    const prescription = results[0]
     if (!prescription) {
       return NextResponse.json(
-        {
-          verified: false,
-          error: 'Prescription not found or invalid verification code',
-        },
+        { verified: false, error: 'Prescription not found or invalid verification code' },
         { status: 404 }
       )
     }
 
     // Get prescriber info
-    const [prescriber] = await db
-      .select({
-        displayName: users.displayName,
-        phone: users.phoneE164,
-      })
+    const prescriberResults = await db
+      .select({ displayName: users.displayName, phone: users.phoneE164 })
       .from(users)
       .where(eq(users.id, prescription.prescribedBy))
       .limit(1)
 
-    // Get items (medications)
+    const prescriber = prescriberResults[0]
+
+    // Get items
     const items = await db
       .select()
       .from(prescriptionItems)
@@ -51,7 +45,6 @@ export async function GET(
       userAgent: req.headers.get('user-agent') || 'unknown',
     })
 
-    // Return SAFE verification data — NO full patient records
     return NextResponse.json({
       verified: true,
       prescription: {
@@ -60,9 +53,7 @@ export async function GET(
         prescribedAt: prescription.createdAt,
         signedAt: prescription.signedAt,
         expiresAt: prescription.expiresAt,
-        prescriber: {
-          name: prescriber?.displayName || 'Unknown',
-        },
+        prescriber: { name: prescriber?.displayName || 'Unknown' },
         medications: items.map(item => ({
           name: item.genericName,
           strength: item.strength,
@@ -72,15 +63,10 @@ export async function GET(
           substitutionAllowed: item.substitutionAllowed,
         })),
         documentHash: prescription.documentHash,
-        // NOTE: Patient name intentionally NOT included in public verification
-        // Pharmacy should verify identity in person
       },
     })
   } catch (error) {
     console.error('Prescription verification error:', error)
-    return NextResponse.json(
-      { error: 'Verification failed' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Verification failed' }, { status: 500 })
   }
 }

@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { db } from '@etabeeb/db'
+import { appointments, consultationRooms, roomParticipants, practitioners } from '@etabeeb/db/schema'
+import { eq, and } from 'drizzle-orm'
+import { AccessToken } from 'livekit-server-sdk'
 
 const joinRoomSchema = z.object({
   appointmentId: z.string().uuid(),
@@ -8,8 +14,6 @@ const joinRoomSchema = z.object({
 // POST /api/video/token — Get LiveKit token for a consultation room
 export async function POST(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
@@ -27,9 +31,6 @@ export async function POST(req: NextRequest) {
     }
 
     const { appointmentId } = parsed.data
-    const { db } = await import('@etabeeb/db')
-    const { appointments, consultationRooms, roomParticipants, practitioners } = await import('@etabeeb/db/schema')
-    const { eq, and } = await import('drizzle-orm')
 
     // Get appointment and verify authorization
     const [appointment] = await db
@@ -85,6 +86,10 @@ export async function POST(req: NextRequest) {
         .returning()
       room = newRoom
     }
+    
+    if (!room) {
+      return NextResponse.json({ error: 'Failed to create room' }, { status: 500 })
+    }
 
     // Register participant
     const participantRole = isDoctor ? 'practitioner' : 'patient'
@@ -107,7 +112,6 @@ export async function POST(req: NextRequest) {
 
     if (LIVEKIT_API_KEY && LIVEKIT_API_SECRET) {
       // Real LiveKit token generation
-      const { AccessToken } = await import('livekit-server-sdk')
       const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
         identity: session.user.id,
         name: session.user.displayName || session.user.phone || 'User',
@@ -139,7 +143,7 @@ export async function POST(req: NextRequest) {
       serverUrl: LIVEKIT_URL,
       participant: {
         identity: session.user.id,
-        name: session.user.displayName || 'User',
+        name: session.user.displayName || session.user.phone || 'User',
         role: participantRole,
       },
       demoMode: !LIVEKIT_API_KEY,

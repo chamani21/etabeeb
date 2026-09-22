@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { db } from '@etabeeb/db'
+import { vitals } from '@etabeeb/db/schema'
+import { eq, desc } from 'drizzle-orm'
 
 const vitalsSchema = z.object({
   patientId: z.string().uuid(),
@@ -18,25 +23,18 @@ const vitalsSchema = z.object({
   notes: z.string().optional(),
 })
 
-// POST /api/vitals — Record vitals
+// POST /api/vitals
 export async function POST(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
     const session = await getServerSession(authOptions)
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await req.json()
     const parsed = vitalsSchema.safeParse(body)
-
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid vitals data', details: parsed.error.flatten() },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid vitals data', details: parsed.error.flatten() }, { status: 400 })
     }
 
     const data = parsed.data
@@ -47,31 +45,29 @@ export async function POST(req: NextRequest) {
       bmi = parseFloat((data.weightKg / ((data.heightCm / 100) ** 2)).toFixed(1))
     }
 
-    const { db } = await import('@etabeeb/db')
-    const { vitals } = await import('@etabeeb/db/schema')
-
-    const [result] = await db
+    const inserted = await db
       .insert(vitals)
       .values({
         patientId: data.patientId,
         appointmentId: data.appointmentId || null,
         encounterId: data.encounterId || null,
-        systolicBp: data.systolicBp || null,
-        diastolicBp: data.diastolicBp || null,
-        heartRate: data.heartRate || null,
-        respiratoryRate: data.respiratoryRate || null,
-        temperatureCelsius: data.temperatureCelsius || null,
-        oxygenSaturation: data.oxygenSaturation || null,
-        weightKg: data.weightKg || null,
-        heightCm: data.heightCm || null,
+        systolicBp: data.systolicBp ?? null,
+        diastolicBp: data.diastolicBp ?? null,
+        heartRate: data.heartRate ?? null,
+        respiratoryRate: data.respiratoryRate ?? null,
+        temperatureCelsius: data.temperatureCelsius ?? null,
+        oxygenSaturation: data.oxygenSaturation ?? null,
+        weightKg: data.weightKg ?? null,
+        heightCm: data.heightCm ?? null,
         bmi,
-        bloodGlucose: data.bloodGlucose || null,
+        bloodGlucose: data.bloodGlucose ?? null,
         source: data.source,
         notes: data.notes || null,
         recordedBy: session.user.id,
       })
       .returning()
 
+    const result = inserted[0]
     return NextResponse.json({ success: true, vitals: result }, { status: 201 })
   } catch (error) {
     console.error('Vitals recording error:', error)
@@ -79,27 +75,19 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET /api/vitals?patientId=xxx — Get vitals history for a patient
+// GET /api/vitals
 export async function GET(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
     const session = await getServerSession(authOptions)
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const url = new URL(req.url)
     const patientId = url.searchParams.get('patientId')
-
     if (!patientId) {
       return NextResponse.json({ error: 'patientId is required' }, { status: 400 })
     }
-
-    const { db } = await import('@etabeeb/db')
-    const { vitals } = await import('@etabeeb/db/schema')
-    const { eq, desc } = await import('drizzle-orm')
 
     const results = await db
       .select()

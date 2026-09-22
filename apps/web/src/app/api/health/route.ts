@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { db } from '@etabeeb/db'
+import { sql } from 'drizzle-orm'
 
 // GET /api/health — Platform health check
 export async function GET() {
@@ -10,8 +12,7 @@ export async function GET() {
 
   // 2. Database
   try {
-    const { db } = await import('@etabeeb/db')
-    const result = await db.execute({ sql: 'SELECT 1 as health' })
+    const result = await db.execute(sql`SELECT 1 as health`)
     checks.database = { status: 'ok' }
   } catch (error: any) {
     checks.database = { status: 'error', message: error.message }

@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { db } from '@etabeeb/db'
+import { auditEvents } from '@etabeeb/db/schema'
+import { desc, eq, and, gte, lte } from 'drizzle-orm'
 
-// GET /api/admin/audit — Get audit log (admin only)
+// GET /api/admin/audit
 export async function GET(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
     const session = await getServerSession(authOptions)
-
     if (!session?.user?.id || session.user.role !== 'administrator') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
-
-    const { db } = await import('@etabeeb/db')
-    const { auditEvents, users } = await import('@etabeeb/db/schema')
-    const { desc, eq, and, gte, lte } = await import('drizzle-orm')
 
     const url = new URL(req.url)
     const action = url.searchParams.get('action')

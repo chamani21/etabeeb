@@ -66,6 +66,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.publicId = (user as any).publicId
         token.phone = (user as any).phone
+        token.displayName = (user as any).displayName || ''
         token.role = (user as any).role
         token.locale = (user as any).locale
       }
@@ -76,6 +77,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.publicId = token.publicId as string
         session.user.phone = token.phone as string
+        session.user.displayName = token.displayName as string
         session.user.role = token.role as string
         session.user.locale = token.locale as string
       }
