@@ -97,6 +97,10 @@ export async function POST(req: NextRequest) {
       scanStatus: 'clean', // In production, integrate with ClamAV or similar
     }).returning()
 
+    if (!record) {
+      return NextResponse.json({ error: 'Upload failed to save' }, { status: 500 })
+    }
+
     return NextResponse.json({
       success: true,
       file: {
