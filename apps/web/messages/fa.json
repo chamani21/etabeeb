@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "title": "ای طبیب — مشاوره طبی آنلاین",
+    "description": "پلتفرم مشاوره طبی آنلاین — کلینیک متخصص کوژک، چمن [MACHINE_TRANSLATED — AWAITING NATIVE REVIEW]"
+  },
+  "home": {
+    "title": "ای طبیب",
+    "subtitle": "مشاوره طبی آنلاین با متخصصان تأییدشده [MACHINE_TRANSLATED — AWAITING NATIVE REVIEW]"
+  },
+  "nav": {
+    "home": "خانه",
+    "doctors": "پزشکان",
+    "services": "خدمات",
+    "howItWorks": "نحوه کار",
+    "bookAppointment": "نوبت بگیرید",
+    "login": "ورود",
+    "portal": "پورتال"
+  },
+  "booking": {
+    "title": "نوبت بگیرید",
+    "selectService": "خدمت را انتخاب کنید",
+    "selectDoctor": "پزشک را انتخاب کنید",
+    "selectDateTime": "تاریخ و زمان",
+    "patientInfo": "اطلاعات بیمار",
+    "intake": "اطلاعات سلامتی",
+    "fee": "حق مشاوره",
+    "consent": "رضایت شما",
+    "confirm": "تأیید کنید",
+    "emergencyWarning": "اگر وضعیت شما اورژانسی است، فوراً به نزدیکترین بیمارستان مراجعه کنید. [MACHINE_TRANSLATED — AWAITING CLINICAL REVIEW]"
+  },
+  "errors": {
+    "generic": "مشکلی پیش آمد. دوباره تلاش کنید.",
+    "network": "خطای شبکه. اتصال خود را بررسی کنید.",
+    "sessionExpired": "نشست شما منقضی شد. دوباره وارد شوید.",
+    "unauthorized": "شما مجاز به مشاهده این صفحه نیستید."
+  }
+}

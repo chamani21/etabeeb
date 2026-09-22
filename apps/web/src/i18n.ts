@@ -24,7 +24,7 @@ export default getRequestConfig(async ({ locale }) => {
   if (!locales.includes(locale as Locale)) notFound()
 
   return {
-    messages: (await import(`../messages/${locale}.json`)).default,
+    messages: (await import(`../../../messages/${locale}.json`)).default,
     timeZone: localeTimezones[locale as Locale],
     // Kabul is UTC+4:30, Karachi is UTC+5 — 30 min difference
     // All timestamps stored in UTC; displayed per locale timezone

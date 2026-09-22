@@ -34,6 +34,7 @@ export const users = pgTable(
     publicId: uuid('public_id').notNull().unique().defaultRandom(),
     phoneE164: text('phone_e164').notNull().unique(), // +92... or +93... normalized
     phoneVerifiedAt: timestamp('phone_verified_at', { withTimezone: true }),
+    passwordHash: text('password_hash'),
     email: text('email').unique(),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     displayName: text('display_name'),

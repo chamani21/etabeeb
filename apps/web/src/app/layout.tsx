@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Noto_Naskh_Arabic, Noto_Nastaliq_Urdu, Noto_Serif } from 'next/font/google'
 import './globals.css'
+import { Providers } from '../components/providers'
 
 // Self-hosted via next/font (no CDN dependency for low-bandwidth regions)
 const inter = Inter({
@@ -52,14 +53,6 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html
-      lang="ps"
-      dir="rtl"
-      className={`${inter.variable} ${notoNaskhArabic.variable} ${notoNastaliqUrdu.variable} ${notoSerif.variable}`}
-    >
-      <body className="bg-surface text-on-surface font-naskh antialiased">
-        {children}
-      </body>
-    </html>
+    <Providers>{children}</Providers>
   )
 }

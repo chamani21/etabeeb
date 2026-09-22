@@ -1,687 +1,590 @@
-<!DOCTYPE html>
-<html dir="rtl" lang="ps">
-<head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>ای طبیب — آنلاین طبي مشوره | eTabeeb Telemedicine</title>
-  <meta name="description" content="د آنلاین طبي مشورې پلیټفارم — کوژک اسپیشلسټ کلینک، چمن">
-  <meta name="theme-color" content="#004f45">
-  <link rel="icon" href="/etabeeb-logo.png" type="image/png">
-  <link rel="apple-touch-icon" href="/etabeeb-logo.png">
-  <link href="https://fonts.googleapis.com" rel="preconnect">
-  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&family=Noto+Serif:wght@600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-  <style>
-    @layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}
-    ::-webkit-scrollbar{display:none;}
-  </style>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-container": "#d7f4e9", "on-primary-container": "#94e5d5", "on-secondary-container": "#715000", "outline-variant": "#bec9c5", "status-busy": "#F59E0B", "card-surface": "#FFFFFF", "on-secondary-fixed-variant": "#5e4200", "surface-tint": "#046b5e", "tertiary-fixed": "#b5eee0", "secondary-container": "#fdc350", "secondary-fixed": "#ffdea7", "surface-container-high": "#d1efe3", "on-primary": "#ffffff", "surface-variant": "#cce9de", "secondary-fixed-dim": "#f7bd4b", "on-primary-fixed": "#00201b", "on-tertiary-fixed-variant": "#144f45", "error": "#ba1a1a", "surface-container-low": "#ddfaef", "secondary": "#7c5800", "surface-mint": "#F0F9F7", "surface-mint-subtle": "#E8F5F2", "primary": "#004f45", "on-secondary-fixed": "#271900", "on-background": "#052019", "inverse-surface": "#1c352e", "on-secondary": "#ffffff", "on-tertiary": "#ffffff", "surface-container-highest": "#cce9de", "surface": "#e6fff5", "on-primary-fixed-variant": "#005046", "surface-dim": "#c3e0d5", "on-surface": "#052019", "tertiary-container": "#2f665b", "text-muted": "#4D6961", "inverse-on-surface": "daf7ec", "surface-bright": "#e6fff5", "on-error": "#ffffff", "error-container": "#ffdad6", "background": "#e6fff5", "tertiary-fixed-dim": "#99d2c4", "on-tertiary-fixed": "#00201b", "primary-fixed-dim": "#84d5c5", "on-tertiary-container": "#a8e1d3", "border-subtle": "#D4E8E3", "inverse-primary": "#84d5c5", "on-error-container": "#93000a", "primary-fixed": "#a0f2e1", "primary-container": "#00695c", "on-surface-variant": "#3e4946", "status-available": "#10B981", "surface-container-lowest": "#ffffff", "outline": "#6e7976", "tertiary": "#124e44" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-xs": "0.375rem", "space-sm": "0.75rem", "space-md": "1.25rem", "gutter": "1.5rem", "margin": "2rem", "gutter-mobile": "1rem", "margin-mobile": "1rem", "space-lg": "2rem", "space-xl": "3.5rem" }, "fontFamily": { "label-lg": [ "Inter" ], "headline-md": [ "Noto Serif" ], "headline-xl": [ "Noto Serif" ], "label-md": [ "Inter" ], "headline-sm": [ "Noto Serif" ], "body-md": [ "Noto Sans" ], "body-sm": [ "Noto Sans" ], "display-hero-mobile": [ "Noto Serif" ], "headline-xl-mobile": [ "Noto Serif" ], "label-sm": [ "Inter" ], "headline-lg": [ "Noto Serif" ], "body-lg": [ "Noto Sans" ], "display-hero": [ "Noto Serif" ] }, "fontSize": { "label-lg": [ "15px", { "lineHeight": "1.4", "fontWeight": "600" } ], "headline-md": [ "20px", { "lineHeight": "1.6", "fontWeight": "600" } ], "headline-xl": [ "32px", { "lineHeight": "1.7", "fontWeight": "700" } ], "label-md": [ "13px", { "lineHeight": "1.4", "fontWeight": "500" } ], "headline-sm": [ "17px", { "lineHeight": "1.6", "fontWeight": "600" } ], "body-md": [ "16px", { "lineHeight": "1.8", "fontWeight": "400" } ], "body-sm": [ "14px", { "lineHeight": "1.75", "fontWeight": "400" } ], "display-hero-mobile": [ "30px", { "lineHeight": "1.6", "fontWeight": "700" } ], "headline-xl-mobile": [ "24px", { "lineHeight": "1.6", "fontWeight": "600" } ], "label-sm": [ "11px", { "lineHeight": "1.3", "letterSpacing": "0.04em", "fontWeight": "600" } ], "headline-lg": [ "24px", { "lineHeight": "1.7", "fontWeight": "600" } ], "body-lg": [ "18px", { "lineHeight": "1.85", "fontWeight": "400" } ], "display-hero": [ "44px", { "lineHeight": "1.7", "letterSpacing": "-0.01em", "fontWeight": "700" } ] } } } };</script>
-</head>
-<body class="bg-surface font-body-md text-body-md text-on-surface antialiased">
-
-<!-- HEADER -->
-<header class="fixed top-0 left-0 right-0 z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-  <div class="bg-primary text-on-primary py-space-xs px-gutter">
-    <div class="w-full flex flex-wrap items-center justify-between gap-space-xs font-label-sm text-label-sm">
-      <div class="flex items-center gap-space-xs">
-        <span class="material-symbols-outlined text-secondary-container">emergency</span>
-        <span>بېړنۍ اړیکه او تلپاتې طبي مشورې: له ۷:۰۰ سهار تر ۱۱:۰۰ شپې پورې فعال</span>
-      </div>
-      <div class="flex items-center gap-space-md">
-        <a class="flex items-center gap-space-xs hover:text-on-primary-container transition-colors" dir="ltr" href="tel:+923332357055">
-          <span class="material-symbols-outlined text-status-available">chat</span>
-          <span>0333 2357055</span>
-        </a>
-        <span class="text-on-primary-fixed-variant">|</span>
-        <span class="flex items-center gap-space-xs">
-          <span class="w-2 h-2 rounded-full bg-status-available"></span>
-          <span>ډاکټران انلاین دي</span>
-        </span>
-      </div>
-    </div>
-  </div>
-  <div class="h-20 bg-surface-container-lowest/90 backdrop-blur-xl px-gutter">
-    <div class="w-full h-full flex items-center justify-between gap-space-md">
-      <div class="flex items-center gap-space-md shrink-0">
-        <img alt="ای طبیب لوګو" class="h-8 w-auto object-contain" src="/etabeeb-logo.png" onerror="this.style.display='none'">
-        <div class="flex flex-col">
-          <span class="font-headline-md text-headline-md text-primary font-bold leading-none">ای طبیب</span>
-          <span class="font-label-sm text-label-sm text-text-muted mt-1">eTabeeb Telemedicine</span>
-        </div>
-      </div>
-      <nav class="hidden lg:flex items-center gap-space-xs">
-        <a aria-current="page" class="px-space-sm py-space-xs transition-colors bg-surface-container text-primary font-bold rounded-lg" href="/">سرپاڼه</a>
-        <a class="px-space-sm py-space-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md rounded-lg" href="/doctors">ډاکټران</a>
-        <a class="px-space-sm py-space-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md rounded-lg" href="/how-it-works">د کار طریقه</a>
-        <a class="px-space-sm py-space-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md rounded-lg" href="/book">نوبت واخلئ</a>
-        <a class="px-space-sm py-space-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md rounded-lg" href="/portal">د ناروغ پورټل</a>
-      </nav>
-      <div class="flex items-center gap-space-sm shrink-0">
-        <a class="hidden sm:inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-all shadow-[0_4px_14px_rgba(0,105,92,0.2)]" href="https://wa.me/923332357055" target="_blank">
-          <span class="material-symbols-outlined text-secondary-container">chat</span>
-          <span>وټساپ مشوره</span>
-        </a>
-        <a class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md hover:bg-secondary-fixed transition-all shadow-[0_4px_14px_rgba(224,169,56,0.35)]" href="/book">
-          <span class="material-symbols-outlined">event_available</span>
-          <span>نوبت واخلئ</span>
-        </a>
-        <a href="/portal" class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-          <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
-        </a>
-        <!-- Mobile menu button -->
-        <button onclick="toggleMobileMenu()" class="lg:hidden w-8 h-8 rounded-full bg-surface-container flex items-center justify-center">
-          <span class="material-symbols-outlined text-primary text-[18px]">menu</span>
-        </button>
-      </div>
-    </div>
-  </div>
-  <!-- Mobile Nav -->
-  <div id="mobileMenu" class="hidden lg:hidden bg-surface-container-lowest border-t border-surface-variant px-gutter py-space-sm">
-    <nav class="flex flex-col gap-1">
-      <a class="px-space-sm py-2 text-primary font-bold rounded-lg" href="/">سرپاڼه</a>
-      <a class="px-space-sm py-2 text-on-surface-variant rounded-lg" href="/doctors">ډاکټران</a>
-      <a class="px-space-sm py-2 text-on-surface-variant rounded-lg" href="/how-it-works">د کار طریقه</a>
-      <a class="px-space-sm py-2 text-on-surface-variant rounded-lg" href="/book">نوبت واخلئ</a>
-      <a class="px-space-sm py-2 text-on-surface-variant rounded-lg" href="/portal">د ناروغ پورټل</a>
-    </nav>
-  </div>
-</header>
-
-<main class="w-full pt-28 bg-surface">
-  <div class="flex flex-col w-full">
-
-    <!-- HERO SECTION -->
-    <section class="relative w-full overflow-hidden bg-gradient-to-b from-primary/95 via-primary to-surface-mint pt-12 pb-24 text-on-primary">
-      <div class="pointer-events-none absolute -top-32 -left-20 h-96 w-96 rounded-full bg-secondary-container/15 blur-3xl"></div>
-      <div class="pointer-events-none absolute top-1/3 -right-24 h-[32rem] w-[32rem] rounded-full bg-surface-mint-subtle/10 blur-3xl"></div>
-      <div class="mx-auto max-w-6xl px-gutter">
-        <div class="flex flex-col items-center justify-center text-center">
-          <div class="relative mb-6 flex items-center justify-center">
-            <div class="absolute inset-0 scale-125 rounded-full bg-surface-container-lowest/15 blur-md"></div>
-            <div class="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-surface-container-lowest/10 p-3 shadow-xl backdrop-blur-md">
-              <img alt="ای طبیب لوګو" class="h-full w-full object-contain filter drop-shadow" src="/etabeeb-logo.png" onerror="this.style.display='none'">
-            </div>
-          </div>
-          <div class="mb-5 inline-flex items-center gap-space-xs rounded-full bg-surface-container-lowest/15 px-space-md py-1.5 backdrop-blur-sm">
-            <span class="inline-block h-2.5 w-2.5 rounded-full bg-status-available animate-pulse"></span>
-            <span class="font-label-md text-label-md text-secondary-fixed">د افغانستان او سیمې باوري آنلاین کلینیک</span>
-            <span class="mx-1 text-surface-variant/40">|</span>
-            <span class="font-label-sm text-label-sm text-surface-variant">د عامې روغتیا له معیارونو سره سم</span>
-          </div>
-          <h1 class="font-display-hero text-display-hero max-w-4xl text-on-primary drop-shadow-sm leading-tight">
-            ای طبیب — د آنلاین طبي مشورې باوري پلټفارم
-          </h1>
-          <p class="font-body-lg text-body-lg mt-4 max-w-2xl text-surface-container-high leading-relaxed">
-            له خپل کوره د تجربه لرونکو او متخصصو ډاکټرانو سره د انټرنیټ له لارې مشوره وکړئ. اسانه، چټکه، مسلکي او مطمئنه.
-          </p>
-          <div class="mt-8 flex flex-wrap items-center justify-center gap-space-md">
-            <a class="group relative inline-flex items-center gap-space-xs rounded-full bg-secondary-container px-space-xl py-3.5 font-label-lg text-label-lg text-on-secondary-container shadow-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-secondary-fixed hover:shadow-2xl" href="/book">
-              <span class="material-symbols-outlined transition-transform duration-200 group-hover:rotate-6" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
-              <span class="font-bold">نوبت واخلئ</span>
-            </a>
-            <a class="inline-flex items-center gap-space-xs rounded-full bg-surface-container-lowest/15 px-space-lg py-3.5 font-label-lg text-label-lg text-on-primary backdrop-blur-md shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container-lowest/25" href="https://wa.me/923332357055" target="_blank">
-              <span class="material-symbols-outlined text-status-available">chat</span>
-              <span>د وټساپ له لارې اړیکه</span>
-              <bdi class="font-label-sm text-label-sm text-secondary-fixed font-semibold opacity-90" dir="ltr">0333 2357055</bdi>
-            </a>
-          </div>
-          <!-- Stats Grid -->
-          <div class="mt-14 grid w-full grid-cols-2 gap-space-sm sm:grid-cols-4 max-w-5xl">
-            <div class="flex items-center justify-center gap-space-sm rounded-xl bg-surface-container-lowest/10 p-space-sm backdrop-blur-md">
-              <span class="material-symbols-outlined text-secondary-fixed text-3xl">schedule</span>
-              <div class="text-right">
-                <span class="block font-label-md text-label-md font-bold text-on-primary">۲۴/۷ شتون</span>
-                <span class="font-label-sm text-label-sm text-surface-variant">تلپاتې بېړنی خدمت</span>
-              </div>
-            </div>
-            <div class="flex items-center justify-center gap-space-sm rounded-xl bg-surface-container-lowest/10 p-space-sm backdrop-blur-md">
-              <span class="material-symbols-outlined text-status-available text-3xl">verified_user</span>
-              <div class="text-right">
-                <span class="block font-label-md text-label-md font-bold text-on-primary">۱۰۰٪ محرم</span>
-                <span class="font-label-sm text-label-sm text-surface-variant">خوندي طبي ریکارډ</span>
-              </div>
-            </div>
-            <div class="flex items-center justify-center gap-space-sm rounded-xl bg-surface-container-lowest/10 p-space-sm backdrop-blur-md">
-              <span class="material-symbols-outlined text-secondary-container text-3xl">clinical_notes</span>
-              <div class="text-right">
-                <span class="block font-label-md text-label-md font-bold text-on-primary">ډیجیټل نسخه</span>
-                <span class="font-label-sm text-label-sm text-surface-variant">معتبر طبي تشخیص</span>
-              </div>
-            </div>
-            <div class="flex items-center justify-center gap-space-sm rounded-xl bg-surface-container-lowest/10 p-space-sm backdrop-blur-md">
-              <span class="material-symbols-outlined text-tertiary-fixed text-3xl">video_call</span>
-              <div class="text-right">
-                <span class="block font-label-md text-label-md font-bold text-on-primary">HD اړیکه</span>
-                <span class="font-label-sm text-label-sm text-surface-variant">ویډیو او غږیزه مشوره</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- LIVE TICKER -->
-    <div class="w-full bg-surface-container-high py-2 px-gutter">
-      <div class="mx-auto flex max-w-6xl items-center justify-between text-on-surface">
-        <div class="flex items-center gap-2">
-          <span class="inline-block h-2 w-2 rounded-full bg-status-available animate-ping"></span>
-          <span class="font-label-sm text-label-sm font-semibold text-primary">همدا اوس ۲ تنه متخصص ډاکټران آنلاین او لیدنې ته چمتو دي</span>
-        </div>
-        <div class="hidden sm:flex items-center gap-space-xs font-label-sm text-label-sm text-text-muted">
-          <span class="material-symbols-outlined text-base">support_agent</span>
-          <span>د اړتیا په صورت کې مستقیم زموږ د منسجم ملاتړ ټیم سره چټ کړئ</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- WHY ETABEEB -->
-    <section class="w-full py-space-xl bg-surface">
-      <div class="mx-auto max-w-6xl px-gutter">
-        <div class="mb-space-lg text-center">
-          <span class="font-label-md text-label-md font-bold text-secondary tracking-wide uppercase">ستاسو غوره انتخاب</span>
-          <h2 class="font-headline-xl text-headline-xl mt-1 text-primary">ولې ای طبیب؟</h2>
-          <p class="font-body-md text-body-md mx-auto mt-2 max-w-xl text-text-muted">
-            موږ د طبي اسانتیاوو، ډیجیټل سرعت او روغتیایي محرمیت نوې تجربه ستاسو تر کوره راوړې ده.
-          </p>
-        </div>
-        <div class="grid grid-cols-1 gap-space-md md:grid-cols-3">
-          <div class="group relative rounded-2xl bg-card-surface p-space-lg shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
-            <div class="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-mint text-primary transition-colors group-hover:bg-primary group-hover:text-on-primary">
-              <span class="material-symbols-outlined text-3xl">video_chat</span>
-            </div>
-            <h3 class="font-headline-md text-headline-md font-bold text-primary">آنلاین مشوره</h3>
-            <p class="font-body-md text-body-md mt-2 text-text-muted leading-relaxed">
-              د ویډیو یا واټساپ له لارې د ډاکټر سره مخامخ او ډاډمنه خبرې اترې وکړئ؛ له کوره د وتلو پرته خپل تشخیص ترلاسه کړئ.
-            </p>
-          </div>
-          <div class="group relative rounded-2xl bg-card-surface p-space-lg shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
-            <div class="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-mint text-primary transition-colors group-hover:bg-primary group-hover:text-on-primary">
-              <span class="material-symbols-outlined text-3xl">shield</span>
-            </div>
-            <h3 class="font-headline-md text-headline-md font-bold text-primary">مطمئنه او خصوصي</h3>
-            <p class="font-body-md text-body-md mt-2 text-text-muted leading-relaxed">
-              ستاسو روغتیایي معلومات او طبي ریکارډونه ۱۰۰٪ خوندي او محرم دي — هیڅ معلومات له ډاکټر پرته بل چا سره نه شریک کیږي.
-            </p>
-          </div>
-          <div class="group relative rounded-2xl bg-card-surface p-space-lg shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
-            <div class="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-mint text-primary transition-colors group-hover:bg-primary group-hover:text-on-primary">
-              <span class="material-symbols-outlined text-3xl">history_toggle_off</span>
-            </div>
-            <h3 class="font-headline-md text-headline-md font-bold text-primary">۲۴/۷ شتون او چمتووالی</h3>
-            <p class="font-body-md text-body-md mt-2 text-text-muted leading-relaxed">
-              هر وخت او هر ځای چې یاست، تاسو کولی شئ نوبت واخلئ او زموږ طبي ټیم ستاسو د عاجلو پوښتنو ځواب ته تل چمتو دی.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- DOCTORS SECTION -->
-    <section class="w-full bg-surface-mint py-space-xl">
-      <div class="mx-auto max-w-6xl px-gutter">
-        <div class="flex flex-col md:flex-row md:items-end justify-between mb-space-lg gap-space-sm">
-          <div>
-            <div class="inline-flex items-center gap-1 text-secondary font-label-md text-label-md font-bold">
-              <span class="material-symbols-outlined text-base">verified</span>
-              <span>تصدیق شوي او مسلکي کارکوونکي</span>
-            </div>
-            <h2 class="font-headline-xl text-headline-xl mt-1 text-primary">زموږ معتبر ډاکټران</h2>
-            <p class="font-body-md text-body-md mt-1 text-text-muted">
-              د تجربه لرونکو ډاکټرانو سره مستقیمه طبي مشوره وکړئ او د اړتیا پر وخت معتبره نسخه واخلئ.
-            </p>
-          </div>
-          <div class="shrink-0">
-            <a class="inline-flex items-center gap-space-xs rounded-full bg-card-surface px-space-md py-2.5 font-label-md text-label-md font-bold text-primary shadow-sm hover:shadow-md transition-all" href="/doctors">
-              <span>ټول ډاکټران وګورئ</span>
-              <span class="material-symbols-outlined text-base">west</span>
-            </a>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 gap-space-md md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
-
-          <!-- Dr Jalaluddin -->
-          <div class="flex flex-col justify-between rounded-2xl bg-card-surface p-space-md shadow-md transition-all duration-300 hover:shadow-xl">
-            <div>
-              <div class="relative mb-4 flex items-center justify-between">
-                <div class="relative">
-                  <img class="h-20 w-20 rounded-2xl object-cover shadow-inner" src="/doctors/dr-jalaluddin/dr-jalaluddin__headshot-white-coat-01.png" alt="ډاکټر جلال الدین">
-                  <span class="absolute -bottom-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full bg-card-surface shadow-sm">
-                    <span class="h-3 w-3 rounded-full bg-status-available"></span>
-                  </span>
-                </div>
-                <div class="flex flex-col items-end gap-1">
-                  <span class="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2.5 py-0.5 font-label-sm text-label-sm font-semibold text-primary">
-                    <span class="material-symbols-outlined text-xs">verified</span><span>تایید شوی</span>
-                  </span>
-                  <span class="font-label-sm text-label-sm text-text-muted">۱۵+ کاله تجربه</span>
-                </div>
-              </div>
-              <div class="border-b border-surface-variant/40 pb-4">
-                <h3 class="font-headline-md text-headline-md font-bold text-primary">ډاکټر جلال الدین</h3>
-                <p class="font-label-md text-label-md font-medium text-secondary">عمومي او باطني متخصص ډاکټر</p>
-                <p class="font-label-sm text-label-sm mt-0.5 text-text-muted" dir="ltr">Dr. Jalal-ud-Din — Internal Medicine</p>
-                <div class="mt-3 flex items-center gap-1 text-secondary-container">
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star_half</span>
-                  <span class="font-label-sm text-label-sm text-on-surface font-bold mr-1">۴.۹</span>
-                  <span class="font-label-sm text-label-sm text-text-muted">(۱۲۰+ کتنې)</span>
-                </div>
-              </div>
-              <div class="pt-3">
-                <div class="flex items-center justify-between text-text-muted font-body-sm text-body-sm mb-2">
-                  <span>د آنلاین کتنې فیس:</span>
-                  <span class="font-bold text-primary">۳۰۰ افغانۍ</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center gap-1 text-text-muted font-label-sm text-label-sm bg-surface-mint px-2 py-1 rounded">
-                    <span class="material-symbols-outlined text-xs text-primary">videocam</span> ویډیو
-                  </span>
-                  <span class="inline-flex items-center gap-1 text-text-muted font-label-sm text-label-sm bg-surface-mint px-2 py-1 rounded">
-                    <span class="material-symbols-outlined text-xs text-primary">chat</span> وټساپ
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div class="mt-5">
-              <a class="flex w-full items-center justify-center gap-space-xs rounded-xl bg-primary py-2.5 font-label-md text-label-md font-bold text-on-primary shadow transition-all hover:bg-primary-container" href="/book?doctor=jalaluddin">
-                <span class="material-symbols-outlined text-base">calendar_add_on</span>
-                <span>نوبت واخلئ</span>
-              </a>
-            </div>
-          </div>
-
-          <!-- Dr Muhammad Raheem Achakzai -->
-          <div class="flex flex-col justify-between rounded-2xl bg-card-surface p-space-md shadow-md transition-all duration-300 hover:shadow-xl">
-            <div>
-              <div class="relative mb-4 flex items-center justify-between">
-                <div class="relative">
-                  <img class="h-20 w-20 rounded-2xl object-cover shadow-inner" src="/doctors/dr-muhammad-raheem-achakzai/dr-muhammad-raheem-achakzai__studio-office-01.png" alt="ډاکټر محمد رحیم اڅکزی">
-                  <span class="absolute -bottom-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full bg-card-surface shadow-sm">
-                    <span class="h-3 w-3 rounded-full bg-status-available"></span>
-                  </span>
-                </div>
-                <div class="flex flex-col items-end gap-1">
-                  <span class="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2.5 py-0.5 font-label-sm text-label-sm font-semibold text-primary">
-                    <span class="material-symbols-outlined text-xs">verified</span><span>تایید شوی</span>
-                  </span>
-                  <span class="font-label-sm text-label-sm text-text-muted">۱۲+ کاله تجربه</span>
-                </div>
-              </div>
-              <div class="border-b border-surface-variant/40 pb-4">
-                <h3 class="font-headline-md text-headline-md font-bold text-primary">ډاکټر محمد رحیم اڅکزی</h3>
-                <p class="font-label-md text-label-md font-medium text-secondary">د پوستکي او ښکلا متخصص</p>
-                <p class="font-label-sm text-label-sm mt-0.5 text-text-muted" dir="ltr">Dr. Muhammad Rahim Achakzai — Dermatology</p>
-                <div class="mt-3 flex items-center gap-1 text-secondary-container">
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="font-label-sm text-label-sm text-on-surface font-bold mr-1">۵.۰</span>
-                  <span class="font-label-sm text-label-sm text-text-muted">(۹۵+ کتنې)</span>
-                </div>
-              </div>
-              <div class="pt-3">
-                <div class="flex items-center justify-between text-text-muted font-body-sm text-body-sm mb-2">
-                  <span>د آنلاین کتنې فیس:</span>
-                  <span class="font-bold text-primary">۳۵۰ افغانۍ</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center gap-1 text-text-muted font-label-sm text-label-sm bg-surface-mint px-2 py-1 rounded">
-                    <span class="material-symbols-outlined text-xs text-primary">videocam</span> ویډیو
-                  </span>
-                  <span class="inline-flex items-center gap-1 text-text-muted font-label-sm text-label-sm bg-surface-mint px-2 py-1 rounded">
-                    <span class="material-symbols-outlined text-xs text-primary">chat</span> وټساپ
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div class="mt-5">
-              <a class="flex w-full items-center justify-center gap-space-xs rounded-xl bg-primary py-2.5 font-label-md text-label-md font-bold text-on-primary shadow transition-all hover:bg-primary-container" href="/book?doctor=achakzai">
-                <span class="material-symbols-outlined text-base">calendar_add_on</span>
-                <span>نوبت واخلئ</span>
-              </a>
-            </div>
-          </div>
-
-          <!-- Dr Shah Fahad -->
-          <div class="flex flex-col justify-between rounded-2xl bg-card-surface p-space-md shadow-md transition-all duration-300 hover:shadow-xl">
-            <div>
-              <div class="relative mb-4 flex items-center justify-between">
-                <div class="relative">
-                  <img class="h-20 w-20 rounded-2xl object-cover shadow-inner" src="/doctors/dr-shah-fahad-photo-pack/dr-shah-fahad__paediatric-headshot-01.png" alt="ډاکټر شاه فهد">
-                  <span class="absolute -bottom-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full bg-card-surface shadow-sm">
-                    <span class="h-3 w-3 rounded-full bg-status-available"></span>
-                  </span>
-                </div>
-                <div class="flex flex-col items-end gap-1">
-                  <span class="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2.5 py-0.5 font-label-sm text-label-sm font-semibold text-primary">
-                    <span class="material-symbols-outlined text-xs">verified</span><span>تایید شوی</span>
-                  </span>
-                  <span class="font-label-sm text-label-sm text-text-muted">۱۰+ کاله تجربه</span>
-                </div>
-              </div>
-              <div class="border-b border-surface-variant/40 pb-4">
-                <h3 class="font-headline-md text-headline-md font-bold text-primary">ډاکټر شاه فهد</h3>
-                <p class="font-label-md text-label-md font-medium text-secondary">د ماشومانو تخصصي ډاکټر</p>
-                <p class="font-label-sm text-label-sm mt-0.5 text-text-muted" dir="ltr">Dr. Shah Fahad — Paediatrics</p>
-                <div class="mt-3 flex items-center gap-1 text-secondary-container">
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star_half</span>
-                  <span class="font-label-sm text-label-sm text-on-surface font-bold mr-1">۴.۸</span>
-                  <span class="font-label-sm text-label-sm text-text-muted">(۸۵+ کتنې)</span>
-                </div>
-              </div>
-              <div class="pt-3">
-                <div class="flex items-center justify-between text-text-muted font-body-sm text-body-sm mb-2">
-                  <span>د آنلاین کتنې فیس:</span>
-                  <span class="font-bold text-primary">۳۰۰ افغانۍ</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center gap-1 text-text-muted font-label-sm text-label-sm bg-surface-mint px-2 py-1 rounded">
-                    <span class="material-symbols-outlined text-xs text-primary">videocam</span> ویډیو
-                  </span>
-                  <span class="inline-flex items-center gap-1 text-text-muted font-label-sm text-label-sm bg-surface-mint px-2 py-1 rounded">
-                    <span class="material-symbols-outlined text-xs text-primary">chat</span> وټساپ
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div class="mt-5">
-              <a class="flex w-full items-center justify-center gap-space-xs rounded-xl bg-primary py-2.5 font-label-md text-label-md font-bold text-on-primary shadow transition-all hover:bg-primary-container" href="/book?doctor=shahfahad">
-                <span class="material-symbols-outlined text-base">calendar_add_on</span>
-                <span>نوبت واخلئ</span>
-              </a>
-            </div>
-          </div>
-
-        </div>
-        <!-- View All Doctors CTA -->
-        <div class="mt-space-lg text-center">
-          <a class="inline-flex items-center gap-space-xs rounded-full bg-primary px-space-xl py-3 font-label-md text-label-md font-bold text-on-primary shadow hover:bg-primary-container transition-all" href="/doctors">
-            <span>ټول ۶ ډاکټران وګورئ</span>
-            <span class="material-symbols-outlined text-base">west</span>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- HOW IT WORKS -->
-    <section class="w-full bg-surface py-space-xl">
-      <div class="mx-auto max-w-5xl px-gutter">
-        <div class="mb-space-lg text-center">
-          <span class="font-label-md text-label-md font-bold text-secondary uppercase">روښانه او آسانه لارښود</span>
-          <h2 class="font-headline-xl text-headline-xl mt-1 text-primary">د کار او معاینې طریقه</h2>
-          <p class="font-body-md text-body-md mx-auto mt-2 max-w-lg text-text-muted">
-            په دریو ساده ګامونو کې د خپلې خوښې ډاکټر سره وصل شئ او د درملنې مشوره واخلئ.
-          </p>
-        </div>
-        <div class="relative grid grid-cols-1 gap-space-lg md:grid-cols-3">
-          <div class="pointer-events-none absolute top-12 left-1/6 right-1/6 hidden h-1 bg-surface-container-high md:block z-0"></div>
-          <div class="relative z-10 flex flex-col items-center text-center">
-            <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-lg ring-4 ring-surface-container">
-              <span class="font-headline-lg text-headline-lg font-bold">۱</span>
-            </div>
-            <h3 class="font-headline-md text-headline-md font-bold text-primary">نوبت واخلئ</h3>
-            <p class="font-body-sm text-body-sm mt-2 text-text-muted leading-relaxed">
-              خپل نوم، شمېره، روغتیایي ستونزه او د نوبت لپاره مناسب وخت او ډاکټر وټاکئ.
-            </p>
-            <span class="mt-3 inline-flex items-center gap-1 font-label-sm text-label-sm font-semibold text-secondary">
-              <span class="material-symbols-outlined text-sm">touch_app</span> آنلاین فورمه ډکه کړئ
-            </span>
-          </div>
-          <div class="relative z-10 flex flex-col items-center text-center">
-            <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary-container text-on-secondary-container shadow-lg ring-4 ring-secondary-fixed">
-              <span class="font-headline-lg text-headline-lg font-bold">۲</span>
-            </div>
-            <h3 class="font-headline-md text-headline-md font-bold text-primary">تایید ترلاسه کړئ</h3>
-            <p class="font-body-sm text-body-sm mt-2 text-text-muted leading-relaxed">
-              زموږ ملاتړی ټیم به سمدستي ستاسو سره اړیکه ونیسي او ستاسو وخت به نهایي او تایید کړي.
-            </p>
-            <span class="mt-3 inline-flex items-center gap-1 font-label-sm text-label-sm font-semibold text-primary">
-              <span class="material-symbols-outlined text-sm">notifications_active</span> چټک تاییدي پیغام
-            </span>
-          </div>
-          <div class="relative z-10 flex flex-col items-center text-center">
-            <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-lg ring-4 ring-surface-container">
-              <span class="font-headline-lg text-headline-lg font-bold">۳</span>
-            </div>
-            <h3 class="font-headline-md text-headline-md font-bold text-primary">مشوره وکړئ</h3>
-            <p class="font-body-sm text-body-sm mt-2 text-text-muted leading-relaxed">
-              د ویډیو یا وټساپ لینک له لارې ډاکټر سره خبرې وکړئ او رسمي طبي نسخه په ډیجیټل بڼه واخلئ.
-            </p>
-            <span class="mt-3 inline-flex items-center gap-1 font-label-sm text-label-sm font-semibold text-status-available">
-              <span class="material-symbols-outlined text-sm">prescriptions</span> نسخه او لارښود
-            </span>
-          </div>
-        </div>
-        <div class="mt-12 flex justify-center">
-          <a class="inline-flex items-center gap-space-xs rounded-full bg-primary px-space-xl py-3.5 font-label-lg text-label-lg font-bold text-on-primary shadow-lg hover:bg-primary-container transition-all hover:shadow-xl" href="/book">
-            <span class="material-symbols-outlined text-secondary-container">assignment_turned_in</span>
-            <span>اوس نوبت واخلئ</span>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- QUICK BOOKING FORM -->
-    <section class="w-full bg-surface-mint py-space-lg">
-      <div class="mx-auto max-w-6xl px-gutter">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md items-stretch">
-          <!-- Patient Portal CTA -->
-          <div class="lg:col-span-5 flex flex-col justify-between rounded-3xl bg-gradient-to-br from-tertiary via-primary to-primary-container p-space-lg text-on-primary shadow-xl">
-            <div>
-              <div class="inline-flex items-center gap-1 rounded-full bg-surface-container-lowest/15 px-3 py-1 font-label-sm text-label-sm text-secondary-fixed">
-                <span class="material-symbols-outlined text-sm">badge</span>
-                <span>د ناروغ پورټل (Patient Portal)</span>
-              </div>
-              <h3 class="font-headline-lg text-headline-lg font-bold mt-4">د خپل نوبت او طبي نسخو حالت وڅارئ</h3>
-              <p class="font-body-sm text-body-sm text-surface-container-high mt-3 leading-relaxed">
-                که مو مخکې نوبت اخیستی وي، دلته کولی شئ خپل ټاکل شوی وخت وګورئ، نوي فایلونه پورته کړئ او د ډاکټر رسمي نسخه ډاونلوډ کړئ.
-              </p>
-            </div>
-            <div class="mt-8 space-y-3">
-              <div class="flex items-center gap-space-xs rounded-xl bg-surface-container-lowest/10 p-3 backdrop-blur-sm">
-                <span class="material-symbols-outlined text-secondary-container">folder_shared</span>
-                <span class="font-body-sm text-body-sm">ستاسو طبي تاریخچه تل محفوظه ده</span>
-              </div>
-              <a class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-secondary-container py-3 font-label-md text-label-md font-bold text-on-secondary-container transition hover:bg-secondary-fixed shadow" href="/portal">
-                <span class="material-symbols-outlined text-base">login</span>
-                <span>پورټل ته ننوتل</span>
-              </a>
-            </div>
-          </div>
-          <!-- Quick Appointment Form -->
-          <div class="lg:col-span-7 rounded-3xl bg-card-surface p-space-lg shadow-md flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between border-b border-surface-variant/40 pb-3 mb-4">
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-primary text-2xl">edit_calendar</span>
-                  <span class="font-headline-sm text-headline-sm font-bold text-primary">د فوري نوبت ټاکنه</span>
-                </div>
-                <span class="font-label-sm text-label-sm text-status-available font-semibold flex items-center gap-1">
-                  <span class="h-2 w-2 rounded-full bg-status-available"></span> فوري ثبتول
-                </span>
-              </div>
-              <form class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm" id="appointmentForm" onsubmit="event.preventDefault(); showSuccessToast();">
-                <div>
-                  <label class="block font-label-sm text-label-sm font-semibold text-text-muted mb-1">ستاسو بشپړ نوم</label>
-                  <input class="w-full rounded-xl bg-surface-mint p-2.5 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary" placeholder="مثلاً: احمد ولي" required="" type="text">
-                </div>
-                <div>
-                  <label class="block font-label-sm text-label-sm font-semibold text-text-muted mb-1">د اړیکې شمېره (وټساپ)</label>
-                  <input class="w-full text-right rounded-xl bg-surface-mint p-2.5 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary" dir="ltr" placeholder="07xxxxxxxx" required="" type="tel">
-                </div>
-                <div>
-                  <label class="block font-label-sm text-label-sm font-semibold text-text-muted mb-1">طبي څانګه</label>
-                  <select class="w-full rounded-xl bg-surface-mint p-2.5 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary">
-                    <option>عمومي او باطني ناروغۍ</option>
-                    <option>د پوستکي او ویښتانو متخصص</option>
-                    <option>د زړه او فشار ناروغۍ</option>
-                    <option>د ماشومانو تخصصي ډاکټر</option>
-                    <option>د هډوکو او ګوډ متخصص</option>
-                    <option>لرې فیزیوتراپي ارزونه</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block font-label-sm text-label-sm font-semibold text-text-muted mb-1">د کتنې بڼه</label>
-                  <div class="grid grid-cols-2 gap-2">
-                    <label class="flex items-center justify-center gap-1 rounded-xl bg-surface-mint p-2 font-label-sm text-label-sm text-primary cursor-pointer hover:bg-surface-container">
-                      <input checked="" class="accent-primary" name="mode" type="radio" value="video">
-                      <span>ویډیو کال</span>
-                    </label>
-                    <label class="flex items-center justify-center gap-1 rounded-xl bg-surface-mint p-2 font-label-sm text-label-sm text-primary cursor-pointer hover:bg-surface-container">
-                      <input class="accent-primary" name="mode" type="radio" value="whatsapp">
-                      <span>وټساپ چټ</span>
-                    </label>
-                  </div>
-                </div>
-                <div class="sm:col-span-2">
-                  <button class="w-full rounded-xl bg-primary py-3 font-label-md text-label-md font-bold text-on-primary shadow-md hover:bg-primary-container transition-all" type="submit">
-                    د نوبت تایید او استول
-                  </button>
-                </div>
-              </form>
-              <div class="hidden mt-3 rounded-xl bg-surface-container-high p-3 text-center font-label-sm text-label-sm text-primary" id="bookingToast">
-                <span class="material-symbols-outlined text-sm align-middle">check_circle</span> ستاسو نوبت په بریا ثبت شو! زموږ ټیم به ژر اړیکه ونیسي.
-              </div>
-            </div>
-            <p class="font-label-sm text-label-sm text-text-muted mt-3 text-center">
-              د خپل نوبت د تازه معلوماتو او ډیجیټل نسخو لپاره خپل پورټل فعال وساتئ.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- WHATSAPP CTA -->
-    <section class="w-full bg-primary py-space-lg text-on-primary">
-      <div class="mx-auto max-w-4xl px-gutter text-center">
-        <div class="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container-lowest/15 text-secondary-fixed">
-          <span class="material-symbols-outlined text-3xl">support_agent</span>
-        </div>
-        <h2 class="font-headline-xl text-headline-xl font-bold">مستقیمه او فوري اړیکه</h2>
-        <p class="font-body-lg text-body-lg mx-auto mt-2 max-w-xl text-surface-container-high">
-          که غواړئ سمدستي او بې له ځنډه له ډاکټر سره اړیکه ونیسئ، زموږ د وټساپ د بېړنیو مشورو شمېره ۲۴ ساعته فعاله ده:
+<!DOCTYPE html><html dir="rtl" lang="ps"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"inverse-surface":"#1b352f","surface-bright":"#e6fff6","primary-container":"#006d4e","inverse-on-surface":"#daf7ed","surface-container":"#d7f4ea","on-background":"#05201a","on-tertiary-container":"#4e3d00","on-secondary-fixed":"#002018","primary-fixed-dim":"#81d7b1","soft-ivory":"#F8F5ED","secondary-fixed":"#6dfad2","tertiary":"#735c00","text-muted":"#5D6F69","on-tertiary":"#ffffff","error":"#ba1a1a","surface":"#e6fff6","on-surface-variant":"#3f4943","surface-container-high":"#d1efe5","dark-forest-green":"#0B3D2E","surface-container-lowest":"#ffffff","on-surface":"#05201a","secondary-container":"#6dfad2","error-container":"#ffdad6","surface-tint":"#006c4d","primary-fixed":"#9df4cd","surface-dim":"#c3e0d7","border-subtle":"#DDE7E2","on-error-container":"#93000a","background":"#e6fff6","disabled":"#A9B8B2","tertiary-container":"#cca72f","on-secondary-container":"#00725b","tertiary-fixed-dim":"#e9c349","on-secondary-fixed-variant":"#005140","on-primary-fixed":"#002115","surface-container-highest":"#cce9df","on-tertiary-fixed-variant":"#574500","primary":"#00523a","on-error":"#ffffff","on-secondary":"#ffffff","on-primary":"#ffffff","inverse-primary":"#81d7b1","surface-container-low":"#ddfaf0","on-tertiary-fixed":"#241a00","secondary":"#006b55","tertiary-fixed":"#ffe088","outline":"#6f7a73","on-primary-fixed-variant":"#005139","outline-variant":"#bec9c1","secondary-fixed-dim":"#4bddb7","surface-variant":"#cce9df","on-primary-container":"#94ebc4"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"space-xl":"2rem","margin":"1rem","gutter":"1rem","space-md":"1rem","margin-tablet":"1.5rem","space-sm":"0.5rem","margin-desktop":"2.5rem","space-2xl":"3rem","space-xs":"0.25rem","space-lg":"1.5rem","gutter-desktop":"1.5rem"},fontFamily:{"headline-lg-mobile":["Inter"],"title-sm":["Inter"],"body-sm":["Inter"],"headline-md":["Inter"],"title-md":["Inter"],"headline-lg":["Inter"],"headline-sm":["Inter"],"headline-xl-mobile":["Inter"],"label-md":["Inter"],"headline-xl":["Inter"],"caption":["Inter"],"body-lg":["Inter"],"label-sm":["Inter"],"body-md":["Inter"]},fontSize:{"headline-lg-mobile":["24px",{lineHeight:"32px",letterSpacing:"-0.01em",fontWeight:"600"}],"title-sm":["16px",{lineHeight:"24px",fontWeight:"600"}],"body-sm":["14px",{lineHeight:"20px",fontWeight:"400"}],"headline-md":["24px",{lineHeight:"32px",fontWeight:"600"}],"title-md":["18px",{lineHeight:"26px",fontWeight:"600"}],"headline-lg":["32px",{lineHeight:"40px",letterSpacing:"-0.015em",fontWeight:"600"}],"headline-sm":["20px",{lineHeight:"28px",fontWeight:"600"}],"headline-xl-mobile":["30px",{lineHeight:"38px",letterSpacing:"-0.01em",fontWeight:"700"}],"label-md":["14px",{lineHeight:"20px",letterSpacing:"0.01em",fontWeight:"500"}],"headline-xl":["40px",{lineHeight:"48px",letterSpacing:"-0.02em",fontWeight:"700"}],"caption":["11px",{lineHeight:"14px",fontWeight:"500"}],"body-lg":["18px",{lineHeight:"28px",fontWeight:"400"}],"label-sm":["12px",{lineHeight:"16px",letterSpacing:"0.02em",fontWeight:"500"}],"body-md":["16px",{lineHeight:"24px",fontWeight:"400"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 inset-x-0 z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-10 bg-primary-container text-on-primary px-margin-desktop flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="flex h-2.5 w-2.5 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary-fixed"></span></span><span class="font-label-sm text-label-sm">بېړنۍ اړیکه او ۲۴ ساعته طبي مشورې: له ۷:۰۰ سهار تر ۱۱:۰۰ شپې پورې فعال</span></div><div class="flex items-center gap-space-md font-label-sm text-label-sm"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">call</span><span class="font-label-md text-label-md font-bold" dir="ltr">+93 700699337</span></span></div></div><div class="h-20 bg-surface-container-lowest/95 backdrop-blur-xl px-margin-desktop flex items-center justify-between"><div class="flex items-center gap-space-xl"><div class="flex items-center gap-space-sm"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1U_JHKz7p3FUxQJgI9GRuxL5JdFeGeExzrCF2SY55SLGU2wi09b40DP6JawekV4X_9g0j48fn9gXf9g1yH3xxUDQCq2uLa4owkLlfYAiX7CstuNLvWUndv_sm8qmndyCeUk0JIWD31KY1koFfN87btvSuCf7cCTCzflZ91_MVdKNlZNe-oWv4AoOO0VxsLH6MJXe_LayDWvjIToQFs5XNGAvgR6pEjKLgQo26DWyI3ihzHK9goWylxdWTqE2o1DwBxZzql0RY10V5o"><div class="flex flex-col"><span class="font-title-md text-title-md font-bold text-dark-forest-green tracking-tight">ای طبيب</span><span class="font-caption text-caption text-text-muted">Etabeeb Telemedicine</span></div></div><nav class="hidden xl:flex items-center gap-space-md" data-active-classes="bg-surface-container text-primary font-title-sm"><a aria-current="page" class="px-space-sm py-space-xs rounded transition-colors bg-surface-container text-primary font-title-sm" data-path="home" href="#">سرپاڼه</a><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="doctors" href="#">ډاکټران</a><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="book-appointment" href="#">نوبت واخلئ</a><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="video-consultation" href="#">ویډیو کتنځای</a><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="prescription" href="#">رسمي نسخه</a><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="patient-portal" href="#">د ناروغ پورټل</a></nav></div><div class="flex items-center gap-space-sm"><a class="h-10 px-space-md rounded-lg bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-space-xs hover:bg-dark-forest-green hover:text-on-primary transition-colors" href="https://wa.me/93700699337"><span class="material-symbols-outlined text-[18px]">chat</span><span class="">واټساپ مشوره</span></a><a class="h-10 px-space-md rounded-lg bg-tertiary-container text-dark-forest-green font-label-md text-label-md font-semibold flex items-center gap-space-xs hover:bg-tertiary-fixed hover:text-dark-forest-green transition-colors" data-path="book-appointment" href="#"><span class="material-symbols-outlined text-[18px]">calendar_month</span><span class="">نوبت واخلئ</span></a><a class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-dark-forest-green hover:bg-surface-container-high transition-colors" data-path="patient-portal" href="#"><span class="material-symbols-outlined text-[20px]">account_circle</span></a></div></div></header><main class="w-full pt-[7.5rem] bg-surface min-h-screen"><div class="flex flex-col w-full">
+<!-- Emergency Triage Banner -->
+<aside aria-label="بېړنی خبرتیا" class="w-full bg-error text-on-error py-space-xs px-margin-desktop shadow-sm">
+<div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-space-xs">
+<div class="flex items-center gap-space-sm text-center sm:text-right">
+<span class="material-symbols-outlined text-[20px] shrink-0" style="font-variation-settings: 'FILL' 1;">warning</span>
+<p class="font-label-sm text-label-sm leading-normal">
+<strong class="font-bold">مهم طبي خبرتیا:</strong> د ژوند ګواښوونکو او بېړنیو روغتیایي حالاتو پر مهال سملاسي له <strong>۱۰۲</strong> امبولانس سره اړیکه ونیسئ یا نږدې دولتي/خصوصي بېړني روغتون ته مراجعه وکړئ. ای طبيب یوازې د مشورو او نسخې تایید لپاره دی.
         </p>
-        <div class="mt-6 flex flex-wrap items-center justify-center gap-space-sm">
-          <a class="group inline-flex items-center gap-space-sm rounded-full bg-secondary-container px-space-xl py-3.5 text-on-secondary-container shadow-2xl transition-all duration-200 hover:bg-secondary-fixed hover:scale-105" href="https://wa.me/923332357055" target="_blank">
-            <span class="material-symbols-outlined text-2xl">chat</span>
-            <span class="font-bold font-label-lg text-label-lg">د وټساپ شمېره:</span>
-            <bdi class="font-headline-sm text-headline-sm font-bold tracking-wider" dir="ltr">0333 2357055</bdi>
-          </a>
-        </div>
-        <div class="mt-6 flex items-center justify-center gap-4 text-surface-variant font-label-sm text-label-sm">
-          <span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs text-status-available">check</span> سمدستي ځواب</span>
-          <span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs text-status-available">check</span> وړیا لومړنۍ لارښوونه</span>
-          <span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs text-status-available">check</span> مسلکي طبي ټیم</span>
-        </div>
-      </div>
-    </section>
-
-  </div>
-</main>
-
-<!-- FOOTER -->
-<footer class="w-full bg-tertiary text-on-tertiary pt-space-xl pb-space-lg">
-  <div class="w-full px-gutter">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-lg mb-space-xl">
-      <div class="flex flex-col gap-space-sm">
-        <div class="flex items-center gap-space-xs">
-          <div class="w-8 h-8 rounded-full bg-surface-container-lowest flex items-center justify-center">
-            <span class="material-symbols-outlined text-primary">local_hospital</span>
-          </div>
-          <span class="font-headline-md text-headline-md font-bold text-on-tertiary">ای طبیب</span>
-        </div>
-        <p class="font-body-sm text-body-sm text-surface-variant leading-relaxed">
-          ای طبیب د کوژک اسپیشلسټ کلینک، کالج روډ، ڈگری کالج کے سامنے، چمن تر رهبرۍ لاندې د افغانستان او پاکستان سیمو کې د معتبرو ډاکټرانو سره د روغتیایي مشورو، ویډیويي ناستو او طبي نسخو باوري ډیجیټل پلیټفارم دی.
+</div>
+<div class="flex items-center gap-space-xs shrink-0 font-label-sm text-label-sm">
+<span class="opacity-80">عاجله کرښه:</span>
+<span class="font-bold tracking-wider" dir="ltr">102</span>
+</div>
+</div>
+</aside>
+<!-- Hero & Primary Telemedicine Action Area -->
+<section class="relative w-full bg-surface-container-lowest overflow-hidden py-space-2xl">
+<div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none"></div>
+<div class="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-secondary-fixed/30 blur-2xl pointer-events-none"></div>
+<div class="max-w-7xl mx-auto px-margin-desktop relative z-10">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-center">
+<!-- Hero Copy & CTAs (7 Cols) -->
+<div class="lg:col-span-7 flex flex-col gap-space-md">
+<!-- Verification Pill -->
+<div class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container w-fit shadow-sm">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-label-sm text-label-sm text-dark-forest-green font-medium">د عامې روغتیا وزارت (MoPH) رسمي تصدیق شوې ټیلي میډیسن شبکه</span>
+<span class="h-1.5 w-1.5 rounded-full bg-tertiary-container"></span>
+<span class="font-caption text-caption text-text-muted">ISO 27001</span>
+</div>
+<!-- Hero Headings -->
+<div class="flex flex-col gap-space-xs">
+<h1 class="font-headline-xl text-headline-xl text-dark-forest-green tracking-tight leading-tight">
+              له پولو هاخوا <span class="text-primary underline decoration-tertiary-container decoration-4 underline-offset-8">روغتیایي پاملرنه</span>
+</h1>
+<p class="font-body-lg text-body-lg text-text-muted leading-relaxed max-w-2xl mt-space-xs">
+              په خپل کور کې د افغانستان او سیمې له معتبرو متخصصینو سره مستقیمه ویډیویي کتنه، رسمي معاینات او د قانوني QR کوډ لرونکې ډیجیټل نسخه ترلاسه کړئ.
+            </p>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-wrap items-center gap-space-sm pt-space-xs">
+<a class="h-12 px-space-lg rounded-xl bg-primary-container text-on-primary font-title-sm text-title-sm flex items-center justify-center gap-space-xs shadow-md hover:bg-dark-forest-green transition-all transform hover:-translate-y-0.5" href="#appointment-booking">
+<span class="material-symbols-outlined text-[20px]">video_call</span>
+<span class="">سملاسي نوبت واخلئ</span>
+</a>
+<a class="h-12 px-space-md rounded-xl bg-surface-container text-dark-forest-green font-title-sm text-title-sm flex items-center justify-center gap-space-xs hover:bg-surface-container-high transition-colors" href="#specialist-directory">
+<span class="material-symbols-outlined text-[20px]">stethoscope</span>
+<span class="">ډاکټران وپلټئ</span>
+</a>
+<a class="h-12 px-space-md rounded-xl bg-surface-container-lowest text-secondary font-label-md text-label-md flex items-center justify-center gap-space-xs shadow-sm hover:bg-surface-container transition-colors" href="https://wa.me/93700699337" rel="noopener noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+<span dir="ltr" class="">+93 700 699 337</span>
+</a>
+</div>
+<!-- Trust Proof Metrics -->
+<div class="grid grid-cols-3 gap-space-sm pt-space-md mt-space-xs">
+<div class="bg-surface-container-low rounded-xl p-space-sm flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs text-primary">
+<span class="material-symbols-outlined text-[20px]">schedule</span>
+<span class="font-headline-sm text-headline-sm font-bold">۲۴/۷</span>
+</div>
+<span class="font-caption text-caption text-text-muted">آنلاین مسلکي کادر</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-space-sm flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs text-primary">
+<span class="material-symbols-outlined text-[20px]">health_and_safety</span>
+<span class="font-headline-sm text-headline-sm font-bold">۱۵،۰۰۰+</span>
+</div>
+<span class="font-caption text-caption text-text-muted">بریالۍ آنلاین درملنې</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-space-sm flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs text-primary">
+<span class="material-symbols-outlined text-[20px]">lock</span>
+<span class="font-headline-sm text-headline-sm font-bold">۱۰۰٪</span>
+</div>
+<span class="font-caption text-caption text-text-muted">کوډ شوی او محرم (E2E)</span>
+</div>
+</div>
+</div>
+<!-- Hero Featured Telemedicine Live Session Card (5 Cols) -->
+<div class="lg:col-span-5 flex flex-col gap-space-md">
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-xl relative overflow-hidden">
+<!-- Simulated Active Call Viewport -->
+<div class="relative w-full h-64 rounded-xl overflow-hidden bg-dark-forest-green flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="Senior Afghan doctor holding stethoscope wearing clinical coat sitting in modern high-tech telemedicine clinic studio looking warmly at screen during live consultation with soft teal and natural daylight lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCE4cl9OL7-z8u3n_psL3AiqNfjBAL99ZQSpI1CFHg3jK4tI5oT7pYJ4L37fciL_Zayu3TiKYoyaqnVuc1xGBVxfnFGv1hzDl1JvEleXs78vZSGaqh3X21XmQouCMOxlt0vWHGHJcEWphE7XN2A1-VxQCBYsMb0xFel0kRKs9VbMdnfM0RhWjnmxL_lzZTrMnLqNInRdJ-d8FaSoPmdCjK7TSAZAnYAsdX8lP7bvYh3AcdZfxj6pifdag">
+<!-- Floating Live Badge -->
+<div class="absolute top-space-sm right-space-sm flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-dark-forest-green/80 backdrop-blur-md text-surface-bright font-label-sm text-label-sm">
+<span class="h-2 w-2 rounded-full bg-secondary-fixed animate-pulse"></span>
+<span class="">ژوندۍ مشوره جریان لري</span>
+</div>
+<!-- Live Patient Window Inset -->
+<div class="absolute bottom-space-sm left-space-sm w-28 h-20 rounded-lg overflow-hidden bg-surface-container-lowest/90 shadow-md">
+<img class="w-full h-full object-cover" data-alt="Afghan patient inside home listening attentively to the doctor on video call with mobile screen visible and natural room lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhkeyy5nAuGFw1HM7vYvv5RH7vlKYYKQbbkU5gPzIi8osTvfzvC35MSAB6YDyW8bteZwHU91k3j1iHRF-SMSKUD_YywaCbfVb90C3bhJo2bqztyTKA6j_oMfzn7yc18Q26d9ad24WKwnQiHa0DwssU0g-goTbqm3NQkO2-vCdipzbCe7h3W4UBunNEkn2O5mp5gxFuUEGXeMvVlIA4fkilEWZBzoxOX0J1klB4f2A6ckMG7z1sh_tg3g">
+<div class="absolute bottom-1 right-1 px-1 rounded bg-dark-forest-green/70 text-surface-bright text-[9px] font-caption">ناروغ</div>
+</div>
+<!-- Stream Health / Telehealth Stats -->
+<div class="absolute top-space-sm left-space-sm flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container-lowest/80 text-dark-forest-green font-caption text-caption">
+<span class="material-symbols-outlined text-[14px] text-primary">signal_cellular_alt</span>
+<span dir="ltr" class="">HD 1080p</span>
+</div>
+</div>
+<!-- Doctor Quick Profile Bar -->
+<div class="pt-space-sm flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<div class="w-12 h-12 rounded-full bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Close up professional portrait of Dr Jalal ud Din in doctor white coat with stethoscope around neck smiling." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAN5p0NBi1qgLQOK3b6io1MDr8nqqw6P-4Frd7KS2_LsVOa4tF7WBvQ_DLLY5SgU6D48oV9zZvED_fc4ltfqpZpQDjDk360xqmmnz9-JD4DnS83dVQtKlh65O33RXFezJNsof0ueYfwUzFY6RHoxNNsBhXsMYWlsgFs8ttTSgwz6Sx7v6YRsyZ5czrpScWIx-fLp4TGX7rAkt9VPQGm7lxKMotTPtZ1qUswwDFtSFOD6AIKD_wrtm4zGw">
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-title-sm text-title-sm font-bold text-dark-forest-green">ډاکټر جلال الدین</span>
+<span class="material-symbols-outlined text-[16px] text-tertiary" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="font-caption text-caption text-text-muted">د داخله ناروغیو لوړپوړی معالج • ۱۰ کاله تجربه</span>
+</div>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-label-sm text-label-sm text-text-muted">کتنې فیس:</span>
+<span class="font-title-sm text-title-sm font-bold text-primary">۳۰۰ افغانۍ</span>
+</div>
+</div>
+<!-- Micro Quick Action Strip -->
+<div class="mt-space-sm pt-space-xs flex items-center justify-between bg-soft-ivory rounded-xl p-space-sm">
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-dark-forest-green">
+<span class="material-symbols-outlined text-[18px] text-primary">today</span>
+<span class="">راتلونکی خالي وخت: نن ۱۱:۳۰ سهار</span>
+</div>
+<button class="px-space-sm py-1.5 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm font-semibold hover:bg-dark-forest-green transition-colors" type="button">
+                وخت نیسئ
+              </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Telemedicine Workflow (3 Simple Steps) -->
+<section class="w-full py-space-2xl bg-soft-ivory">
+<div class="max-w-7xl mx-auto px-margin-desktop">
+<div class="text-center max-w-2xl mx-auto mb-space-xl">
+<span class="font-label-sm text-label-sm text-primary font-bold tracking-widest uppercase">درې اسانه او ډاډمن ګامونه</span>
+<h2 class="font-headline-lg text-headline-lg text-dark-forest-green font-bold mt-space-xs">
+          له کور څخه روغتیایي مشوره څنګه ترلاسه کړئ؟
+        </h2>
+<p class="font-body-md text-body-md text-text-muted mt-space-xs">
+          له ستړې کوونکې تګ راتګ او قطارونو پرته، په څو شیبو کې له خپل موبایل یا کمپیوټر څخه لوړپوړي متخصص ته ورسېږئ.
         </p>
-        <div class="flex items-center gap-space-xs text-secondary-fixed font-label-sm text-label-sm mt-space-xs">
-          <span class="material-symbols-outlined text-status-available">verified</span>
-          <span>کوژک اسپیشلسټ کلینک، چمن</span>
-        </div>
-      </div>
-      <div class="flex flex-col gap-space-sm">
-        <h3 class="font-headline-sm text-headline-sm font-semibold text-secondary-fixed">چټکې اړیکې</h3>
-        <ul class="flex flex-col gap-space-xs font-body-sm text-body-sm text-surface-variant">
-          <li class="hover:text-on-tertiary transition-colors"><a href="/">سرپاڼه او تعارف</a></li>
-          <li class="hover:text-on-tertiary transition-colors"><a href="/doctors">متخصص ډاکټران</a></li>
-          <li class="hover:text-on-tertiary transition-colors"><a href="/book">آنلاین نوبت او ټاکنه</a></li>
-          <li class="hover:text-on-tertiary transition-colors"><a href="/how-it-works">د آنلاین معاینې لارښود</a></li>
-          <li class="hover:text-on-tertiary transition-colors"><a href="/portal">د ناروغ حساب او نسخې</a></li>
-        </ul>
-      </div>
-      <div class="flex flex-col gap-space-sm">
-        <h3 class="font-headline-sm text-headline-sm font-semibold text-secondary-fixed">کاري ساعتونه</h3>
-        <div class="font-body-sm text-body-sm text-surface-variant space-y-space-xs">
-          <div>
-            <span class="font-label-md text-label-md text-on-tertiary block">د ډاکټرانو معاینات:</span>
-            <span>شنبه - پنجشنبه: ۷:۰۰ سهار - ۱۱:۰۰ شپې</span>
-          </div>
-          <div>
-            <span class="font-label-md text-label-md text-on-tertiary block">د جمعې ورځ:</span>
-            <span>۹:۰۰ سهار - ۶:۰۰ ماښام (بېړني ټیمونه)</span>
-          </div>
-          <div class="pt-space-xs">
-            <span class="font-label-md text-label-md text-on-tertiary block">وټساپ مستقیمه همغږي:</span>
-            <span class="font-label-md text-label-md text-secondary-fixed" dir="ltr">0333 2357055</span>
-          </div>
-          <div class="pt-space-xs">
-            <span class="font-label-md text-label-md text-on-tertiary block">لینډلاین:</span>
-            <span class="font-label-md text-label-md text-secondary-fixed" dir="ltr">0826 613154</span>
-          </div>
-        </div>
-      </div>
-      <div class="flex flex-col gap-space-sm">
-        <h3 class="font-headline-sm text-headline-sm font-semibold text-secondary-fixed">طبي محرمیت او اخلاق</h3>
-        <p class="font-body-sm text-body-sm text-surface-variant leading-relaxed">
-          ټول معلومات، ریکارډونه او ویډیويي مکالمې په بشپړ ډول کوډ شوي (End-to-End Encrypted) او محرم دي. موږ د ناروغ محرمیت د طبابت تر ټولو مهم اصل ګڼو.
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg">
+<!-- Step 1 -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-lg shadow-sm flex flex-col gap-space-sm relative group hover:shadow-md transition-all">
+<div class="flex items-center justify-between">
+<div class="w-12 h-12 rounded-xl bg-surface-container text-primary flex items-center justify-center font-headline-sm text-headline-sm font-bold">
+              ۰۱
+            </div>
+<span class="material-symbols-outlined text-[28px] text-secondary">person_search</span>
+</div>
+<h3 class="font-title-md text-title-md text-dark-forest-green font-bold mt-space-xs">نوبت او وخت وټاکئ</h3>
+<p class="font-body-sm text-body-sm text-text-muted leading-relaxed">
+            د خپلې اړتیا سره سم د زړه، پوستکي، داخله یا ماشومانو متخصص وټاکئ او د خپلې خوښې نېټه او مناسب ساعت ثبت کړئ.
+          </p>
+<div class="mt-auto pt-space-xs flex items-center gap-space-xs text-primary font-label-sm text-label-sm">
+<span class="">د ۲۰۰+ ډاکټرانو نوملړ</span>
+<span class="material-symbols-outlined text-[16px] rotate-180">arrow_back</span>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-lg shadow-sm flex flex-col gap-space-sm relative group hover:shadow-md transition-all">
+<div class="flex items-center justify-between">
+<div class="w-12 h-12 rounded-xl bg-surface-container text-primary flex items-center justify-center font-headline-sm text-headline-sm font-bold">
+              ۰۲
+            </div>
+<span class="material-symbols-outlined text-[28px] text-secondary">videocam</span>
+</div>
+<h3 class="font-title-md text-title-md text-dark-forest-green font-bold mt-space-xs">په لوړ کیفیت ویډیو مشوره وکړئ</h3>
+<p class="font-body-sm text-body-sm text-text-muted leading-relaxed">
+            په ټاکلي وخت په خپله شخصي کوډ شوې خونه (Room) کې ننوځئ او خپلې ټولې طبي نښې او پخواني ټسټونه ډاکټر ته شریک کړئ.
+          </p>
+<div class="mt-auto pt-space-xs flex items-center gap-space-xs text-primary font-label-sm text-label-sm">
+<span class="">بې له ځنډه او مستقیماً</span>
+<span class="material-symbols-outlined text-[16px] rotate-180">arrow_back</span>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-lg shadow-sm flex flex-col gap-space-sm relative group hover:shadow-md transition-all">
+<div class="flex items-center justify-between">
+<div class="w-12 h-12 rounded-xl bg-surface-container text-primary flex items-center justify-center font-headline-sm text-headline-sm font-bold">
+              ۰۳
+            </div>
+<span class="material-symbols-outlined text-[28px] text-secondary">receipt_long</span>
+</div>
+<h3 class="font-title-md text-title-md text-dark-forest-green font-bold mt-space-xs">رسمي نسخه او لارښود ترلاسه کړئ</h3>
+<p class="font-body-sm text-body-sm text-text-muted leading-relaxed">
+            له کتنې سمدستي وروسته د ډاکټر رسمي امضا شوې ډیجیټل نسخه او د درملتون لپاره تصدیق شوی QR کوډ په خپل موبایل کې ډاونلوډ کړئ.
+          </p>
+<div class="mt-auto pt-space-xs flex items-center gap-space-xs text-primary font-label-sm text-label-sm">
+<span class="">د افغانستان په ټولو درملتونونو معتبر</span>
+<span class="material-symbols-outlined text-[16px] rotate-180">arrow_back</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Interactive Doctor Directory & Showcase -->
+<section class="w-full py-space-2xl bg-surface" id="specialist-directory">
+<div class="max-w-7xl mx-auto px-margin-desktop">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-space-md mb-space-xl">
+<div class="flex flex-col gap-space-xs max-w-xl">
+<span class="font-label-sm text-label-sm text-primary font-bold">تصدیق شوي ډاکټران</span>
+<h2 class="font-headline-lg text-headline-lg text-dark-forest-green font-bold">
+            د غوره متخصصینو سره ویډیو لیدنه
+          </h2>
+<p class="font-body-md text-body-md text-text-muted">
+            ټول ډاکټران د عامې روغتیا وزارت لخوا رسمي تایید شوې دندې او فعال اسناد لري.
+          </p>
+</div>
+<!-- Specialty Filter Pills -->
+<div class="flex flex-wrap gap-space-xs">
+<button class="px-space-sm py-1.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-semibold shadow-sm" type="button">ټول متخصصین</button>
+<button class="px-space-sm py-1.5 rounded-full bg-surface-container-low text-dark-forest-green font-label-sm text-label-sm hover:bg-surface-container transition-colors" type="button">داخله ناروغۍ</button>
+<button class="px-space-sm py-1.5 rounded-full bg-surface-container-low text-dark-forest-green font-label-sm text-label-sm hover:bg-surface-container transition-colors" type="button">پوستکی او ښکلا</button>
+<button class="px-space-sm py-1.5 rounded-full bg-surface-container-low text-dark-forest-green font-label-sm text-label-sm hover:bg-surface-container transition-colors" type="button">د ماشومانو تداوي</button>
+<button class="px-space-sm py-1.5 rounded-full bg-surface-container-low text-dark-forest-green font-label-sm text-label-sm hover:bg-surface-container transition-colors" type="button">د زړه ناروغۍ</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg max-w-4xl mx-auto">
+<!-- Doctor Card 1: Dr. Jalal-ud-Din -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-space-md hover:shadow-md transition-all">
+<div class="flex gap-space-md">
+<div class="relative w-24 h-28 rounded-xl overflow-hidden bg-surface-container shrink-0">
+<img class="w-full h-full object-cover" data-alt="Senior male doctor Dr Jalal ud Din specialist in internal medicine smiling warmly in modern clean clinical room wearing stethoscope and glasses." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWtax9PVDdbw57zSKxCT6NsxxPyAhGv0hoXHmaiDhDG30aD6wNGW2MlzZpZ0NFMvFO46YEsb1u9AXnD9cbstFXfU_1STIcUptv2fbWM5_19S5mqKoZuFZl1x9TduWG9chcCexIxmkX-WqJ3KvvEwguDtD6PXte08EHGYyosw6UdV7sTHkFk8dotIjTlj6xPk3mVqQ9YSuQbXdr12y96Nsru94xR8j400weoFcaeevzOEraIwyJSYQkXQ">
+<div class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-dark-forest-green/80 text-surface-bright text-[10px] font-caption flex items-center gap-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary-fixed"></span>
+<span class="">آنلاین</span>
+</div>
+</div>
+<div class="flex flex-col justify-between flex-1">
+<div>
+<div class="flex items-center justify-between">
+<span class="px-2 py-0.5 rounded-full bg-surface-container font-caption text-caption text-primary font-semibold">داخله ناروغۍ</span>
+<div class="flex items-center gap-0.5 text-tertiary">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm font-bold">۴.۹</span>
+<span class="font-caption text-caption text-text-muted">(۳۲۰)</span>
+</div>
+</div>
+<h3 class="font-title-md text-title-md font-bold text-dark-forest-green mt-1">ډاکټر جلال الدین</h3>
+<p class="font-caption text-caption text-text-muted">کابل طبي پوهنتون فارغ • ۱۰ کاله تجربه</p>
+</div>
+<div class="flex items-center gap-space-xs text-text-muted font-caption text-caption">
+<span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+<span class="">MoPH لايسنس: AF-84920</span>
+</div>
+</div>
+</div>
+<div class="bg-soft-ivory rounded-xl p-space-sm flex items-center justify-between text-dark-forest-green">
+<div class="flex flex-col">
+<span class="font-caption text-caption text-text-muted">د آنلاین کتنې فیس</span>
+<span class="font-title-sm text-title-sm font-bold text-primary">۳۰۰ افغانۍ</span>
+</div>
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[18px] text-secondary">videocam</span>
+<span class="">۱۵ دقیقې ویډیو کال</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm pt-space-xs">
+<a class="flex-1 h-11 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex items-center justify-center gap-space-xs hover:bg-dark-forest-green transition-colors" href="#appointment-booking">
+<span class="material-symbols-outlined text-[18px]">calendar_month</span>
+<span class="">نوبت ثبت کړئ</span>
+</a>
+<a class="h-11 w-11 rounded-xl bg-surface-container text-dark-forest-green flex items-center justify-center hover:bg-surface-container-high transition-colors" href="https://wa.me/93700699337">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+</a>
+</div>
+</div>
+<!-- Doctor Card 2: Dr. Muhammad Rahim Achakzai -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-space-md hover:shadow-md transition-all">
+<div class="flex gap-space-md">
+<div class="relative w-24 h-28 rounded-xl overflow-hidden bg-surface-container shrink-0">
+<img class="w-full h-full object-cover" data-alt="Respected Afghan male dermatologist Dr Muhammad Rahim Achakzai in modern medical office with professional background lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYkcaQ_lV6nwKdQOHGoTAAqrfy1-1WUbmRwbwHWsN5tRSEIF_pslg56CUwgbUX1ROOzrPX72rUVOZnSNbS7mGXHFmRwqfK1TTQ-OIxjvJnm_kOsw7p0v5N70Z8kapSQ-P__4lSUPAm3ycG4y4uz1KU-LX69IPYLcjFmE-Yu1gsvPQCliTpuBkBweWdU77WsfnkXzQ5Uy9324UgYF4JQoiMb8StOM1DYTjOOstQFVql-q3y4YfC0J3LaA">
+<div class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-dark-forest-green/80 text-surface-bright text-[10px] font-caption flex items-center gap-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary-fixed"></span>
+<span class="">آنلاین</span>
+</div>
+</div>
+<div class="flex flex-col justify-between flex-1">
+<div>
+<div class="flex items-center justify-between">
+<span class="px-2 py-0.5 rounded-full bg-surface-container font-caption text-caption text-primary font-semibold">پوستکی او وینې ناروغۍ</span>
+<div class="flex items-center gap-0.5 text-tertiary">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm font-bold">۴.۸</span>
+<span class="font-caption text-caption text-text-muted">(۲۱۰)</span>
+</div>
+</div>
+<h3 class="font-title-md text-title-md font-bold text-dark-forest-green mt-1">ډاکټر محمد رحیم اڅکزی</h3>
+<p class="font-caption text-caption text-text-muted">د تخصص ډیپلوم • د پوستکي لوړپوړی ډاکټر</p>
+</div>
+<div class="flex items-center gap-space-xs text-text-muted font-caption text-caption">
+<span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+<span class="">MoPH لايسنس: AF-55102</span>
+</div>
+</div>
+</div>
+<div class="bg-soft-ivory rounded-xl p-space-sm flex items-center justify-between text-dark-forest-green">
+<div class="flex flex-col">
+<span class="font-caption text-caption text-text-muted">د آنلاین کتنې فیس</span>
+<span class="font-title-sm text-title-sm font-bold text-primary">۳۰۰ افغانۍ</span>
+</div>
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[18px] text-secondary">videocam</span>
+<span class="">۱۵ دقیقې ویډیو کال</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm pt-space-xs">
+<a class="flex-1 h-11 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex items-center justify-center gap-space-xs hover:bg-dark-forest-green transition-colors" href="#appointment-booking">
+<span class="material-symbols-outlined text-[18px]">calendar_month</span>
+<span class="">نوبت ثبت کړئ</span>
+</a>
+<a class="h-11 w-11 rounded-xl bg-surface-container text-dark-forest-green flex items-center justify-center hover:bg-surface-container-high transition-colors" href="https://wa.me/93700699337">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+</a>
+</div>
+</div>
+<!-- Doctor Card 3: Dr. Fatima Samimi (Pediatrician) -->
+
+</div>
+</div>
+</section>
+<!-- Bento Grid: Clinical Telemedicine Architecture & Patient Portal -->
+<section class="w-full py-space-2xl bg-surface-container-lowest">
+<div class="max-w-7xl mx-auto px-margin-desktop">
+<div class="text-center max-w-2xl mx-auto mb-space-xl">
+<span class="font-label-sm text-label-sm text-primary font-bold tracking-widest uppercase">کلینیکي ټکنالوژي او امنیت</span>
+<h2 class="font-headline-lg text-headline-lg text-dark-forest-green font-bold mt-space-xs">
+          ستاسو بشپړ طبي کتنځای، په یوه پورټل کې
+        </h2>
+<p class="font-body-md text-body-md text-text-muted mt-space-xs">
+          له مسلکي ویډیو کتنځي نیولې تر قانوني نسخې او طبي اسنادو ساتنې پورې هر څه په لوړ شفافیت سمبال دي.
         </p>
-        <div class="p-space-sm bg-tertiary-container rounded-lg flex items-center gap-space-xs">
-          <span class="material-symbols-outlined text-secondary-container">lock</span>
-          <span class="font-label-sm text-label-sm text-on-tertiary-container">خوندي، کوډ شوی او باوري مخابراتي سیستم</span>
-        </div>
-        <div class="mt-2">
-          <a href="https://wa.me/923332357055" target="_blank" class="inline-flex items-center gap-1 rounded-xl bg-[#25D366] px-space-md py-2 font-label-md text-label-md font-bold text-white transition hover:opacity-90">
-            <span class="material-symbols-outlined text-base">chat</span>
-            <bdi dir="ltr">WhatsApp: 0333 2357055</bdi>
-          </a>
-        </div>
-      </div>
-    </div>
-    <div class="pt-space-md border-t border-tertiary-container flex flex-col md:flex-row items-center justify-between gap-space-sm font-label-sm text-label-sm text-surface-variant">
-      <p>© ۲۰۲۵ ای طبیب (eTabeeb) — کوژک اسپیشلسټ کلینک. ټول حقونه خوندي دي.</p>
-      <div class="flex items-center gap-space-md">
-        <a href="/terms" class="hover:text-on-tertiary transition-colors">د خدمتونو شرایط</a>
-        <a href="/privacy" class="hover:text-on-tertiary transition-colors">محرمیت او تګلاره</a>
-        <a href="/safety" class="hover:text-on-tertiary transition-colors">طبي اخلاق او مسؤلیت</a>
-      </div>
-    </div>
-  </div>
-</footer>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- Bento 1: Official E-Prescription Card (5 Cols) -->
+<div class="lg:col-span-5 bg-soft-ivory rounded-2xl p-space-lg shadow-sm flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<!-- Prescription Header -->
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[24px]">description</span>
+<span class="font-title-sm text-title-sm font-bold text-dark-forest-green">رسمي برېښنایي نسخه (E-Rx)</span>
+</div>
+<span class="px-2.5 py-1 rounded bg-surface-container font-caption text-caption text-primary font-bold">QR تصدیق لرونکی</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-muted">
+              دا نسخه د ډاکټر د ډیجیټل لاسلیک او ځانګړي کود لرونکې ده چې په ټول هېواد کې د باور وړ ده.
+            </p>
+</div>
+<!-- Sample Clinical Rx Snippet -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md flex flex-col gap-space-sm shadow-inner">
+<div class="flex justify-between items-center text-dark-forest-green pb-space-xs">
+<div>
+<span class="font-label-sm text-label-sm font-bold">ناروغ: عبدالقدوس رحیمي</span>
+<p class="font-caption text-caption text-text-muted">عمر: ۴۶ کاله • نېټه: ۱۴۰۳/۱۱/۲۰</p>
+</div>
+<!-- Embedded SVG QR Code simulation -->
+<div class="w-14 h-14 bg-surface-container-low p-1 rounded-lg flex items-center justify-center shrink-0">
+<svg class="w-12 h-12 text-dark-forest-green" fill="currentColor" viewBox="0 0 24 24">
+<path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm10-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm14-2h4v2h-4v-2zm-4 0h2v4h-2v-4zm2 4h4v4h-2v-2h-2v-2zm2-2h2v2h-2v-2z"></path>
+</svg>
+</div>
+</div>
+<!-- Medicine List -->
+<div class="space-y-space-xs">
+<div class="p-2 rounded bg-surface-container-low/60 flex justify-between items-center">
+<div>
+<span class="font-label-sm text-label-sm font-bold text-dark-forest-green">1. Metformin 500mg</span>
+<p class="font-caption text-caption text-text-muted">ورځ کې ۱ ګولۍ، له ډوډۍ وروسته</p>
+</div>
+<span class="font-caption text-caption text-primary font-medium">۳۰ ورځې</span>
+</div>
+<div class="p-2 rounded bg-surface-container-low/60 flex justify-between items-center">
+<div>
+<span class="font-label-sm text-label-sm font-bold text-dark-forest-green">2. Amlodipine 5mg</span>
+<p class="font-caption text-caption text-text-muted">ورځ کې ۱ ګولۍ د سهار لخوا</p>
+</div>
+<span class="font-caption text-caption text-primary font-medium">۳۰ ورځې</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<span class="font-caption text-caption text-text-muted">د ډاکټر جلال الدین برېښنایي مهر او تصدیق</span>
+<button class="px-space-md py-2 rounded-xl bg-primary text-on-primary font-label-sm text-label-sm font-semibold flex items-center gap-space-xs hover:bg-dark-forest-green transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">download</span>
+<span class="">نسخه ډانلوډ کړئ (PDF)</span>
+</button>
+</div>
+</div>
+<!-- Bento 2: Virtual Waiting Room & Pre-Flight Device Check (3 Cols) -->
+<div class="lg:col-span-3 bg-surface-container-low rounded-2xl p-space-lg shadow-sm flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="w-10 h-10 rounded-xl bg-surface-container text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">network_check</span>
+</div>
+<h3 class="font-title-md text-title-md text-dark-forest-green font-bold mt-space-xs">د ویډیو اتصال چمتووالی</h3>
+<p class="font-body-sm text-body-sm text-text-muted">
+              له مشورې مخکې خپل مایک، کمره او اینټرنیټ سرعت په خپله وګورئ تر څو اړیکه قطع نشي.
+            </p>
+</div>
+<!-- Hardware Check List -->
+<div class="space-y-space-xs bg-surface-container-lowest p-space-sm rounded-xl">
+<div class="flex items-center justify-between text-dark-forest-green font-label-sm text-label-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">videocam</span>
+<span class="">کمره (Camera):</span>
+</div>
+<span class="text-secondary font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> فعاله
+              </span>
+</div>
+<div class="flex items-center justify-between text-dark-forest-green font-label-sm text-label-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">mic</span>
+<span class="">مایکروفون (Mic):</span>
+</div>
+<span class="text-secondary font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> روښانه غږ
+              </span>
+</div>
+<div class="flex items-center justify-between text-dark-forest-green font-label-sm text-label-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">wifi</span>
+<span class="">اینټرنیټ کیفیت:</span>
+</div>
+<span class="text-secondary font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> 4G پیاوړی
+              </span>
+</div>
+</div>
+<button class="w-full py-2.5 rounded-xl bg-surface-container text-dark-forest-green font-label-md text-label-md font-semibold hover:bg-surface-container-high transition-colors" type="button">
+            د آلې آزموینه ترسره کړئ
+          </button>
+</div>
+<!-- Bento 3: Patient Health Portal (EHR & Vitals) (4 Cols) -->
+<div class="lg:col-span-4 bg-surface-container-lowest rounded-2xl p-space-lg shadow-sm flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">folder_shared</span>
+</div>
+<span class="font-caption text-caption text-secondary font-bold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+                هممهاله سېنک (Sync)
+              </span>
+</div>
+<h3 class="font-title-md text-title-md text-dark-forest-green font-bold mt-space-xs">شخصي روغتیایي دوسیه (EHR)</h3>
+<p class="font-body-sm text-body-sm text-text-muted">
+              د وینې فشار، شکر، او د لابراتوار ټسټونه په اسانۍ وساتئ تر څو ډاکټر ستاسو له پخواني تاریخ خبر وي.
+            </p>
+</div>
+<!-- Mini Health Tracker Metric -->
+<div class="bg-soft-ivory p-space-sm rounded-xl flex flex-col gap-space-xs">
+<div class="flex justify-between items-center text-dark-forest-green">
+<span class="font-label-sm text-label-sm font-semibold">وروستی د وینې فشار (BP)</span>
+<span class="font-title-sm text-title-sm font-bold text-primary" dir="ltr">120 / 80 mmHg</span>
+</div>
+<!-- Progress / Normal indicator bar -->
+<div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 70%;"></div>
+</div>
+<span class="font-caption text-caption text-text-muted">د وضعیت کچه: نورمال او باثباته</span>
+</div>
+<div class="flex items-center gap-space-xs pt-space-xs">
+<button class="flex-1 py-2.5 rounded-xl bg-primary-container text-on-primary font-label-md text-label-md font-semibold hover:bg-dark-forest-green transition-colors flex items-center justify-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-[18px]">upload_file</span>
+<span class="">د معایناتو اپلوډ</span>
+</button>
+<button class="px-space-md py-2.5 rounded-xl bg-surface-container text-dark-forest-green font-label-md text-label-md font-semibold hover:bg-surface-container-high transition-colors" type="button">
+              تاریخچه
+            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Interactive Appointment Booking Widget Section -->
+<section class="w-full py-space-2xl bg-surface-container-low" id="appointment-booking">
+<div class="max-w-5xl mx-auto px-margin-desktop">
+<div class="bg-surface-container-lowest rounded-2xl p-space-xl shadow-lg">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-space-sm pb-space-md border-b-0">
+<div>
+<span class="font-label-sm text-label-sm text-primary font-bold">سملاسي ریزرویشن</span>
+<h2 class="font-headline-md text-headline-md text-dark-forest-green font-bold">
+              د طبي مشورې نوبت واخلئ
+            </h2>
+</div>
+<!-- Language indicator inside widget -->
+<div class="flex items-center gap-space-xs bg-soft-ivory p-1 rounded-xl">
+<button class="px-space-sm py-1 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm font-semibold" type="button">پښتو</button>
+<button class="px-space-sm py-1 rounded-lg text-dark-forest-green font-label-sm text-label-sm hover:bg-surface-container" type="button">دری</button>
+<button class="px-space-sm py-1 rounded-lg text-dark-forest-green font-label-sm text-label-sm hover:bg-surface-container" type="button">English</button>
+</div>
+</div>
+<form class="grid grid-cols-1 md:grid-cols-2 gap-space-md pt-space-md" onsubmit="event.preventDefault(); alert('ستاسو نوبت په بریالیتوب سره ثبت شو! په لږ وخت کې به له واټساپ له لارې د تایید لینک ترلاسه کړئ.');">
+<!-- Patient Full Name -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-dark-forest-green font-semibold">د ناروغ بشپړ نوم:</label>
+<div class="relative">
+<input class="w-full h-12 px-space-md rounded-xl bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm" placeholder="مثلاً: احمد ولي درانی" required="" type="text">
+</div>
+</div>
+<!-- Patient Phone / WhatsApp -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-dark-forest-green font-semibold">د واټساپ فعاله شمېره:</label>
+<div class="relative">
+<input class="w-full h-12 px-space-md rounded-xl bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm text-left" dir="ltr" placeholder="+93 700 000 000" required="" type="tel">
+</div>
+</div>
+<!-- Select Specialty -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-dark-forest-green font-semibold">طبي څانګه وټاکئ:</label>
+<select class="w-full h-12 px-space-md rounded-xl bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm">
+<option value="internal">عمومي داخله او معده ناروغۍ (Internal Medicine)</option>
+<option value="derma">پوستکی او وینې ناروغۍ (Dermatology)</option>
+<option value="pediatrics">د ماشومانو تداوي (Pediatrics)</option>
+<option value="cardio">د زړه او وینې فشار (Cardiology)</option>
+<option value="neuro">عصبي او رواني روغتیا (Neurology &amp; Mental Health)</option>
+</select>
+</div>
+<!-- Select Doctor & Consultation Date -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-dark-forest-green font-semibold">د لیدنې مناسبه نېټه او وخت:</label>
+<select class="w-full h-12 px-space-md rounded-xl bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"><option value="slot1">نن - ۱۱:۳۰ د مخکینۍ غرمې (ډاکټر جلال الدین)</option><option value="slot2">نن - ۰۳:۰۰ ماسپښین (ډاکټر محمد رحیم اڅکزی)</option><option value="slot3">سبا - ۱۰:۰۰ سهار (ډاکټر محمد رحیم اڅکزی)</option><option value="slot4">سبا - ۰۴:۰۰ مازدیګر (ډاکټر جلال الدین)</option></select>
+</div>
+<!-- Patient Main Complaint / Description -->
+<div class="md:col-span-2 flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-dark-forest-green font-semibold">د خپلې ناروغۍ لنډ تفصیل یا نښې ولیکئ:</label>
+<textarea class="w-full p-space-md rounded-xl bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm resize-none" placeholder="مهرباني وکړئ خپله تبه، درد، نښې او دا چې کله پیل شوي په لنډه توګه شریک کړئ..." rows="3"></textarea>
+</div>
+<!-- Submit Button & Guarantee Notice -->
+<div class="md:col-span-2 flex flex-col sm:flex-row items-center justify-between gap-space-md pt-space-xs">
+<div class="flex items-center gap-space-xs text-text-muted font-caption text-caption">
+<span class="material-symbols-outlined text-[20px] text-secondary">security</span>
+<span class="">ستاسو معلومات د ډاکټرانو له محرمیت پرته له بل هیچا سره نه شریکېږي.</span>
+</div>
+<button class="w-full sm:w-auto h-12 px-space-xl rounded-xl bg-primary-container text-on-primary font-title-sm text-title-sm font-bold flex items-center justify-center gap-space-xs shadow-md hover:bg-dark-forest-green transition-all" type="submit">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+<span class="">نوبت تایید کړئ</span>
+</button>
+</div>
+</form>
+</div>
+</div>
+</section>
+<!-- Legal, Regulatory & Ministry Compliance Standards Section -->
+<section class="w-full py-space-xl bg-surface-container-lowest">
+<div class="max-w-7xl mx-auto px-margin-desktop">
+<div class="flex flex-col md:flex-row items-center justify-between gap-space-lg p-space-lg rounded-2xl bg-soft-ivory shadow-sm">
+<div class="flex items-center gap-space-md">
+<div class="w-14 h-14 rounded-2xl bg-primary text-on-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[32px]">verified</span>
+</div>
+<div class="flex flex-col">
+<h4 class="font-title-md text-title-md font-bold text-dark-forest-green">رسمي طبي اعتبار او نړیوال معیارونه</h4>
+<p class="font-body-sm text-body-sm text-text-muted">
+              ای طبيب د افغانستان د اسلامي امارت د عامې روغتیا وزارت (MoPH) تر مستقیم قانوني چوکاټ او د معلوماتو خوندیتوب نړیوالو معیارونو لاندې فعالیت کوي.
+            </p>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-space-md shrink-0">
+<div class="flex items-center gap-space-xs px-space-sm py-1.5 rounded-xl bg-surface-container-lowest shadow-sm">
+<span class="material-symbols-outlined text-tertiary text-[20px]" style="font-variation-settings: 'FILL' 1;">shield</span>
+<span class="font-label-sm text-label-sm font-bold text-dark-forest-green">HIPAA باوري</span>
+</div>
+<div class="flex items-center gap-space-xs px-space-sm py-1.5 rounded-xl bg-surface-container-lowest shadow-sm">
+<span class="material-symbols-outlined text-primary text-[20px]" style="font-variation-settings: 'FILL' 1;">lock</span>
+<span class="font-label-sm text-label-sm font-bold text-dark-forest-green">ISO 27001 کوډ شوې شبکه</span>
+</div>
+<div class="flex items-center gap-space-xs px-space-sm py-1.5 rounded-xl bg-surface-container-lowest shadow-sm">
+<span class="material-symbols-outlined text-secondary text-[20px]" style="font-variation-settings: 'FILL' 1;">health_and_safety</span>
+<span class="font-label-sm text-label-sm font-bold text-dark-forest-green">MoPH تصدیق</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div></main><footer class="w-full bg-dark-forest-green text-soft-ivory pt-space-2xl pb-space-xl mt-space-2xl"><div class="max-w-7xl mx-auto px-margin-desktop"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-xl pb-space-xl"><div class="space-y-space-md"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-secondary-fixed text-[32px]">local_hospital</span><div class="flex flex-col"><span class="font-title-md text-title-md font-bold text-soft-ivory">ای طبيب</span><span class="font-caption text-caption text-secondary-fixed-dim">Care Beyond Borders</span></div></div><p class="font-body-sm text-body-sm text-surface-container-high leading-relaxed">له پولو هاخوا مسلکي روغتیایي پاملرنه او د لوړې کچې متخصصو ډاکټرانو سره د ویډیو او رسمي نسخې له لارې ۲۴ ساعته اړیکه.</p><div class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-primary/40"><span class="material-symbols-outlined text-tertiary-fixed text-[18px]">verified</span><span class="font-caption text-caption text-surface-bright">د عامې روغتیا وزارت (MoPH) رسمي تایید شوی روغتون</span></div></div><div class="space-y-space-sm"><h4 class="font-title-sm text-title-sm font-semibold text-soft-ivory">چټک لینکونه</h4><ul class="space-y-space-xs font-body-sm text-body-sm text-surface-container-high"><li class="hover:text-secondary-fixed transition-colors"><a data-path="doctors" href="#" class="">متخصص ډاکټران</a></li><li class="hover:text-secondary-fixed transition-colors"><a data-path="video-consultation" href="#" class="">آنلاین ویډیو مشورې</a></li><li class="hover:text-secondary-fixed transition-colors"><a data-path="prescription" href="#" class="">د نسخې تصدیق</a></li><li class="hover:text-secondary-fixed transition-colors"><a data-path="patient-portal" href="#" class="">د ناروغانو روغتیایي دوسیه</a></li></ul></div><div class="space-y-space-sm"><h4 class="font-title-sm text-title-sm font-semibold text-soft-ivory">د کتنځي او کلینیک مهالویش</h4><div class="space-y-space-xs font-body-sm text-body-sm text-surface-container-high"><div class="flex justify-between items-center"><span class="font-label-sm text-label-sm">شنبه تر پنجشنبې:</span><span class="font-label-sm text-label-sm">۰۷:۰۰ سهار - ۱۱:۰۰ شپه</span></div><div class="flex justify-between items-center"><span class="font-label-sm text-label-sm">جمعه (بېړنۍ څانګه):</span><span class="font-label-sm text-label-sm">۲۴ ساعته فعاله</span></div><div class="flex justify-between items-center"><span class="font-label-sm text-label-sm">ټیلیفوني ملاتړ:</span><span class="font-label-sm text-label-sm" dir="ltr">+93 700699337</span></div></div></div><div class="space-y-space-sm"><h4 class="font-title-sm text-title-sm font-semibold text-soft-ivory">قانوني او روغتیایي ژمنې</h4><p class="font-caption text-caption text-surface-container leading-relaxed">ټولې درملنې، تشخیصونه او ډیجیټل نسخې د افغانستان د عامې روغتیا وزارت او نړیوالو روغتیایي معیارونو سره سمې صادرېږي.</p><div class="flex items-center gap-space-sm pt-space-xs"><span class="px-space-sm py-space-xs rounded bg-surface-container-low/20 font-caption text-caption text-secondary-fixed">د محرمیت خوندیتوب</span><span class="px-space-sm py-space-xs rounded bg-surface-container-low/20 font-caption text-caption text-secondary-fixed">SSL کوډ شوې شبکه</span></div></div></div><div class="pt-space-lg flex flex-col md:flex-row justify-between items-center gap-space-sm font-caption text-caption text-surface-container-high"><p class="">© ۲۰۲۵ ای طبيب (Etabeeb Telemedicine). ټول حقونه خوندي دي.</p><p class="">له پولو هاخوا روغتیایي پاملرنه - Care Beyond Borders</p></div></div></footer>
 
-<script>
-  function showSuccessToast() {
-    const toast = document.getElementById('bookingToast');
-    if (toast) {
-      toast.classList.remove('hidden');
-      setTimeout(() => { toast.classList.add('hidden'); }, 5000);
-    }
-  }
-  function toggleMobileMenu() {
-    const menu = document.getElementById('mobileMenu');
-    menu.classList.toggle('hidden');
-  }
-</script>
-
-</body>
-</html>
+</body></html>

@@ -1,255 +1,662 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ps">
-<head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>نوبت واخلئ — ای طبیب | Book Appointment</title>
-  <meta name="description" content="آنلاین نوبت واخلئ د کوژک اسپیشلسټ کلینک ډاکټرانو سره">
-  <meta name="theme-color" content="#004f45">
-  <link rel="icon" href="/etabeeb-logo.png" type="image/png">
-  <link href="https://fonts.googleapis.com" rel="preconnect">
-  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&family=Noto+Serif:wght@600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
-  <style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}}::-webkit-scrollbar{display:none;}</style>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-container":"#d7f4e9","on-primary-container":"#94e5d5","on-secondary-container":"#715000","outline-variant":"#bec9c5","status-busy":"#F59E0B","card-surface":"#FFFFFF","surface-tint":"#046b5e","secondary-container":"#fdc350","secondary-fixed":"#ffdea7","surface-container-high":"#d1efe3","on-primary":"#ffffff","surface-variant":"#cce9de","on-primary-fixed":"#00201b","error":"#ba1a1a","surface-container-low":"#ddfaef","secondary":"#7c5800","surface-mint":"#F0F9F7","primary":"#004f45","on-background":"#052019","inverse-surface":"#1c352e","on-secondary":"#ffffff","on-tertiary":"#ffffff","surface-container-highest":"#cce9de","surface":"#e6fff5","surface-dim":"#c3e0d5","on-surface":"#052019","tertiary-container":"#2f665b","text-muted":"#4D6961","surface-bright":"#e6fff5","on-error":"#ffffff","background":"#e6fff5","on-tertiary-fixed":"#00201b","primary-fixed-dim":"#84d5c5","on-tertiary-container":"#a8e1d3","border-subtle":"#D4E8E3","inverse-primary":"#84d5c5","on-error-container":"#93000a","primary-fixed":"#a0f2e1","primary-container":"#00695c","on-surface-variant":"#3e4946","status-available":"#10B981","surface-container-lowest":"#ffffff","outline":"#6e7976","tertiary":"#124e44","tertiary-fixed":"#b5eee0","secondary-fixed-dim":"#f7bd4b"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-xs":"0.375rem","space-sm":"0.75rem","space-md":"1.25rem","gutter":"1.5rem","margin":"2rem","space-lg":"2rem","space-xl":"3.5rem"},"fontFamily":{"label-lg":["Inter"],"headline-md":["Noto Serif"],"headline-xl":["Noto Serif"],"label-md":["Inter"],"headline-sm":["Noto Serif"],"body-md":["Noto Sans"],"body-sm":["Noto Sans"],"label-sm":["Inter"],"headline-lg":["Noto Serif"],"body-lg":["Noto Sans"],"display-hero":["Noto Serif"]},"fontSize":{"label-lg":["15px",{"lineHeight":"1.4","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"1.6","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"1.7","fontWeight":"700"}],"label-md":["13px",{"lineHeight":"1.4","fontWeight":"500"}],"headline-sm":["17px",{"lineHeight":"1.6","fontWeight":"600"}],"body-md":["16px",{"lineHeight":"1.8","fontWeight":"400"}],"body-sm":["14px",{"lineHeight":"1.75","fontWeight":"400"}],"label-sm":["11px",{"lineHeight":"1.3","letterSpacing":"0.04em","fontWeight":"600"}],"headline-lg":["24px",{"lineHeight":"1.7","fontWeight":"600"}],"body-lg":["18px",{"lineHeight":"1.85","fontWeight":"400"}],"display-hero":["44px",{"lineHeight":"1.7","letterSpacing":"-0.01em","fontWeight":"700"}]}}}}};</script>
-</head>
-<body class="bg-surface font-body-md text-body-md text-on-surface antialiased">
 
-<!-- HEADER -->
-<header class="fixed top-0 left-0 right-0 z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-  <div class="bg-primary text-on-primary py-space-xs px-gutter">
-    <div class="w-full flex flex-wrap items-center justify-between gap-space-xs font-label-sm text-label-sm">
-      <div class="flex items-center gap-space-xs">
-        <span class="material-symbols-outlined text-secondary-container">emergency</span>
-        <span>بېړنۍ اړیکه: له ۷:۰۰ سهار تر ۱۱:۰۰ شپې پورې فعال</span>
-      </div>
-      <a class="flex items-center gap-space-xs hover:text-on-primary-container transition-colors" dir="ltr" href="tel:+923332357055">
-        <span class="material-symbols-outlined text-status-available">chat</span>
-        <span>0333 2357055</span>
-      </a>
-    </div>
-  </div>
-  <div class="h-16 bg-surface-container-lowest/90 backdrop-blur-xl px-gutter">
-    <div class="w-full h-full flex items-center justify-between gap-space-md">
-      <a href="/" class="flex items-center gap-space-md shrink-0">
-        <img alt="ای طبیب لوګو" class="h-7 w-auto object-contain" src="/etabeeb-logo.png" onerror="this.style.display='none'">
-        <span class="font-headline-md text-headline-md text-primary font-bold leading-none">ای طبیب</span>
-      </a>
-      <nav class="hidden lg:flex items-center gap-space-xs">
-        <a class="px-space-sm py-space-xs text-on-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md" href="/">سرپاڼه</a>
-        <a class="px-space-sm py-space-xs text-on-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md" href="/doctors">ډاکټران</a>
-        <a class="px-space-sm py-space-xs text-on-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md" href="/how-it-works">د کار طریقه</a>
-        <a aria-current="page" class="px-space-sm py-space-xs bg-surface-container text-primary font-bold rounded-lg font-label-md text-label-md" href="/book">نوبت واخلئ</a>
-      </nav>
-      <a href="/" class="inline-flex items-center gap-1 px-space-md py-space-xs rounded-full bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container transition-all">
-        <span class="material-symbols-outlined text-base">arrow_forward</span>
-        <span>سرپاڼه</span>
-      </a>
-    </div>
-  </div>
-</header>
-
-<main class="w-full pt-24 pb-space-xl bg-surface min-h-screen">
-  <div class="mx-auto max-w-4xl px-gutter py-space-xl">
-    <!-- Page Header -->
-    <div class="text-center mb-space-xl">
-      <div class="inline-flex items-center gap-1 rounded-full bg-surface-container px-space-md py-1.5 font-label-sm text-label-sm text-primary mb-4">
-        <span class="h-2 w-2 rounded-full bg-status-available animate-pulse"></span>
-        <span>آنلاین نوبت ثبتول فعال دي</span>
-      </div>
-      <h1 class="font-headline-xl text-headline-xl text-primary">نوبت واخلئ</h1>
-      <p class="font-body-md text-body-md text-text-muted mt-2 max-w-lg mx-auto">
-        لاندې فورمه ډکه کړئ — زموږ ټیم به ۱ ساعت کې ستاسو سره د وټساپ له لارې اړیکه ونیسي.
-      </p>
-    </div>
-
-    <!-- Booking Form Card -->
-    <div class="bg-card-surface rounded-3xl shadow-xl p-space-lg">
-      <form id="bookingForm" onsubmit="submitBooking(event)" class="space-y-space-md">
-
-        <!-- Step 1: Doctor Selection -->
-        <div>
-          <h2 class="font-headline-sm text-headline-sm font-bold text-primary mb-space-sm flex items-center gap-2">
-            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-on-primary text-sm font-bold">۱</span>
-            ډاکټر وټاکئ
-          </h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
-
-            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
-              <input type="radio" name="doctor" value="jalaluddin" class="sr-only">
-              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-jalaluddin/dr-jalaluddin__headshot-white-coat-01.png" alt="ډاکټر جلال الدین">
-              <div class="min-w-0">
-                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټر جلال الدین</p>
-                <p class="font-label-sm text-label-sm text-text-muted">عمومي او باطني ناروغۍ</p>
-                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۳۰۰ افغانۍ</p>
-              </div>
-              <span class="check-icon absolute top-2 left-2 hidden h-5 w-5 items-center justify-center rounded-full bg-primary text-on-primary">
-                <span class="material-symbols-outlined text-xs">check</span>
+<html dir="rtl" lang="ps"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"inverse-surface":"#1b352f","surface-bright":"#e6fff6","primary-container":"#006d4e","inverse-on-surface":"#daf7ed","surface-container":"#d7f4ea","on-background":"#05201a","on-tertiary-container":"#4e3d00","on-secondary-fixed":"#002018","primary-fixed-dim":"#81d7b1","soft-ivory":"#F8F5ED","secondary-fixed":"#6dfad2","tertiary":"#735c00","text-muted":"#5D6F69","on-tertiary":"#ffffff","error":"#ba1a1a","surface":"#e6fff6","on-surface-variant":"#3f4943","surface-container-high":"#d1efe5","dark-forest-green":"#0B3D2E","surface-container-lowest":"#ffffff","on-surface":"#05201a","secondary-container":"#6dfad2","error-container":"#ffdad6","surface-tint":"#006c4d","primary-fixed":"#9df4cd","surface-dim":"#c3e0d7","border-subtle":"#DDE7E2","on-error-container":"#93000a","background":"#e6fff6","disabled":"#A9B8B2","tertiary-container":"#cca72f","on-secondary-container":"#00725b","tertiary-fixed-dim":"#e9c349","on-secondary-fixed-variant":"#005140","on-primary-fixed":"#002115","surface-container-highest":"#cce9df","on-tertiary-fixed-variant":"#574500","primary":"#00523a","on-error":"#ffffff","on-secondary":"#ffffff","on-primary":"#ffffff","inverse-primary":"#81d7b1","surface-container-low":"#ddfaf0","on-tertiary-fixed":"#241a00","secondary":"#006b55","tertiary-fixed":"#ffe088","outline":"#6f7a73","on-primary-fixed-variant":"#005139","outline-variant":"#bec9c1","secondary-fixed-dim":"#4bddb7","surface-variant":"#cce9df","on-primary-container":"#94ebc4"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"space-xl":"2rem","margin":"1rem","gutter":"1rem","space-md":"1rem","margin-tablet":"1.5rem","space-sm":"0.5rem","margin-desktop":"2.5rem","space-2xl":"3rem","space-xs":"0.25rem","space-lg":"1.5rem","gutter-desktop":"1.5rem"},fontFamily:{"headline-lg-mobile":["Inter"],"title-sm":["Inter"],"body-sm":["Inter"],"headline-md":["Inter"],"title-md":["Inter"],"headline-lg":["Inter"],"headline-sm":["Inter"],"headline-xl-mobile":["Inter"],"label-md":["Inter"],"headline-xl":["Inter"],"caption":["Inter"],"body-lg":["Inter"],"label-sm":["Inter"],"body-md":["Inter"]},fontSize:{"headline-lg-mobile":["24px",{lineHeight:"32px",letterSpacing:"-0.01em",fontWeight:"600"}],"title-sm":["16px",{lineHeight:"24px",fontWeight:"600"}],"body-sm":["14px",{lineHeight:"20px",fontWeight:"400"}],"headline-md":["24px",{lineHeight:"32px",fontWeight:"600"}],"title-md":["18px",{lineHeight:"26px",fontWeight:"600"}],"headline-lg":["32px",{lineHeight:"40px",letterSpacing:"-0.015em",fontWeight:"600"}],"headline-sm":["20px",{lineHeight:"28px",fontWeight:"600"}],"headline-xl-mobile":["30px",{lineHeight:"38px",letterSpacing:"-0.01em",fontWeight:"700"}],"label-md":["14px",{lineHeight:"20px",letterSpacing:"0.01em",fontWeight:"500"}],"headline-xl":["40px",{lineHeight:"48px",letterSpacing:"-0.02em",fontWeight:"700"}],"caption":["11px",{lineHeight:"14px",fontWeight:"500"}],"body-lg":["18px",{lineHeight:"28px",fontWeight:"400"}],"label-sm":["12px",{lineHeight:"16px",letterSpacing:"0.02em",fontWeight:"500"}],"body-md":["16px",{lineHeight:"24px",fontWeight:"400"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 inset-x-0 z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-10 bg-primary-container text-on-primary px-margin-desktop flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="flex h-2.5 w-2.5 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary-fixed"></span></span><span class="font-label-sm text-label-sm">بېړنۍ اړیکه او ۲۴ ساعته طبي مشورې: له ۷:۰۰ سهار تر ۱۱:۰۰ شپې پورې فعال</span></div><div class="flex items-center gap-space-md font-label-sm text-label-sm"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">call</span><span class="font-label-md text-label-md font-bold" dir="ltr">+93 700699337</span></span></div></div><div class="h-20 bg-surface-container-lowest/95 backdrop-blur-xl px-margin-desktop flex items-center justify-between"><div class="flex items-center gap-space-xl"><div class="flex items-center gap-space-sm"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1U_JHKz7p3FUxQJgI9GRuxL5JdFeGeExzrCF2SY55SLGU2wi09b40DP6JawekV4X_9g0j48fn9gXf9g1yH3xxUDQCq2uLa4owkLlfYAiX7CstuNLvWUndv_sm8qmndyCeUk0JIWD31KY1koFfN87btvSuCf7cCTCzflZ91_MVdKNlZNe-oWv4AoOO0VxsLH6MJXe_LayDWvjIToQFs5XNGAvgR6pEjKLgQo26DWyI3ihzHK9goWylxdWTqE2o1DwBxZzql0RY10V5o"/><div class="flex flex-col"><span class="font-title-md text-title-md font-bold text-dark-forest-green tracking-tight">ای طبيب</span><span class="font-caption text-caption text-text-muted">Etabeeb Telemedicine</span></div></div><nav class="hidden xl:flex items-center gap-space-md" data-active-classes="bg-surface-container text-primary font-title-sm"><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="home" href="#">سرپاڼه</a><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="doctors" href="#">ډاکټران</a><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="book-appointment" href="#">نوبت واخلئ</a><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="video-consultation" href="#">ویډیو کتنځای</a><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="prescription" href="#">رسمي نسخه</a><a class="px-space-sm py-space-xs rounded text-on-surface-variant font-title-sm text-title-sm transition-colors" data-path="patient-portal" href="#">د ناروغ پورټل</a></nav></div><div class="flex items-center gap-space-sm"><a class="h-10 px-space-md rounded-lg bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-space-xs hover:bg-dark-forest-green hover:text-on-primary transition-colors" href="https://wa.me/93700699337"><span class="material-symbols-outlined text-[18px]">chat</span><span class="">واټساپ مشوره</span></a><a class="h-10 px-space-md rounded-lg bg-tertiary-container text-dark-forest-green font-label-md text-label-md font-semibold flex items-center gap-space-xs hover:bg-tertiary-fixed hover:text-dark-forest-green transition-colors" data-path="book-appointment" href="#"><span class="material-symbols-outlined text-[18px]">calendar_month</span><span class="">نوبت واخلئ</span></a><a class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-dark-forest-green hover:bg-surface-container-high transition-colors" data-path="patient-portal" href="#"><span class="material-symbols-outlined text-[20px]">account_circle</span></a></div></div></header><main class="w-full pt-[7.5rem] bg-surface min-h-screen"><div class="flex flex-col w-full font-body-md text-on-surface">
+<!-- Top Progress Tracker Section -->
+<div class="w-full bg-surface-container-lowest shadow-sm pb-space-lg pt-space-md">
+<div class="max-w-7xl mx-auto px-margin md:px-margin-desktop">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md mb-space-md">
+<div>
+<span class="inline-flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-surface-container text-primary font-caption text-caption mb-1">
+<span class="material-symbols-outlined text-[14px]">verified_user</span>
+            د افغانستان عامې روغتیا وزارت تایید شوی سیستم
+          </span>
+<h1 class="font-headline-lg text-headline-lg font-bold text-dark-forest-green">د آنلاین کتنې نوبت او تادیه</h1>
+<p class="font-body-sm text-body-sm text-text-muted mt-1">د خپلو غوره متخصصینو سره په خوندي، چټک او مسلکي توګه اړیکه ټینګه کړئ.</p>
+</div>
+<!-- Emergency / WhatsApp Live Triage Capsule -->
+<div class="flex items-center gap-space-sm p-space-sm rounded-xl bg-surface-container-low shadow-sm">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">support_agent</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-text-muted">سمدستي ژوندی ملاتړ (واټساپ)</span>
+<a class="font-title-sm text-title-sm font-bold text-primary hover:underline" dir="ltr" href="https://wa.me/93700699337" target="_blank">+93 700699337</a>
+</div>
+</div>
+</div>
+<!-- Step Indicator Bar -->
+<div class="grid grid-cols-4 gap-space-xs sm:gap-space-md pt-space-xs">
+<div class="flex items-center gap-space-xs sm:gap-space-sm p-space-xs sm:p-space-sm rounded-lg bg-primary text-on-primary shadow-sm transition-all" id="tab-nav-1">
+<span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-surface-container-lowest text-primary font-label-md text-label-md font-bold flex items-center justify-center flex-shrink-0">۱</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm font-bold truncate">متخصص ډاکټر</span>
+<span class="font-caption text-caption text-primary-fixed-dim hidden sm:inline truncate">ټاکنه او فیس</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs sm:gap-space-sm p-space-xs sm:p-space-sm rounded-lg bg-surface-container-high text-on-surface transition-all" id="tab-nav-2">
+<span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-surface-container text-dark-forest-green font-label-md text-label-md font-bold flex items-center justify-center flex-shrink-0">۲</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm font-bold truncate">نېټه او وخت</span>
+<span class="font-caption text-caption text-text-muted hidden sm:inline truncate">د کتنځي مهالوېش</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs sm:gap-space-sm p-space-xs sm:p-space-sm rounded-lg bg-surface-container text-on-surface-variant transition-all" id="tab-nav-3">
+<span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md font-bold flex items-center justify-center flex-shrink-0">۳</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm font-bold truncate">د ناروغ معلومات</span>
+<span class="font-caption text-caption text-text-muted hidden sm:inline truncate">دوسیه او معاینات</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs sm:gap-space-sm p-space-xs sm:p-space-sm rounded-lg bg-surface-container text-on-surface-variant transition-all" id="tab-nav-4">
+<span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md font-bold flex items-center justify-center flex-shrink-0">۴</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm font-bold truncate">تایید او تادیه</span>
+<span class="font-caption text-caption text-text-muted hidden sm:inline truncate">صرافي / حساب‌پي</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Booking Canvas -->
+<div class="max-w-7xl mx-auto px-margin md:px-margin-desktop py-space-xl w-full">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-start">
+<!-- Interactive Booking Wizard Form (8 cols) -->
+<form class="lg:col-span-8 flex flex-col gap-space-xl" id="booking-form" onsubmit="event.preventDefault();">
+<!-- STEP 1: Physician Selection -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md sm:p-space-xl" id="step-physician">
+<div class="flex items-center justify-between mb-space-lg">
+<div class="flex items-center gap-space-sm">
+<span class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary font-bold">۱</span>
+<div>
+<h2 class="font-title-md text-title-md font-bold text-dark-forest-green">د کتنې لپاره متخصص ډاکټر وټاکئ</h2>
+<p class="font-caption text-caption text-text-muted">ټول معالجین په رسمي ډول تصدیق شوي دي</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-semibold px-space-sm py-1 bg-surface-container-low rounded-full">تصدیق شوي ډاکټران</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<!-- Doctor Card 1: Dr. Jalal-ud-Din -->
+<label class="group relative cursor-pointer rounded-xl bg-surface-container-low p-space-md shadow-sm transition-all hover:shadow-md flex flex-col justify-between select-none" id="card-doctor-jalal">
+<input checked="" class="peer sr-only" name="selected_doctor" onchange="updateSummaryDoctor('jalal', 'ډاکټر جلال الدین', 'داخله او د زړه ناروغیو متخصص', '300', 'د زړه او داخلي اعضاوو لوړ رتبه مشاور، ۱۵ کاله کلینیکي تجربه')" type="radio" value="jalal"/>
+<div class="flex items-start gap-space-md">
+<div class="relative w-16 h-16 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Professional Afghan medical doctor Dr. Jalal-ud-Din wearing a clinical white coat and stethoscope in a well-lit Kabul medical consultation office, confident and welcoming expression, studio healthcare lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuKTjTicst0s2KXap0GSochMZ2tsSnXIQGzPnweXLE7cloheWmtfIGFt6xbIzOa-_XXuSJwkbr6BDDWR9ADss-nVcLR7Lh_E9X_5Tu37nyF_kNm7wz2ewRAGgnMsIDTmVWVdA-RAFxPP6jchBAKpEW_Yw-MOwFoKRZskpS9ce5F5LueWCMzfph50b9KJS3Mron2VQlMgc-5w-ITJIr7f5bqaBGUk04CmE1owm5axoRmT6Kw0_BZATh6Q"/>
+<span class="absolute bottom-1 right-1 w-3 h-3 rounded-full bg-secondary-container"></span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-xs">
+<span class="font-title-sm text-title-sm font-bold text-dark-forest-green truncate">ډاکټر جلال الدین</span>
+<span class="material-symbols-outlined text-tertiary text-[18px]" title="تایید شوی متخصص">verified</span>
+</div>
+<span class="font-label-sm text-label-sm text-text-muted">داخله او د زړه ناروغیو متخصص</span>
+<div class="flex items-center gap-space-xs mt-1">
+<span class="material-symbols-outlined text-tertiary-container text-[16px]">grade</span>
+<span class="font-caption text-caption font-bold text-dark-forest-green">۴.۹</span>
+<span class="font-caption text-caption text-text-muted">(۴۲۰+ بریالۍ مشورې)</span>
+</div>
+</div>
+</div>
+<div class="mt-space-md pt-space-sm bg-surface-container-lowest/70 p-space-sm rounded-lg flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-caption text-caption text-text-muted">د مشورې حق الزحمه</span>
+<span class="font-title-md text-title-md font-bold text-primary">۳۰۰ <span class="font-label-sm text-label-sm">افغانۍ</span></span>
+</div>
+<div class="h-8 px-space-sm rounded-md bg-primary-container text-on-primary font-label-sm text-label-sm flex items-center gap-1">
+<span>ټاکل شوی</span>
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+</div>
+</div>
+<!-- Visual selector indicator -->
+<div class="absolute inset-0 rounded-xl pointer-events-none opacity-100 peer-checked:opacity-100 bg-primary/5 transition-opacity" id="indicator-jalal"></div>
+</label>
+<!-- Doctor Card 2: Dr. Muhammad Rahim Achakzai -->
+<label class="group relative cursor-pointer rounded-xl bg-surface-container-lowest p-space-md shadow-sm transition-all hover:shadow-md flex flex-col justify-between select-none" id="card-doctor-rahim">
+<input class="peer sr-only" name="selected_doctor" onchange="updateSummaryDoctor('rahim', 'ډاکټر محمد رحیم اڅکزی', 'عمومي جراحي او ارتوپیدي مشاور', '250', 'د کوږک کلینیک وتلی جراح، هډوکو او مفاصلو جراحي متخصص، ۱۲ کاله تجربه')" type="radio" value="rahim"/>
+<div class="flex items-start gap-space-md">
+<div class="relative w-16 h-16 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Experienced Afghan physician Dr. Muhammad Rahim Achakzai in modern surgical scrub and clinical doctor coat smiling warmly in hospital background, dignified medical portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACKwWpnp7OO1FU9hQf2mJurXQ3tgVuBCCFEFCWRCw-3RX13TVGrJj9NGDajd0ZfP_bCWk21KP8g2kC1qxKNEiszk1sfM1x3vEeUyn1FDRNIH1c-E18stDEzbWJqWDE26aQR_DM2j3AnmD3QkTE1x9MB3wNdbqzEQwW0Jr2bVmrujw5FB61Nk47_TGQ3EF5T79hiMvMUKxgjNNoIJ6N8FULASswEFANQkF3gyzOx_txn5lspAhAsEvYmg"/>
+<span class="absolute bottom-1 right-1 w-3 h-3 rounded-full bg-secondary-container"></span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-xs">
+<span class="font-title-sm text-title-sm font-bold text-dark-forest-green truncate">ډاکټر محمد رحیم اڅکزی</span>
+<span class="material-symbols-outlined text-tertiary text-[18px]" title="تایید شوی متخصص">verified</span>
+</div>
+<span class="font-label-sm text-label-sm text-text-muted">عمومي جراحي او ارتوپیدي مشاور</span>
+<div class="flex items-center gap-space-xs mt-1">
+<span class="material-symbols-outlined text-tertiary-container text-[16px]">grade</span>
+<span class="font-caption text-caption font-bold text-dark-forest-green">۴.۸</span>
+<span class="font-caption text-caption text-text-muted">(۳۱۰+ بریالۍ مشورې)</span>
+</div>
+</div>
+</div>
+<div class="mt-space-md pt-space-sm bg-surface-container-low/70 p-space-sm rounded-lg flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-caption text-caption text-text-muted">د مشورې حق الزحمه</span>
+<span class="font-title-md text-title-md font-bold text-primary">۲۵۰ <span class="font-label-sm text-label-sm">افغانۍ</span></span>
+</div>
+<div class="h-8 px-space-sm rounded-md bg-surface-container text-dark-forest-green font-label-sm text-label-sm flex items-center gap-1">
+<span>ټاکنه</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</div>
+</div>
+<div class="absolute inset-0 rounded-xl pointer-events-none opacity-0 peer-checked:opacity-100 bg-primary/5 transition-opacity" id="indicator-rahim"></div>
+</label>
+</div>
+</section>
+<!-- STEP 2: Date & Time Picker -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md sm:p-space-xl" id="step-datetime">
+<div class="flex items-center justify-between mb-space-lg">
+<div class="flex items-center gap-space-sm">
+<span class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary font-bold">۲</span>
+<div>
+<h2 class="font-title-md text-title-md font-bold text-dark-forest-green">د کتنې ورځ او د وخت موده</h2>
+<p class="font-caption text-caption text-text-muted">په خپلې اسانتیا سره مناسب وخت وټاکئ</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary-container animate-pulse"></span>
+              وختونه په ژوندي بڼه شته
+            </span>
+</div>
+<!-- Date Quick Selectors (Days of current week) -->
+<div class="space-y-space-sm mb-space-lg">
+<label class="font-label-md text-label-md font-semibold text-dark-forest-green block">نېټه وټاکئ (نن او راتلونکې ورځې):</label>
+<div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-space-sm" id="date-picker-group">
+<button class="date-btn p-space-sm rounded-xl bg-primary text-on-primary text-center shadow-sm flex flex-col items-center justify-center gap-0.5 transition-all" onclick="selectDate(this, 'نن، شنبه (۲۵ حوت)')" type="button">
+<span class="font-caption text-caption text-primary-fixed-dim">نن</span>
+<span class="font-title-sm text-title-sm font-bold">شنبه</span>
+<span class="font-label-sm text-label-sm">۲۵ حوت</span>
+</button>
+<button class="date-btn p-space-sm rounded-xl bg-surface-container-low text-on-surface text-center hover:bg-surface-container flex flex-col items-center justify-center gap-0.5 transition-all" onclick="selectDate(this, 'یکشنبه (۲۶ حوت)')" type="button">
+<span class="font-caption text-caption text-text-muted">سبا</span>
+<span class="font-title-sm text-title-sm font-bold">یکشنبه</span>
+<span class="font-label-sm text-label-sm text-text-muted">۲۶ حوت</span>
+</button>
+<button class="date-btn p-space-sm rounded-xl bg-surface-container-low text-on-surface text-center hover:bg-surface-container flex flex-col items-center justify-center gap-0.5 transition-all" onclick="selectDate(this, 'دوشنبه (۲۷ حوت)')" type="button">
+<span class="font-caption text-caption text-text-muted">بل سبا</span>
+<span class="font-title-sm text-title-sm font-bold">دوشنبه</span>
+<span class="font-label-sm text-label-sm text-text-muted">۲۷ حوت</span>
+</button>
+<button class="date-btn p-space-sm rounded-xl bg-surface-container-low text-on-surface text-center hover:bg-surface-container flex flex-col items-center justify-center gap-0.5 transition-all" onclick="selectDate(this, 'سه‌شنبه (۲۸ حوت)')" type="button">
+<span class="font-caption text-caption text-text-muted">روان اونۍ</span>
+<span class="font-title-sm text-title-sm font-bold">سه‌شنبه</span>
+<span class="font-label-sm text-label-sm text-text-muted">۲۸ حوت</span>
+</button>
+<button class="date-btn p-space-sm rounded-xl bg-surface-container-low text-on-surface text-center hover:bg-surface-container flex flex-col items-center justify-center gap-0.5 transition-all" onclick="selectDate(this, 'چارشنبه (۲۹ حوت)')" type="button">
+<span class="font-caption text-caption text-text-muted">روان اونۍ</span>
+<span class="font-title-sm text-title-sm font-bold">چارشنبه</span>
+<span class="font-label-sm text-label-sm text-text-muted">۲۹ حوت</span>
+</button>
+<button class="date-btn p-space-sm rounded-xl bg-surface-container-low text-on-surface text-center hover:bg-surface-container flex flex-col items-center justify-center gap-0.5 transition-all" onclick="selectDate(this, 'پنجشنبه (۱ وری)')" type="button">
+<span class="font-caption text-caption text-text-muted">نوی کال</span>
+<span class="font-title-sm text-title-sm font-bold">پنجشنبه</span>
+<span class="font-label-sm text-label-sm text-text-muted">۱ وری</span>
+</button>
+</div>
+</div>
+<!-- Time Slots by Segment -->
+<div class="space-y-space-md">
+<!-- Morning Slots -->
+<div class="space-y-space-xs">
+<div class="flex items-center gap-space-xs text-text-muted">
+<span class="material-symbols-outlined text-[18px]">wb_sunny</span>
+<span class="font-label-md text-label-md font-semibold text-dark-forest-green">د سهار موده (۰۹:۰۰ تر ۱۲:۰۰)</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-space-sm">
+<button class="time-btn p-space-sm rounded-lg bg-surface-container text-dark-forest-green font-label-md text-label-md text-center hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1" onclick="selectTime(this, '۰۹:۳۰ سهار')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۰۹:۳۰ سهار</span>
+</button>
+<button class="time-btn p-space-sm rounded-lg bg-primary text-on-primary font-label-md text-label-md text-center shadow-sm flex items-center justify-center gap-1" onclick="selectTime(this, '۱۰:۱۵ سهار')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۱۰:۱۵ سهار</span>
+</button>
+<button class="time-btn p-space-sm rounded-lg bg-surface-container text-dark-forest-green font-label-md text-label-md text-center hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1" onclick="selectTime(this, '۱۱:۰۰ سهار')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۱۱:۰۰ سهار</span>
+</button>
+<button class="p-space-sm rounded-lg bg-surface-dim/40 text-disabled font-label-md text-label-md text-center cursor-not-allowed flex items-center justify-center gap-1 line-through" disabled="" type="button">
+<span>۱۱:۴۵ سهار</span>
+</button>
+</div>
+</div>
+<!-- Afternoon Slots -->
+<div class="space-y-space-xs">
+<div class="flex items-center gap-space-xs text-text-muted">
+<span class="material-symbols-outlined text-[18px]">wb_twilight</span>
+<span class="font-label-md text-label-md font-semibold text-dark-forest-green">د ماسپښین موده (۰۲:۰۰ تر ۰۵:۰۰)</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-space-sm">
+<button class="time-btn p-space-sm rounded-lg bg-surface-container text-dark-forest-green font-label-md text-label-md text-center hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1" onclick="selectTime(this, '۰۲:۳۰ ماسپښین')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۰۲:۳۰ ماسپښین</span>
+</button>
+<button class="time-btn p-space-sm rounded-lg bg-surface-container text-dark-forest-green font-label-md text-label-md text-center hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1" onclick="selectTime(this, '۰۳:۱۵ ماسپښین')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۰۳:۱۵ ماسپښین</span>
+</button>
+<button class="time-btn p-space-sm rounded-lg bg-surface-container text-dark-forest-green font-label-md text-label-md text-center hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1" onclick="selectTime(this, '۰۴:۰۰ مازدیګر')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۰۴:۰۰ مازدیګر</span>
+</button>
+<button class="time-btn p-space-sm rounded-lg bg-surface-container text-dark-forest-green font-label-md text-label-md text-center hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1" onclick="selectTime(this, '۰۴:۴۵ مازدیګر')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۰۴:۴۵ مازدیګر</span>
+</button>
+</div>
+</div>
+<!-- Evening Slots -->
+<div class="space-y-space-xs">
+<div class="flex items-center gap-space-xs text-text-muted">
+<span class="material-symbols-outlined text-[18px]">bedtime</span>
+<span class="font-label-md text-label-md font-semibold text-dark-forest-green">د شپې موده (۰۷:۰۰ تر ۱۰:۰۰)</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-space-sm">
+<button class="time-btn p-space-sm rounded-lg bg-surface-container text-dark-forest-green font-label-md text-label-md text-center hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1" onclick="selectTime(this, '۰۷:۳۰ ماښام')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۰۷:۳۰ ماښام</span>
+</button>
+<button class="time-btn p-space-sm rounded-lg bg-surface-container text-dark-forest-green font-label-md text-label-md text-center hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1" onclick="selectTime(this, '۰۸:۱۵ شپه')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۰۸:۱۵ شپه</span>
+</button>
+<button class="time-btn p-space-sm rounded-lg bg-surface-container text-dark-forest-green font-label-md text-label-md text-center hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1" onclick="selectTime(this, '۰۹:۰۰ شپه')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۰۹:۰۰ شپه</span>
+</button>
+<button class="time-btn p-space-sm rounded-lg bg-surface-container text-dark-forest-green font-label-md text-label-md text-center hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1" onclick="selectTime(this, '۰۹:۴۵ شپه')" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>۰۹:۴۵ شپه</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- STEP 3: Patient Intake Form -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md sm:p-space-xl" id="step-patient">
+<div class="flex items-center justify-between mb-space-lg">
+<div class="flex items-center gap-space-sm">
+<span class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary font-bold">۳</span>
+<div>
+<h2 class="font-title-md text-title-md font-bold text-dark-forest-green">د ناروغ هراړخیز معلومات او نښې</h2>
+<p class="font-caption text-caption text-text-muted">دا معلومات یوازې ستاسو معالج ډاکټر ته ښودل کېږي</p>
+</div>
+</div>
+<span class="flex items-center gap-1 font-caption text-caption text-text-muted">
+<span class="material-symbols-outlined text-[16px] text-primary">lock</span>
+              محرم او خوندي سیستم
+            </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<!-- Patient Full Name -->
+<div class="space-y-1">
+<label class="font-label-md text-label-md font-semibold text-dark-forest-green">د ناروغ پوره نوم *</label>
+<div class="relative">
+<input class="w-full h-12 px-space-md rounded-lg bg-surface-container-lowest text-on-surface placeholder:text-disabled shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-right" id="patient-name-input" oninput="updateSummaryPatientName(this.value)" placeholder="مثال: احمد ولي کریمی" required="" type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-3 text-text-muted pointer-events-none">person</span>
+</div>
+</div>
+<!-- WhatsApp Number (Strict Afghan context) -->
+<div class="space-y-1">
+<label class="font-label-md text-label-md font-semibold text-dark-forest-green">د واټساپ فعاله شمېره (د کتنې لپاره) *</label>
+<div class="relative">
+<input class="w-full h-12 px-space-md rounded-lg bg-surface-container-lowest text-on-surface placeholder:text-disabled shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-left" dir="ltr" id="patient-phone-input" placeholder="+93 7XX XXXXXX" required="" type="tel" value="+93 7"/>
+<span class="material-symbols-outlined absolute right-3 top-3 text-secondary pointer-events-none">chat</span>
+</div>
+<p class="font-caption text-caption text-text-muted">د انټرنیټ د کمزورۍ پر مهال به مستقیم په واټساپ کې ویډیو زنګ ووهل شي.</p>
+</div>
+<!-- Age -->
+<div class="space-y-1">
+<label class="font-label-md text-label-md font-semibold text-dark-forest-green">عمر (کلونه) *</label>
+<div class="relative">
+<input class="w-full h-12 px-space-md rounded-lg bg-surface-container-lowest text-on-surface placeholder:text-disabled shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-right" max="110" min="1" placeholder="مثال: ۳۴" required="" type="number"/>
+<span class="material-symbols-outlined absolute left-3 top-3 text-text-muted pointer-events-none">cake</span>
+</div>
+</div>
+<!-- Gender Selector -->
+<div class="space-y-1">
+<label class="font-label-md text-label-md font-semibold text-dark-forest-green">جنسیت *</label>
+<div class="grid grid-cols-2 gap-space-sm h-12">
+<label class="flex items-center justify-center gap-space-xs rounded-lg bg-surface-container cursor-pointer text-dark-forest-green hover:bg-surface-container-high font-label-md text-label-md transition-colors">
+<input checked="" class="accent-primary" name="gender" type="radio" value="male"/>
+<span>نارینه (ورور)</span>
+</label>
+<label class="flex items-center justify-center gap-space-xs rounded-lg bg-surface-container cursor-pointer text-dark-forest-green hover:bg-surface-container-high font-label-md text-label-md transition-colors">
+<input class="accent-primary" name="gender" type="radio" value="female"/>
+<span>ښځینه (خور)</span>
+</label>
+</div>
+</div>
+<!-- Symptoms & Chief Complaints -->
+<div class="space-y-1 md:col-span-2">
+<label class="font-label-md text-label-md font-semibold text-dark-forest-green">اصلي ستونزه یا روغتیایي شکایت (نښې) *</label>
+<textarea class="w-full p-space-md rounded-lg bg-surface-container-lowest text-on-surface placeholder:text-disabled shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-right" placeholder="مهرباني وکړئ خپله تبه، درد، ساه لنډي، د فشار تغیرات یا نورې نښې په لنډه توګه ولیکئ..." required="" rows="3"></textarea>
+</div>
+<!-- Report Upload / Previous Prescriptions -->
+<div class="space-y-1 md:col-span-2">
+<label class="font-label-md text-label-md font-semibold text-dark-forest-green">پخوانۍ معاینات، تلویزوني معاینې یا نسخې (اختیاري)</label>
+<div class="p-space-lg rounded-xl bg-surface-container-low text-center cursor-pointer hover:bg-surface-container transition-colors flex flex-col items-center justify-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[36px]">cloud_upload</span>
+<span class="font-title-sm text-title-sm font-semibold text-dark-forest-green">د فایل یا عکس اپلوډ کول</span>
+<span class="font-caption text-caption text-text-muted">عکس، پی ډي ایف (PDF) تر ۱۰ میګابایټ پورې د منلو وړ دي</span>
+<input accept="image/*,application/pdf" class="hidden" id="file-upload" onchange="document.getElementById('file-uploaded-badge').classList.remove('hidden');" type="file"/>
+<button class="mt-space-xs px-space-md py-1 rounded-md bg-surface-container-lowest text-primary font-label-sm text-label-sm shadow-sm hover:bg-surface-container transition-colors" onclick="document.getElementById('file-upload').click();" type="button">دوتنه وټاکئ</button>
+<div class="hidden mt-2 inline-flex items-center gap-1 text-primary font-caption text-caption font-bold bg-primary-fixed px-space-sm py-0.5 rounded-full" id="file-uploaded-badge">
+<span class="material-symbols-outlined text-[14px]">check</span> ۱ فایل اضافه شو
+                </div>
+</div>
+</div>
+</div>
+</section>
+<!-- STEP 4: Payment Methods -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md sm:p-space-xl" id="step-payment">
+<div class="flex items-center justify-between mb-space-lg">
+<div class="flex items-center gap-space-sm">
+<span class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary font-bold">۴</span>
+<div>
+<h2 class="font-title-md text-title-md font-bold text-dark-forest-green">د کتنې د فیس ورکړې طریقه</h2>
+<p class="font-caption text-caption text-text-muted">په افغانستان کې دننه اسانه او باوري تادیاتي لارې</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-semibold">تضمین شوی لېږد</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<!-- Option 1: Sarafi / Hawala -->
+<label class="relative p-space-md rounded-xl bg-surface-container-low cursor-pointer shadow-sm hover:shadow-md flex flex-col justify-between transition-all" id="pay-opt-sarafi">
+<input checked="" class="peer sr-only" name="payment_method" onchange="updatePaymentMethod('صرافي / شهزاده سرای حواله', 'د تاییدۍ سند به وروسته په واټساپ واستول شي')" type="radio" value="sarafi"/>
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<span class="material-symbols-outlined text-primary text-[28px]">account_balance</span>
+<span class="px-space-xs py-0.5 rounded text-primary font-caption text-caption bg-surface-container-lowest">دودیزه طریقه</span>
+</div>
+<h3 class="font-title-sm text-title-sm font-bold text-dark-forest-green">حواله / صرافي</h3>
+<p class="font-caption text-caption text-text-muted mt-1 leading-relaxed">د کابل شهزاده سرای یا ولایتي صرافیو له لارې د فیس ادا کول.</p>
+</div>
+<div class="mt-space-md pt-space-xs font-caption text-caption text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>ټاکل شوې طریقه</span>
+</div>
+</label>
+<!-- Option 2: Mobile Money (HesabPay / MTN) -->
+<label class="relative p-space-md rounded-xl bg-surface-container-lowest cursor-pointer shadow-sm hover:shadow-md flex flex-col justify-between transition-all" id="pay-opt-hesabpay">
+<input class="peer sr-only" name="payment_method" onchange="updatePaymentMethod('حساب پي (HesabPay) یا MTN MoMo', 'سمدستي برېښنایي تادیه')" type="radio" value="mobile_money"/>
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<span class="material-symbols-outlined text-primary text-[28px]">contactless</span>
+<span class="px-space-xs py-0.5 rounded text-dark-forest-green font-caption text-caption bg-secondary-fixed">چټکه ډیجیټل</span>
+</div>
+<h3 class="font-title-sm text-title-sm font-bold text-dark-forest-green">حساب‌پي / موبایل پیسې</h3>
+<p class="font-caption text-caption text-text-muted mt-1 leading-relaxed">د MTN Mobile Money، روشن M-Paisa یا HesabPay چټک کوډ له لارې.</p>
+</div>
+<div class="mt-space-md pt-space-xs font-caption text-caption text-text-muted flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">radio_button_unchecked</span>
+<span>غوره کول</span>
+</div>
+</label>
+<!-- Option 3: Physical Kozhak Clinic Desk -->
+<label class="relative p-space-md rounded-xl bg-surface-container-lowest cursor-pointer shadow-sm hover:shadow-md flex flex-col justify-between transition-all" id="pay-opt-clinic">
+<input class="peer sr-only" name="payment_method" onchange="updatePaymentMethod('په کوږک کلینیک کې نغدي تحویل', 'د فزیکي څانګې منځګړیتوب')" type="radio" value="clinic_desk"/>
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<span class="material-symbols-outlined text-primary text-[28px]">storefront</span>
+<span class="px-space-xs py-0.5 rounded text-dark-forest-green font-caption text-caption bg-tertiary-container">مخامخ نغدي</span>
+</div>
+<h3 class="font-title-sm text-title-sm font-bold text-dark-forest-green">د کوږک کلینیک میز</h3>
+<p class="font-caption text-caption text-text-muted mt-1 leading-relaxed">په کلینیک کې د مستقیمې کتنې یا نغدي فیس سپارلو اسانتیا.</p>
+</div>
+<div class="mt-space-md pt-space-xs font-caption text-caption text-text-muted flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">radio_button_unchecked</span>
+<span>غوره کول</span>
+</div>
+</label>
+</div>
+<!-- Payment Security Details Note -->
+<div class="mt-space-lg p-space-md rounded-xl bg-surface-container flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[24px] flex-shrink-0 mt-0.5">shield</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-dark-forest-green">د پیسو بېرته ستنېدو سل سلنه تضمین (۱۰۰٪ Money-back)</span>
+<p class="font-caption text-caption text-text-muted mt-0.5">که د انټرنیټ، د ډاکټر د اضطراري عملیاتو یا د غږ د نه رسیدو له امله کتنه ترسره نشي، ستاسو بشپړ فیس سمدستي بېرته ستنېږي یا بل نوبت ته انتقالېږي.</p>
+</div>
+</div>
+</section>
+</form>
+<!-- Order Summary & Checkout Sidebar (4 cols sticky) -->
+<aside class="lg:col-span-4 flex flex-col gap-space-lg sticky top-28">
+<div class="bg-surface-container-lowest rounded-xl shadow-md p-space-lg flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-space-sm bg-surface-container-low -mx-space-lg -mt-space-lg p-space-md rounded-t-xl">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[22px]">fact_check</span>
+<span class="font-title-sm text-title-sm font-bold text-dark-forest-green">د نوبت رسمي خلاصه</span>
+</div>
+<span class="inline-flex items-center gap-1 px-space-xs py-0.5 rounded bg-primary-container text-on-primary font-caption text-caption">
+              ژوندی تایید
+            </span>
+</div>
+<!-- Doctor Mini Capsule -->
+<div class="flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container">
+<div class="w-12 h-12 rounded-lg bg-surface-dim overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Portrait closeup avatar of Afghan doctor Dr Jalal ud Din in clinical uniform" id="summary-doc-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhWmpAoP1nq0srTuhz3G_ng0rkplGJb63UqdLdyXo0XhDXGclqj0zbJxK9-s3akT9cNK4XsVd64g42Lj8C2CByY3uIa-we3dbA7gz3d9oA9DFO9P51v0rLkITWeYG2g_9YrT3q45NXs-TxvASC87HDx7q37xSpz_Cot-_Hk2PInTLOPgiSO1UigQOTJebwg8VnFcmIWXAjcznaMJXuQDAhf3ZxkXVcvdUhHjSNLngVQVnhR3gZAzbwWw"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm font-bold text-dark-forest-green truncate" id="summary-doc-name">ډاکټر جلال الدین</span>
+<span class="font-caption text-caption text-text-muted truncate" id="summary-doc-spec">داخله او د زړه ناروغیو متخصص</span>
+</div>
+</div>
+<!-- Booking Specs List -->
+<div class="space-y-space-xs font-body-sm text-body-sm">
+<div class="flex justify-between items-center py-1">
+<span class="text-text-muted flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+                ټاکل شوې ورځ:
               </span>
-            </label>
-
-            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
-              <input type="radio" name="doctor" value="achakzai" class="sr-only">
-              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-muhammad-raheem-achakzai/dr-muhammad-raheem-achakzai__studio-office-01.png" alt="ډاکټر محمد رحیم اڅکزی">
-              <div class="min-w-0">
-                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټر محمد رحیم اڅکزی</p>
-                <p class="font-label-sm text-label-sm text-text-muted">د پوستکي متخصص</p>
-                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۳۵۰ افغانۍ</p>
-              </div>
-            </label>
-
-            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
-              <input type="radio" name="doctor" value="shahfahad" class="sr-only">
-              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-shah-fahad-photo-pack/dr-shah-fahad__paediatric-headshot-01.png" alt="ډاکټر شاه فهد">
-              <div class="min-w-0">
-                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټر شاه فهد</p>
-                <p class="font-label-sm text-label-sm text-text-muted">د ماشومانو متخصص</p>
-                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۳۰۰ افغانۍ</p>
-              </div>
-            </label>
-
-            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
-              <input type="radio" name="doctor" value="khilji" class="sr-only">
-              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-muhammad-rasool-khilji/dr-muhammad-rasool-khilji__studio-formal-01.png" alt="ډاکټر محمد رسول خلجي">
-              <div class="min-w-0">
-                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټر محمد رسول خلجي</p>
-                <p class="font-label-sm text-label-sm text-text-muted">د زړه متخصص / دویم نظر</p>
-                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۴۰۰ افغانۍ</p>
-              </div>
-            </label>
-
-            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
-              <input type="radio" name="doctor" value="ulusyar" class="sr-only">
-              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-ulus-yar-photo-pack/dr-ulus-yar__black-kurta-portrait-01.png" alt="ډاکټر اولس یار">
-              <div class="min-w-0">
-                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټر اولس یار</p>
-                <p class="font-label-sm text-label-sm text-text-muted">د هډوکو متخصص / دویم نظر</p>
-                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۴۰۰ افغانۍ</p>
-              </div>
-            </label>
-
-            <label class="doctor-card group relative flex items-center gap-space-sm rounded-2xl border-2 border-surface-variant p-space-sm cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container">
-              <input type="radio" name="doctor" value="malka" class="sr-only">
-              <img class="h-14 w-14 rounded-xl object-cover shrink-0" src="/doctors/dr-malka-achakzai-masked/dr-malka-achakzai__masked-headshot-studio-01.png" alt="ډاکټره ملکه اڅکزۍ">
-              <div class="min-w-0">
-                <p class="font-label-lg text-label-lg font-bold text-primary">ډاکټره ملکه اڅکزۍ</p>
-                <p class="font-label-sm text-label-sm text-text-muted">لرې فیزیوتراپي ارزونه</p>
-                <p class="font-label-sm text-label-sm text-secondary font-semibold mt-0.5">۲۵۰ افغانۍ</p>
-              </div>
-            </label>
-
-          </div>
-        </div>
-
-        <!-- Step 2: Patient Details -->
-        <div class="border-t border-surface-variant/40 pt-space-md">
-          <h2 class="font-headline-sm text-headline-sm font-bold text-primary mb-space-sm flex items-center gap-2">
-            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container text-sm font-bold">۲</span>
-            ستاسو معلومات
-          </h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
-            <div>
-              <label class="block font-label-sm text-label-sm font-semibold text-text-muted mb-1">بشپړ نوم *</label>
-              <input required name="patientName" type="text" class="w-full rounded-xl bg-surface-mint border border-surface-variant p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary" placeholder="خپل بشپړ نوم دلته ولیکئ">
-            </div>
-            <div>
-              <label class="block font-label-sm text-label-sm font-semibold text-text-muted mb-1">د وټساپ شمېره *</label>
-              <input required name="phone" type="tel" dir="ltr" class="w-full text-right rounded-xl bg-surface-mint border border-surface-variant p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary" placeholder="07xxxxxxxx یا 0333xxxxxxx">
-            </div>
-            <div class="sm:col-span-2">
-              <label class="block font-label-sm text-label-sm font-semibold text-text-muted mb-1">د روغتیا ستونزه (لنډ توضیح) *</label>
-              <textarea required name="complaint" rows="3" class="w-full rounded-xl bg-surface-mint border border-surface-variant p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary resize-none" placeholder="مثلاً: د دریو ورځو راهیسې تبه، سر درد، او کمزوری..."></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 3: Consultation Type & Preferred Time -->
-        <div class="border-t border-surface-variant/40 pt-space-md">
-          <h2 class="font-headline-sm text-headline-sm font-bold text-primary mb-space-sm flex items-center gap-2">
-            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-on-primary text-sm font-bold">۳</span>
-            د مشورې بڼه
-          </h2>
-          <div class="grid grid-cols-2 gap-space-sm">
-            <label class="flex flex-col items-center gap-2 rounded-2xl border-2 border-surface-variant p-space-md cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container text-center">
-              <input type="radio" name="mode" value="video" checked class="sr-only">
-              <span class="material-symbols-outlined text-primary text-3xl">videocam</span>
-              <span class="font-label-md text-label-md font-semibold text-primary">ویډیو کال</span>
-              <span class="font-label-sm text-label-sm text-text-muted">د مخامخ معاینې لپاره</span>
-            </label>
-            <label class="flex flex-col items-center gap-2 rounded-2xl border-2 border-surface-variant p-space-md cursor-pointer transition-all hover:border-primary hover:bg-surface-mint has-[:checked]:border-primary has-[:checked]:bg-surface-container text-center">
-              <input type="radio" name="mode" value="whatsapp" class="sr-only">
-              <span class="material-symbols-outlined text-[#25D366] text-3xl">chat</span>
-              <span class="font-label-md text-label-md font-semibold text-primary">وټساپ چټ</span>
-              <span class="font-label-sm text-label-sm text-text-muted">د پیغامونو له لارې</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Payment Notice -->
-        <div class="bg-surface-container rounded-2xl p-space-md flex items-start gap-space-sm">
-          <span class="material-symbols-outlined text-secondary mt-0.5">payments</span>
-          <div>
-            <p class="font-label-md text-label-md font-semibold text-primary">د تادیې معلومات</p>
-            <p class="font-body-sm text-body-sm text-text-muted mt-1">
-              اوس مهال تادیه د مشورې د تایید وروسته د ادمین له لارې ترتیبیږي. ستاسو سره به د نوبت تایید له وروسته د شمیرې له لارې اړیکه ونیسو.
-            </p>
-          </div>
-        </div>
-
-        <!-- Submit -->
-        <button type="submit" class="w-full rounded-2xl bg-primary py-4 font-label-lg text-label-lg font-bold text-on-primary shadow-lg hover:bg-primary-container transition-all flex items-center justify-center gap-space-xs">
-          <span class="material-symbols-outlined">assignment_turned_in</span>
-          <span>د نوبت ثبتول او استول</span>
+<span class="font-semibold text-dark-forest-green" id="summary-date">نن، شنبه (۲۵ حوت)</span>
+</div>
+<div class="flex justify-between items-center py-1">
+<span class="text-text-muted flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">alarm</span>
+                د لیدنې وخت:
+              </span>
+<span class="font-semibold text-dark-forest-green" id="summary-time">۱۰:۱۵ سهار</span>
+</div>
+<div class="flex justify-between items-center py-1">
+<span class="text-text-muted flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">person</span>
+                ناروغ:
+              </span>
+<span class="font-semibold text-dark-forest-green" id="summary-patient">احمد ولي کریمی</span>
+</div>
+<div class="flex justify-between items-center py-1">
+<span class="text-text-muted flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">payments</span>
+                د تادیې بڼه:
+              </span>
+<span class="font-semibold text-dark-forest-green truncate max-w-[150px]" id="summary-payment">صرافي / حواله</span>
+</div>
+</div>
+<!-- Fee Calculation Card -->
+<div class="p-space-md rounded-xl bg-surface-container-low space-y-space-xs">
+<div class="flex justify-between text-text-muted font-body-sm text-body-sm">
+<span>د متخصص ډاکټر فیس:</span>
+<span class="font-semibold text-dark-forest-green" id="summary-base-fee">۳۰۰ افغانۍ</span>
+</div>
+<div class="flex justify-between text-text-muted font-body-sm text-body-sm">
+<span>د ډیجیټل نسخې رسمي ثبت:</span>
+<span class="font-semibold text-secondary">وړیا (۰ افغانۍ)</span>
+</div>
+<div class="flex justify-between text-text-muted font-body-sm text-body-sm">
+<span>د واټساپ پخلی او تعقیب:</span>
+<span class="font-semibold text-secondary">وړیا</span>
+</div>
+<div class="pt-space-xs flex justify-between items-baseline font-headline-md text-headline-md font-bold text-dark-forest-green">
+<span>ټولټال د ورکړې وړ:</span>
+<div class="flex items-baseline gap-1">
+<span class="text-primary text-headline-lg font-headline-lg" id="summary-total-fee">۳۰۰</span>
+<span class="font-label-md text-label-md font-normal text-text-muted">افغانۍ</span>
+</div>
+</div>
+</div>
+<!-- Booking Call To Action Button -->
+<button class="w-full h-14 rounded-xl bg-tertiary-container text-dark-forest-green hover:bg-tertiary-fixed font-title-md text-title-md font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-space-xs cursor-pointer" onclick="confirmAppointment()" type="button">
+<span class="material-symbols-outlined text-[24px]">verified</span>
+<span>نوبت بشپړ او تایید کړئ</span>
+</button>
+<!-- WhatsApp Fallback Guarantee Notice -->
+<div class="p-space-sm rounded-lg bg-surface-container flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[20px] flex-shrink-0 mt-0.5">cell_tower</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm font-bold text-dark-forest-green">د انټرنیټ ستونزې تضمین:</span>
+<p class="font-caption text-caption text-text-muted">که په کتنځای کې د انټرنیټ سرعت ټیټ وي، زموږ مرکزي کلینیک سمدستي د مستقیم واټساپ زنګ له لارې کتنه برابروي.</p>
+</div>
+</div>
+<!-- Hospital Badging Seal -->
+<div class="pt-space-xs flex items-center justify-between text-text-muted">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-tertiary text-[18px]">verified</span>
+<span class="font-caption text-caption">د کوږک کلینیک همکار</span>
+</div>
+<span class="font-caption text-caption text-text-muted">SSL کوډ شوې شبکه</span>
+</div>
+</div>
+<!-- Clinic Location & Contact Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex flex-col gap-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">location_on</span>
+<span class="font-title-sm text-title-sm font-bold text-dark-forest-green">د ای طبيب فزیکي څانګه او میز</span>
+</div>
+<p class="font-caption text-caption text-text-muted leading-relaxed">
+            کابل، شاه دوشمشیره، د کوږک تخصصي کلینیک دویم پوړ، د ای طبيب د نوبت ثبت او ملاتړ شعبه.
+          </p>
+<div class="flex items-center justify-between pt-space-xs text-primary font-label-sm text-label-sm font-bold">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">call</span>
+              ۰۷۰۰۶۹۹۳۳۷
+            </span>
+<a class="underline hover:text-dark-forest-green" href="https://wa.me/93700699337">اوس اړیکه ونیسئ</a>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<!-- Booking Confirmation Modal Alert (Initially Hidden) -->
+<div class="fixed inset-0 z-50 bg-dark-forest-green/60 backdrop-blur-sm hidden items-center justify-center p-margin" id="booking-modal">
+<div class="bg-surface-container-lowest rounded-2xl p-space-xl max-w-lg w-full shadow-2xl flex flex-col items-center text-center gap-space-md">
+<div class="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[36px]">check_circle</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm font-bold text-dark-forest-green">ستاسو نوبت په بریالیتوب سره ثبت شو!</h3>
+<p class="font-body-md text-body-md text-text-muted">
+        ستاسو د لیدنې نوبت د <span class="font-bold text-primary" id="modal-doc-name">ډاکټر جلال الدین</span> سره په <span class="font-bold text-dark-forest-green" id="modal-time">۱۰:۱۵ سهار</span> خوندي شو. د ویډیو مشورې لینک او د فیس رسید ستاسو واټساپ ته ولیږل شو.
+      </p>
+<div class="w-full p-space-md rounded-xl bg-surface-container-low text-right space-y-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-text-muted">د نوبت شمېره (ID):</span>
+<span class="font-bold text-dark-forest-green" dir="ltr">ETB-2025-8841</span>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-text-muted">د واټساپ مرسته:</span>
+<span class="font-bold text-primary" dir="ltr">+93 700699337</span>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row gap-space-sm w-full mt-space-sm">
+<a class="flex-1 h-12 rounded-xl bg-primary text-on-primary font-title-sm text-title-sm flex items-center justify-center gap-1 hover:bg-dark-forest-green transition-colors" href="https://wa.me/93700699337">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+<span>واټساپ ته ورشئ</span>
+</a>
+<button class="flex-1 h-12 rounded-xl bg-surface-container text-dark-forest-green font-title-sm text-title-sm hover:bg-surface-container-high transition-colors" onclick="closeModal()" type="button">
+          بندول
         </button>
-        <p class="font-label-sm text-label-sm text-text-muted text-center">
-          یا مستقیم زموږ سره د وټساپ له لارې اړیکه ونیسئ:
-          <a class="font-bold text-primary" href="https://wa.me/923332357055" target="_blank" dir="ltr">0333 2357055</a>
-        </p>
-      </form>
-
-      <!-- Success State -->
-      <div id="successState" class="hidden text-center py-space-xl">
-        <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-surface-container-high">
-          <span class="material-symbols-outlined text-primary text-5xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-        </div>
-        <h2 class="font-headline-xl text-headline-xl font-bold text-primary">نوبت ثبت شو!</h2>
-        <p class="font-body-md text-body-md text-text-muted mt-2 max-w-sm mx-auto">
-          ستاسو غوښتنه ترلاسه شوه. زموږ ټیم به د <strong>۱ ساعت</strong> کې ستاسو د وټساپ شمیرې له لارې اړیکه ونیسي.
-        </p>
-        <div class="mt-space-lg flex flex-col sm:flex-row gap-space-sm justify-center">
-          <a href="https://wa.me/923332357055" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-space-xl py-3 font-label-md text-label-md font-bold text-white hover:opacity-90 transition">
-            <span class="material-symbols-outlined text-base">chat</span>
-            <span>وټساپ خلاص کړئ</span>
-          </a>
-          <a href="/" class="inline-flex items-center gap-2 rounded-full bg-surface-container px-space-xl py-3 font-label-md text-label-md font-bold text-primary hover:bg-surface-container-high transition">
-            <span class="material-symbols-outlined text-base">home</span>
-            <span>سرپاڼه ته ستنیدل</span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-</main>
-
+</div>
+</div>
+</div>
+</div>
+<!-- Client-side Interactive Logic -->
 <script>
-  // Pre-select doctor from URL param
-  const urlParams = new URLSearchParams(window.location.search);
-  const doctorParam = urlParams.get('doctor');
-  if (doctorParam) {
-    const radio = document.querySelector(`input[name="doctor"][value="${doctorParam}"]`);
-    if (radio) radio.checked = true;
+  function updateSummaryDoctor(key, name, spec, fee, desc) {
+    document.getElementById('summary-doc-name').textContent = name;
+    document.getElementById('summary-doc-spec').textContent = spec;
+    document.getElementById('summary-base-fee').textContent = fee + ' افغانۍ';
+    document.getElementById('summary-total-fee').textContent = fee;
+    document.getElementById('modal-doc-name').textContent = name;
+
+    const jalalCard = document.getElementById('card-doctor-jalal');
+    const rahimCard = document.getElementById('card-doctor-rahim');
+    const indJalal = document.getElementById('indicator-jalal');
+    const indRahim = document.getElementById('indicator-rahim');
+
+    if (key === 'jalal') {
+      jalalCard.classList.add('bg-surface-container-low');
+      jalalCard.classList.remove('bg-surface-container-lowest');
+      rahimCard.classList.remove('bg-surface-container-low');
+      rahimCard.classList.add('bg-surface-container-lowest');
+      indJalal.classList.remove('opacity-0');
+      indJalal.classList.add('opacity-100');
+      indRahim.classList.remove('opacity-100');
+      indRahim.classList.add('opacity-0');
+    } else {
+      rahimCard.classList.add('bg-surface-container-low');
+      rahimCard.classList.remove('bg-surface-container-lowest');
+      jalalCard.classList.remove('bg-surface-container-low');
+      jalalCard.classList.add('bg-surface-container-lowest');
+      indRahim.classList.remove('opacity-0');
+      indRahim.classList.add('opacity-100');
+      indJalal.classList.remove('opacity-100');
+      indJalal.classList.add('opacity-0');
+    }
   }
 
-  function submitBooking(e) {
-    e.preventDefault();
-    const form = document.getElementById('bookingForm');
-    const success = document.getElementById('successState');
-    form.classList.add('hidden');
-    success.classList.remove('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  function selectDate(btn, dateStr) {
+    document.querySelectorAll('.date-btn').forEach(el => {
+      el.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
+      el.classList.add('bg-surface-container-low', 'text-on-surface');
+      const span = el.querySelector('span:first-child');
+      if (span) {
+        span.classList.remove('text-primary-fixed-dim');
+        span.classList.add('text-text-muted');
+      }
+    });
+    btn.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
+    btn.classList.remove('bg-surface-container-low', 'text-on-surface');
+    const badge = btn.querySelector('span:first-child');
+    if (badge) {
+      badge.classList.remove('text-text-muted');
+      badge.classList.add('text-primary-fixed-dim');
+    }
+    document.getElementById('summary-date').textContent = dateStr;
   }
-</script>
-</body>
-</html>
+
+  function selectTime(btn, timeStr) {
+    document.querySelectorAll('.time-btn').forEach(el => {
+      el.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
+      el.classList.add('bg-surface-container', 'text-dark-forest-green');
+    });
+    btn.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
+    btn.classList.remove('bg-surface-container', 'text-dark-forest-green');
+    document.getElementById('summary-time').textContent = timeStr;
+    document.getElementById('modal-time').textContent = timeStr;
+  }
+
+  function updateSummaryPatientName(val) {
+    document.getElementById('summary-patient').textContent = val.trim() ? val : 'احمد ولي کریمی';
+  }
+
+  function updatePaymentMethod(name, note) {
+    document.getElementById('summary-payment').textContent = name;
+  }
+
+  function confirmAppointment() {
+    const modal = document.getElementById('booking-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeModal() {
+    const modal = document.getElementById('booking-modal');
+    modal.classList.remove('flex');
+    modal.classList.add('hidden');
+  }
+</script></main><footer class="w-full bg-dark-forest-green text-soft-ivory pt-space-2xl pb-space-xl mt-space-2xl"><div class="max-w-7xl mx-auto px-margin-desktop"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-xl pb-space-xl"><div class="space-y-space-md"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-secondary-fixed text-[32px]">local_hospital</span><div class="flex flex-col"><span class="font-title-md text-title-md font-bold text-soft-ivory">ای طبيب</span><span class="font-caption text-caption text-secondary-fixed-dim">Care Beyond Borders</span></div></div><p class="font-body-sm text-body-sm text-surface-container-high leading-relaxed">له پولو هاخوا مسلکي روغتیایي پاملرنه او د لوړې کچې متخصصو ډاکټرانو سره د ویډیو او رسمي نسخې له لارې ۲۴ ساعته اړیکه.</p><div class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-primary/40"><span class="material-symbols-outlined text-tertiary-fixed text-[18px]">verified</span><span class="font-caption text-caption text-surface-bright">د عامې روغتیا وزارت (MoPH) رسمي تایید شوی روغتون</span></div></div><div class="space-y-space-sm"><h4 class="font-title-sm text-title-sm font-semibold text-soft-ivory">چټک لینکونه</h4><ul class="space-y-space-xs font-body-sm text-body-sm text-surface-container-high"><li class="hover:text-secondary-fixed transition-colors"><a class="" data-path="doctors" href="#">متخصص ډاکټران</a></li><li class="hover:text-secondary-fixed transition-colors"><a class="" data-path="video-consultation" href="#">آنلاین ویډیو مشورې</a></li><li class="hover:text-secondary-fixed transition-colors"><a class="" data-path="prescription" href="#">د نسخې تصدیق</a></li><li class="hover:text-secondary-fixed transition-colors"><a class="" data-path="patient-portal" href="#">د ناروغانو روغتیایي دوسیه</a></li></ul></div><div class="space-y-space-sm"><h4 class="font-title-sm text-title-sm font-semibold text-soft-ivory">د کتنځي او کلینیک مهالویش</h4><div class="space-y-space-xs font-body-sm text-body-sm text-surface-container-high"><div class="flex justify-between items-center"><span class="font-label-sm text-label-sm">شنبه تر پنجشنبې:</span><span class="font-label-sm text-label-sm">۰۷:۰۰ سهار - ۱۱:۰۰ شپه</span></div><div class="flex justify-between items-center"><span class="font-label-sm text-label-sm">جمعه (بېړنۍ څانګه):</span><span class="font-label-sm text-label-sm">۲۴ ساعته فعاله</span></div><div class="flex justify-between items-center"><span class="font-label-sm text-label-sm">ټیلیفوني ملاتړ:</span><span class="font-label-sm text-label-sm" dir="ltr">+93 700699337</span></div></div></div><div class="space-y-space-sm"><h4 class="font-title-sm text-title-sm font-semibold text-soft-ivory">قانوني او روغتیایي ژمنې</h4><p class="font-caption text-caption text-surface-container leading-relaxed">ټولې درملنې، تشخیصونه او ډیجیټل نسخې د افغانستان د عامې روغتیا وزارت او نړیوالو روغتیایي معیارونو سره سمې صادرېږي.</p><div class="flex items-center gap-space-sm pt-space-xs"><span class="px-space-sm py-space-xs rounded bg-surface-container-low/20 font-caption text-caption text-secondary-fixed">د محرمیت خوندیتوب</span><span class="px-space-sm py-space-xs rounded bg-surface-container-low/20 font-caption text-caption text-secondary-fixed">SSL کوډ شوې شبکه</span></div></div></div><div class="pt-space-lg flex flex-col md:flex-row justify-between items-center gap-space-sm font-caption text-caption text-surface-container-high"><p class="">© ۲۰۲۵ ای طبيب (Etabeeb Telemedicine). ټول حقونه خوندي دي.</p><p class="">له پولو هاخوا روغتیایي پاملرنه - Care Beyond Borders</p></div></div></footer>
+</body></html>
