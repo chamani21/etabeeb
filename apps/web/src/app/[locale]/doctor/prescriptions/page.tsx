@@ -1,64 +1,79 @@
-'use client';
-import React from 'react';
+'use client'
 
-const prescriptions = [
-  { id: 'RX-8821', date: '2026-09-22', patient: 'Patient A', diagnosis: 'Viral URI', medCount: 2, status: 'Active' },
-  { id: 'RX-8820', date: '2026-09-21', patient: 'Patient B', diagnosis: 'Hypertension', medCount: 1, status: 'Active' },
-  { id: 'RX-8819', date: '2026-09-18', patient: 'Patient C', diagnosis: 'Allergic Rhinitis', medCount: 3, status: 'Completed' },
-];
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 
-export default function DoctorPrescriptions() {
+export default function DoctorPrescriptionsPage() {
+  const params = useParams()
+  const locale = (params?.locale as string) || 'ps'
+  const [prescriptions, setPrescriptions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/prescriptions')
+      .then(r => r.json())
+      .then(data => setPrescriptions(data.prescriptions || []))
+      .catch(() => setPrescriptions([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const formatDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString() : '—'
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-[#00523a] font-serif">Prescriptions</h1>
+    <div className="space-y-6 max-w-5xl">
+      <h1 className="text-2xl font-bold text-[#00523a]">
+        {locale === 'ps' ? 'نسخې' : locale === 'ur' ? 'نسخے' : 'Prescriptions'}
+      </h1>
 
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center">
-        <div className="relative w-full sm:w-64">
-          <input 
-            type="text" 
-            placeholder="Search patient..." 
-            className="w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-[#006d4e] focus:border-[#006d4e]"
-          />
-          <span className="absolute left-2.5 top-2.5 text-gray-400">🔍</span>
+      {loading ? (
+        <div className="text-center py-8">
+          <div className="w-8 h-8 border-4 border-[#00523a] border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <input type="date" className="border rounded-md p-2 focus:ring-[#006d4e]" />
+      ) : prescriptions.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+          <p className="text-gray-500">
+            {locale === 'ps' ? 'هیڅ نسخه نشته' : 'No prescriptions issued yet'}
+          </p>
         </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="p-4 font-semibold text-gray-700">Date</th>
-                <th className="p-4 font-semibold text-gray-700">RX ID</th>
-                <th className="p-4 font-semibold text-gray-700">Patient</th>
-                <th className="p-4 font-semibold text-gray-700">Diagnosis</th>
-                <th className="p-4 font-semibold text-gray-700">Meds</th>
-                <th className="p-4 font-semibold text-gray-700 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prescriptions.map(rx => (
-                <tr key={rx.id} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="p-4 whitespace-nowrap">{rx.date}</td>
-                  <td className="p-4 font-medium">{rx.id}</td>
-                  <td className="p-4 font-medium">{rx.patient}</td>
-                  <td className="p-4 text-gray-600">{rx.diagnosis}</td>
-                  <td className="p-4">
-                    <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">{rx.medCount} items</span>
-                  </td>
-                  <td className="p-4 text-right space-x-3">
-                    <button className="text-[#006d4e] hover:underline font-medium">View</button>
-                    <button className="text-gray-600 hover:underline">Print</button>
-                  </td>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rx #</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Medications</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Token</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {prescriptions.map(rx => (
+                  <tr key={rx.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-xs font-mono text-gray-500">
+                      {rx.publicId?.toString().slice(-8) || '—'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{formatDate(rx.createdAt)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {rx.items?.map((i: any) => i.genericName).join(', ') || '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                        rx.status === 'active' ? 'bg-green-100 text-green-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {rx.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-mono text-gray-500">{rx.verificationToken || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
-  );
+  )
 }
