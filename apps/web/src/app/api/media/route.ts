@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       mimeType: file.type,
       sizeBytes: file.size,
       checksum,
-      scanStatus: 'safe', // In production, integrate with ClamAV or similar
+      scanStatus: 'clean', // In production, integrate with ClamAV or similar
     }).returning()
 
     return NextResponse.json({

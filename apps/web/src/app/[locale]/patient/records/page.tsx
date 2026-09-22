@@ -155,9 +155,11 @@ export default function PatientRecordsPage() {
                 </div>
               </div>
               <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                file.scanStatus === 'safe' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                file.scanStatus === 'clean' ? 'bg-green-100 text-green-700' : 
+                file.scanStatus === 'quarantined' ? 'bg-red-100 text-red-700' :
+                'bg-yellow-100 text-yellow-700'
               }`}>
-                {file.scanStatus}
+                {file.scanStatus === 'clean' ? '✓' : file.scanStatus}
               </span>
             </div>
           ))}
