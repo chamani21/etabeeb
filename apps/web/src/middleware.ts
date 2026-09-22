@@ -19,14 +19,25 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
     const origin = request.headers.get('origin')
     const host = request.headers.get('host')
-    // Only allow same-origin API calls
+    // Only allow same-origin API calls if origin is present
     if (origin && host && !origin.includes(host)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const token = await getToken({ req: request })
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Public API routes that do not require auth:
+    const isPublicApi = 
+      pathname === '/api/health' ||
+      pathname.startsWith('/api/prescriptions/verify/') ||
+      (request.method === 'GET' && (
+        pathname === '/api/doctors' || 
+        /^\/api\/doctors\/[^/]+\/slots$/.test(pathname)
+      ))
+
+    if (!isPublicApi) {
+      const token = await getToken({ req: request })
+      if (!token) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
   }
 

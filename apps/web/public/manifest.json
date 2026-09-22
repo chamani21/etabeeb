@@ -1,0 +1,24 @@
+{
+  "name": "ای طبیب — Etabeeb Telemedicine",
+  "short_name": "eTabeeb",
+  "description": "ای طبیب — د آنلاین طبي مشورې پلیټفارم | Care Beyond Borders",
+  "start_url": "/etabeeb/",
+  "scope": "/etabeeb/",
+  "display": "standalone",
+  "background_color": "#05201a",
+  "theme_color": "#00523a",
+  "dir": "rtl",
+  "lang": "ps",
+  "icons": [
+    {
+      "src": "/etabeeb/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/etabeeb/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,56 +1,65 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7-labs
 FROM node:20-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
 RUN apk add --no-cache libc6-compat
+
+# ── Stage 1: Install dependencies ─────────────────────────────────────────────
+FROM base AS deps
 WORKDIR /app
 
-# Copy package files
+# Copy lockfiles for reproducible installs
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/db/package.json ./packages/db/
 
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --prefer-offline
 
-# Build
+# ── Stage 2: Build ────────────────────────────────────────────────────────────
 FROM base AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Set build-time env
+# Build-time env (not secrets – secrets go in .env on the host)
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Set base path for /etabeeb/ sub-path deployment
+ENV NEXT_PUBLIC_BASE_PATH=/etabeeb
 
-# Build Next.js
 RUN npm run build --workspace=apps/web
 
-# Production image
+# Enable standalone output (must be set in next.config.mjs)
+# The standalone folder contains a self-contained server with minimal deps.
+
+# ── Stage 3: Production runtime ───────────────────────────────────────────────
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Non-root user for security
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser  --system --uid 1001 nextjs
 
-# Copy built output
-COPY --from=builder /app/apps/web/.next/standalone ./
-COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder /app/apps/web/public ./apps/web/public
+# Copy built standalone output
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static      ./apps/web/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public             ./apps/web/public
+# Copy DB migrations so the container can run them at startup
+COPY --from=builder --chown=nextjs:nodejs /app/packages/db/migrations      ./db/migrations
 
-# Create uploads directory
-RUN mkdir -p /app/private-uploads && chown nextjs:nodejs /app/private-uploads
+# Persistent upload directory (mounted as a volume in production)
+RUN mkdir -p /app/private-uploads \
+ && chown nextjs:nodejs /app/private-uploads
 
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:3000/api/health || exit 1
 
 CMD ["node", "apps/web/server.js"]

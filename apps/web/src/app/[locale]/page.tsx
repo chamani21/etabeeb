@@ -1,4 +1,4 @@
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, unstable_setRequestLocale } from 'next-intl/server'
 
 // Home page — will be progressively enhanced with Stitch screen 688d1f67...
 export default async function HomePage({
@@ -6,6 +6,7 @@ export default async function HomePage({
 }: {
   params: { locale: string }
 }) {
+  unstable_setRequestLocale(locale)
   const t = await getTranslations('home')
 
   return (

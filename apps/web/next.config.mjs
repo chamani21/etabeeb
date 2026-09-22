@@ -2,23 +2,18 @@ import createNextIntlPlugin from 'next-intl/plugin'
 
 const withNextIntl = createNextIntlPlugin('./src/i18n.ts')
 
+// Support basePath if ETABEEB_BASE_PATH is configured (e.g. /etabeeb)
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Redirect old /etabeeb/ path to canonical /
-  async redirects() {
-    return [
-      {
-        source: '/etabeeb',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        source: '/etabeeb/:path*',
-        destination: '/:path*',
-        permanent: true,
-      },
-    ]
-  },
+  ...(basePath ? { basePath, assetPrefix: basePath } : {}),
+
+  // Required for Docker deployment – produces a minimal self-contained server
+  output: 'standalone',
+
+  // Transpile internal workspace packages
+  transpilePackages: ['@etabeeb/db'],
 
   // Security headers
   async headers() {
@@ -35,7 +30,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // tighten after audit
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://lh3.googleusercontent.com",
               "font-src 'self'",
@@ -59,11 +54,9 @@ const nextConfig = {
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
-    // Only allow our own domain for doctor photos
     domains: [],
   },
 
-  // Experimental — removed typedRoutes because portal layouts use dynamic href arrays
   experimental: {},
 }
 

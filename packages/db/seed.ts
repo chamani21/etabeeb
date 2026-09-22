@@ -6,6 +6,7 @@
  */
 
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { eq } from 'drizzle-orm'
 import postgres from 'postgres'
 import { hash } from 'bcryptjs'
 import * as schema from './src/schema'
@@ -46,7 +47,6 @@ async function seed() {
   console.log(`  ✅ ${roleRecords.length} roles created\n`)
 
   // Helper to find role by name
-  const { eq } = await import('drizzle-orm')
   const findRole = async (name: string) => {
     const [role] = await db
       .select()
@@ -230,8 +230,12 @@ async function seed() {
   ]
 
   for (let i = 0; i < specialtiesData.length; i++) {
+    const item = specialtiesData[i]!
     await db.insert(schema.specialties).values({
-      ...specialtiesData[i],
+      code: item.code,
+      nameEn: item.nameEn,
+      nameUrdu: item.nameUrdu,
+      namePashto: item.namePashto,
       sortOrder: i,
     }).onConflictDoNothing()
   }
