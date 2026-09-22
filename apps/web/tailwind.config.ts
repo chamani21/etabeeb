@@ -1,13 +1,14 @@
 import type { Config } from 'tailwindcss'
+import path from 'path'
 
 // eTabeeb Design System Tokens (extracted from Stitch project 15674520729408700343)
 const config: Config = {
   darkMode: ['class'],
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-    '../../packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}',
+    path.join(__dirname, './src/pages/**/*.{js,ts,jsx,tsx,mdx}'),
+    path.join(__dirname, './src/components/**/*.{js,ts,jsx,tsx,mdx}'),
+    path.join(__dirname, './src/app/**/*.{js,ts,jsx,tsx,mdx}'),
+    path.join(__dirname, '../../packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}'),
   ],
   theme: {
     extend: {
