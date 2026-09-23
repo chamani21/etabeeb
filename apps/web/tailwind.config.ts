@@ -3,10 +3,11 @@ import path from 'path'
 
 // eTabeeb Design System Tokens (extracted from Stitch project 15674520729408700343)
 // Content paths: relative paths work when CWD matches the config location.
-// Absolute fallback handles Docker builds where CWD may be monorepo root or apps/web.
+// Absolute fallback handles Docker builds where CWD may be monorepo root.
+// TAILWIND_APP_ROOT is set by the Dockerfile to /app/apps/web for Docker builds.
 const cwd = process.cwd()
-// Detect if we're at monorepo root (has apps/ subdir) or at apps/web directly
-const appRoot = cwd.endsWith('apps/web') ? cwd : path.join(cwd, 'apps/web')
+const appRoot: string = process.env.TAILWIND_APP_ROOT ||
+  (cwd.endsWith('apps/web') ? cwd : path.join(cwd, 'apps/web'))
 
 const config: Config = {
   darkMode: ['class'],
