@@ -2,13 +2,24 @@ import type { Config } from 'tailwindcss'
 import path from 'path'
 
 // eTabeeb Design System Tokens (extracted from Stitch project 15674520729408700343)
+// Content paths: relative paths work when CWD matches the config location.
+// Absolute fallback handles Docker builds where CWD may be monorepo root or apps/web.
+const cwd = process.cwd()
+// Detect if we're at monorepo root (has apps/ subdir) or at apps/web directly
+const appRoot = cwd.endsWith('apps/web') ? cwd : path.join(cwd, 'apps/web')
+
 const config: Config = {
   darkMode: ['class'],
   content: [
-    path.join(__dirname, './src/pages/**/*.{js,ts,jsx,tsx,mdx}'),
-    path.join(__dirname, './src/components/**/*.{js,ts,jsx,tsx,mdx}'),
-    path.join(__dirname, './src/app/**/*.{js,ts,jsx,tsx,mdx}'),
-    path.join(__dirname, '../../packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}'),
+    // Relative paths (work in local dev)
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    '../../packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}',
+    // Absolute paths (work in Docker build where CWD=/app, not /app/apps/web)
+    path.join(appRoot, 'src/pages/**/*.{js,ts,jsx,tsx,mdx}'),
+    path.join(appRoot, 'src/components/**/*.{js,ts,jsx,tsx,mdx}'),
+    path.join(appRoot, 'src/app/**/*.{js,ts,jsx,tsx,mdx}'),
   ],
   theme: {
     extend: {
