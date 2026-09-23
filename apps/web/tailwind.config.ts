@@ -1,26 +1,32 @@
 import type { Config } from 'tailwindcss'
-import path from 'path'
 
 // eTabeeb Design System Tokens (extracted from Stitch project 15674520729408700343)
-// Content paths: relative paths work when CWD matches the config location.
-// Absolute fallback handles Docker builds where CWD may be monorepo root.
-// TAILWIND_APP_ROOT is set by the Dockerfile to /app/apps/web for Docker builds.
-const cwd = process.cwd()
-const appRoot: string = process.env.TAILWIND_APP_ROOT ||
-  (cwd.endsWith('apps/web') ? cwd : path.join(cwd, 'apps/web'))
+//
+// IMPORTANT: Content paths use hardcoded absolute paths so that Tailwind JIT
+// works correctly in both local dev (CWD=apps/web) and Docker builds (CWD=/app).
+// Do NOT use __dirname or path.join(__dirname, ...) here — jiti (which executes
+// this .ts config) does not reliably expose __dirname in all build contexts.
+//
+// These paths are correct for:
+//   - Docker build: /app/apps/web/src/... (WORKDIR=/app, source at /app/apps/web)
+//   - Local dev:    symlinked or working from apps/web dir (these paths resolve too)
+//
+// If adding new source directories, add both the absolute Docker path AND the
+// relative path as a fallback for local dev.
 
 const config: Config = {
-  darkMode: ['class'],
+  darkMode: ['class' as const],
   content: [
-    // Relative paths (work in local dev)
+    // Absolute paths for Docker build (WORKDIR /app, source at /app/apps/web)
+    '/app/apps/web/src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    '/app/apps/web/src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    '/app/apps/web/src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    '/app/packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}',
+    // Relative paths for local dev (when CWD=apps/web)
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     '../../packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}',
-    // Absolute paths (work in Docker build where CWD=/app, not /app/apps/web)
-    path.join(appRoot, 'src/pages/**/*.{js,ts,jsx,tsx,mdx}'),
-    path.join(appRoot, 'src/components/**/*.{js,ts,jsx,tsx,mdx}'),
-    path.join(appRoot, 'src/app/**/*.{js,ts,jsx,tsx,mdx}'),
   ],
   theme: {
     extend: {
@@ -86,6 +92,12 @@ const config: Config = {
 
         // Integrations
         'whatsapp-green': '#25d366',
+
+        // Additional semantic aliases
+        'dark-forest-green': '#004128',
+        'soft-ivory': '#fdfdf5',
+        'text-muted': '#4a5c53',
+        'on-surface-muted': '#707972',
       },
       fontFamily: {
         // RTL — Naskh (body workhorse for Pashto, Dari, Urdu)
@@ -115,6 +127,17 @@ const config: Config = {
         'label-md': ['14px', { lineHeight: '20px' }],
         'latin-credential': ['13px', { lineHeight: '18px' }],
         'latin-numeral': ['24px', { lineHeight: '24px' }],
+        // Alias tokens used in design
+        'display-md': ['40px', { lineHeight: '52px' }],
+        'headline-md': ['28px', { lineHeight: '36px' }],
+        'headline-sm': ['24px', { lineHeight: '32px' }],
+        'title-lg': ['24px', { lineHeight: '32px' }],
+        'title-sm': ['16px', { lineHeight: '24px' }],
+        'body-lg': ['18px', { lineHeight: '28px' }],
+        'body-sm': ['14px', { lineHeight: '20px' }],
+        'label-lg': ['16px', { lineHeight: '24px' }],
+        'label-sm': ['12px', { lineHeight: '16px' }],
+        caption: ['12px', { lineHeight: '16px' }],
       },
       borderRadius: {
         sm: '0.25rem',
@@ -131,8 +154,10 @@ const config: Config = {
         'space-md': '1.5rem',
         'space-lg': '2rem',
         'space-xl': '3rem',
+        'space-2xl': '4rem',
         gutter: '1rem',
         margin: '1.5rem',
+        'margin-desktop': '2rem',
       },
       boxShadow: {
         'card-soft': '0 12px 32px rgba(7, 61, 40, 0.08)',
