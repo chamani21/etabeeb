@@ -12,7 +12,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@etabeeb/db'
 import { users, userRoles, roles, practitioners, availabilityRules } from '@etabeeb/db/schema'
 import { eq, and } from 'drizzle-orm'
-import bcrypt from 'bcrypt'
+import bcryptjs from 'bcryptjs'
 
 // Approved doctor seed data
 const APPROVED_DOCTORS = [
@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
 
     const results: string[] = []
     const defaultPassword = 'Etabeeb@2025!'
-    const passwordHash = await bcrypt.hash(defaultPassword, 10)
+    const passwordHash = await bcryptjs.hash(defaultPassword, 10)
 
     // Get practitioner role
     const [practRole] = await db.select().from(roles).where(eq(roles.name, 'practitioner')).limit(1)
