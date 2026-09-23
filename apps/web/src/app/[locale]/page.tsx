@@ -23,6 +23,7 @@ async function getPublishedDoctors() {
         bio: practitioners.bio,
         consultationFee: practitioners.consultationFeeDefaultPkr,
         telemedicineEligible: practitioners.telemedicineEligible,
+        photoKey: practitioners.photoKey,
       })
       .from(practitioners)
       .where(
@@ -184,9 +185,21 @@ export default async function HomePage({ params: { locale } }: HomePageProps) {
               {doctors.map(doctor => (
                 <div key={doctor.publicId} className="bg-white rounded-xl border border-[#DDE7E2] p-5 hover:shadow-md transition">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-[#006d4e]/10 text-[#006d4e] rounded-full flex items-center justify-center font-bold text-xl">
-                      {(localeName(doctor)?.[0] || 'D')}
-                    </div>
+                    {doctor.photoKey ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={doctor.photoKey}
+                        alt={localeName(doctor)}
+                        width={48}
+                        height={48}
+                        className="w-12 h-12 rounded-full object-cover bg-[#006d4e]/10 flex-shrink-0"
+                        style={{ maxWidth: '48px', maxHeight: '48px' }}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-[#006d4e]/10 text-[#006d4e] rounded-full flex items-center justify-center font-bold text-xl flex-shrink-0">
+                        {(localeName(doctor)?.[0] || 'D')}
+                      </div>
+                    )}
                     <div>
                       <h3 className="font-bold text-[#05201a] text-sm">{localeName(doctor)}</h3>
                       <p className="text-xs text-[#5D6F69]">{localeSpecialty(doctor)}</p>
