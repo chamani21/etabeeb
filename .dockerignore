@@ -1,0 +1,35 @@
+# .dockerignore — Exclude build artifacts and environment files from Docker context
+# This is CRITICAL: .next/ build cache in source dir causes Docker builds to reuse
+# old cached CSS instead of regenerating with the current Tailwind config.
+
+# Next.js build artifacts (must be regenerated inside Docker, not carried from host)
+apps/web/.next/
+apps/web/.turbo/
+
+# Node modules (installed inside Docker via npm ci)
+node_modules/
+apps/web/node_modules/
+packages/*/node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Environment files (never in image)
+.env
+.env.*
+apps/web/.env
+apps/web/.env.*
+packages/**/.env
+
+# Development artifacts
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+# Test artifacts
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
