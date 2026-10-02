@@ -9,6 +9,7 @@ import type {
   consultationRooms, roomParticipants, uploads,
   payments, notificationOutbox, consentPreferences,
   auditEvents, organizations,
+  consultationCases, caseEvents, whatsappEvents,
 } from './index'
 
 export type User = InferSelectModel<typeof users>
@@ -25,3 +26,7 @@ export type Upload = InferSelectModel<typeof uploads>
 export type Payment = InferSelectModel<typeof payments>
 export type AuditEvent = InferSelectModel<typeof auditEvents>
 export type NotificationOutbox = InferSelectModel<typeof notificationOutbox>
+export type ConsultationCase = InferSelectModel<typeof consultationCases>
+export type NewConsultationCase = InferInsertModel<typeof consultationCases>
+export type CaseEvent = InferSelectModel<typeof caseEvents>
+export type WhatsappEvent = InferSelectModel<typeof whatsappEvents>

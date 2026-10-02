@@ -48,7 +48,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip internals and static files
-    '/((?!_next|_vercel|api/webhooks|.*\\..*).*)',
+    // Skip internals and static files.
+    // api/hooks: n8n → app hooks authenticate with the x-etabib-key shared
+    // secret inside each route handler (no browser session exists).
+    '/((?!_next|_vercel|api/webhooks|api/hooks/|.*\\..*).*)',
   ],
 }

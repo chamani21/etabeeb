@@ -18,7 +18,7 @@ const queue = [
 export default function DoctorDashboard() {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-[#00523a] font-serif">Today's Overview</h1>
+      <h1 className="text-2xl font-bold text-[#00523a] font-serif">Today&apos;s Overview</h1>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((s, idx) => (

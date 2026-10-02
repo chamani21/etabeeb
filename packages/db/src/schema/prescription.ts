@@ -31,17 +31,17 @@ export const prescriptions = pgTable(
     publicId: uuid('public_id').notNull().unique().defaultRandom(),
     // High-entropy QR verification token (never the public ID)
     verificationToken: text('verification_token').notNull().unique(),
+    // Nullable since eTabib V1: V1 consultation cases (consultation_cases.prescription_id)
+    // have no appointment/encounter and the WhatsApp patient has no user account.
+    // The legacy appointment flow still always supplies all three (validated in the API).
     encounterId: uuid('encounter_id')
-      .notNull()
       .references(() => encounters.id, { onDelete: 'restrict' }),
     appointmentId: uuid('appointment_id')
-      .notNull()
       .references(() => appointments.id, { onDelete: 'restrict' }),
     prescribedBy: uuid('prescribed_by')
       .notNull()
       .references(() => users.id),
     prescribedForUserId: uuid('prescribed_for_user_id')
-      .notNull()
       .references(() => users.id),
     // Status
     status: prescriptionStatusEnum('status').notNull().default('active'),

@@ -1,27 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@etabeeb/db'
-import { prescriptions, prescriptionItems, practitioners } from '@etabeeb/db/schema'
+import { prescriptions, prescriptionItems } from '@etabeeb/db/schema'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { eq, desc } from 'drizzle-orm'
-import { randomUUID } from 'crypto'
-
-const prescriptionItemSchema = z.object({
-  genericName: z.string().min(1),
-  strength: z.string().optional(),
-  formulation: z.string().optional(),
-  route: z.string().optional(),
-  dose: z.string().min(1),
-  frequency: z.string().min(1),
-  timing: z.string().optional(),
-  durationDays: z.number().int().positive().optional(),
-  quantity: z.string().optional(),
-  indication: z.string().optional(),
-  substitutionAllowed: z.boolean().default(true),
-  patientInstructions: z.string().optional(),
-  isControlled: z.boolean().default(false),
-})
+import { insertPrescription, prescriptionItemSchema } from '@/lib/prescriptions'
 
 const createPrescriptionSchema = z.object({
   encounterId: z.string().uuid(),
@@ -57,53 +41,16 @@ export async function POST(req: NextRequest) {
 
     const { encounterId, appointmentId, patientUserId, items, finalize } = parsed.data
 
-    const verificationToken = randomUUID().replace(/-/g, '').substring(0, 16).toUpperCase()
-
-    const result = await db.transaction(async (tx) => {
-      // Create prescription
-      const [prescription] = await tx
-        .insert(prescriptions)
-        .values({
-          encounterId,
-          appointmentId,
-          prescribedBy: session.user.id,
-          prescribedForUserId: patientUserId,
-          verificationToken,
-          status: finalize ? 'active' : 'active', // Always active once created
-          signedAt: finalize ? new Date() : null,
-          signedBy: finalize ? session.user.id : null,
-        })
-        .returning()
-        
-      if (!prescription) {
-        throw new Error('Failed to insert prescription')
-      }
-
-      // Create prescription items
-      let sortOrder = 0;
-      for (const item of items) {
-        if (!item) continue;
-        await tx.insert(prescriptionItems).values({
-          prescriptionId: prescription.id,
-          genericName: item.genericName,
-          strength: item.strength || null,
-          formulation: item.formulation || null,
-          route: item.route || null,
-          dose: item.dose,
-          frequency: item.frequency,
-          timing: item.timing || null,
-          durationDays: item.durationDays || null,
-          quantity: item.quantity || null,
-          indication: item.indication || null,
-          substitutionAllowed: item.substitutionAllowed,
-          patientInstructions: item.patientInstructions || null,
-          isControlled: item.isControlled,
-          sortOrder: sortOrder++,
-        })
-      }
-
-      return prescription
-    })
+    const result = await db.transaction((tx) =>
+      insertPrescription(tx, {
+        encounterId,
+        appointmentId,
+        prescribedBy: session.user.id,
+        prescribedForUserId: patientUserId,
+        items,
+        finalize,
+      }),
+    )
 
     if (!result) {
       return NextResponse.json({ error: 'Failed to create prescription' }, { status: 500 })
