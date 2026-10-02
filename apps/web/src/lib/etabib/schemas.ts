@@ -13,16 +13,26 @@ export function parseCaseId(id: string | undefined): string {
   return parsed.data
 }
 
-/** Read a JSON body with a size cap; malformed JSON → 400. */
-export async function readJson(req: NextRequest, maxBytes = 64 * 1024): Promise<unknown> {
+/** Read the raw request body (size-capped) exactly as received. */
+export async function readRawBody(req: NextRequest, maxBytes = 64 * 1024): Promise<string> {
   const raw = await req.text()
   if (Buffer.byteLength(raw, 'utf8') > maxBytes) throw new EtabibError('payload_too_large', 'Payload too large', 413)
   if (raw.trim().length === 0) throw new EtabibError('invalid_json', 'Request body is required', 400)
+  return raw
+}
+
+/** Parse an already-read body; malformed JSON → 400. */
+export function parseJsonBody(raw: string): unknown {
   try {
     return JSON.parse(raw)
   } catch {
     throw new EtabibError('invalid_json', 'Malformed JSON', 400)
   }
+}
+
+/** Read a JSON body with a size cap; malformed JSON → 400. */
+export async function readJson(req: NextRequest, maxBytes = 64 * 1024): Promise<unknown> {
+  return parseJsonBody(await readRawBody(req, maxBytes))
 }
 
 const isoDateTime = z

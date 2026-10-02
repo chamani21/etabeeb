@@ -227,12 +227,12 @@ Every hook requires the header `x-etabib-key: <ETABIB_HOOK_KEY>`. A missing or w
 ```json
 { "jobId": "uuid", "idempotencyKey": "etabib:<TYPE>:<key>", "type": "<TYPE>",
   "audience": "PATIENT | ADMIN | DOCTOR", "consultationId": "uuid",
-  "to": "+92… (patient jobs only)", "text": "<Pashto text, patient jobs>",
+  "to": "+92… (resolved by the app)", "text": "<Pashto for patients, English notice for staff>",
   "data": { … }, "callback": { "path": "/api/hooks/outbound-result" } }
 ```
 
 - **Job types:** `ADMIN_NEW_CASE`, `ASK_PATIENT_NAME`, `ASK_PATIENT_PHONE`, `PATIENT_ACKNOWLEDGED`, `PATIENT_CASE_IN_PROGRESS`, `DOCTOR_APPROVAL_REQUEST`, `CONSULTATION_CONFIRMED_PATIENT`, `CONSULTATION_CONFIRMED_DOCTOR`, `PRESCRIPTION_READY`.
-- **Recipients:** n8n resolves the admin and doctor WhatsApp numbers from its own configuration. The payload carries only the patient recipient.
+- **Recipients:** the app resolves every recipient (patient number, `ETABIB_ADMIN_WHATSAPP`, `ETABIB_DOCTOR_WHATSAPP`) and sends `to` + `text` for every job. Staff `text` is a short English notice. See `ETABIB_V1_N8N_INTEGRATION.md`.
 - **Dedupe:** n8n must use `idempotencyKey` to avoid double sends.
 - **Storage and dispatch:** jobs are stored in `notification_outbox` with references only (no clinical text). The full payload is built at dispatch time. Each job is claimed atomically (pending → processing), so it can't be dispatched twice.
 - If the outbound URL is unset or n8n rejects the request, the job stays `pending` with `attempts` and `last_error` set.
@@ -290,7 +290,7 @@ Without `ETABIB_TEST_DATABASE_URL`, the DB suites are skipped and the unit suite
 - `0001_etabib_v1_consultation.sql` contains the V1 changes. Its hand-added section holds the CHECK constraints and the trigger, which drizzle-kit 0.24 does not emit.
 - **Existing databases created with `db:push`:** apply only `0001` (it's idempotent) or record `0000` as applied. Running `0000` against them would fail because the objects already exist.
 
-## 16. Remaining for Phase 5 (not built here)
+## 16. Remaining for Phase 5 (superseded — see `ETABIB_V1_N8N_INTEGRATION.md`)
 
 - Build and repair the retained n8n workflows:
   - forwarder → `/api/hooks/whatsapp`

@@ -1,15 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHookKey } from '@/lib/etabib/auth'
 import { errorResponse } from '@/lib/etabib/errors'
-import { readJson } from '@/lib/etabib/schemas'
+import { parseJsonBody, readRawBody } from '@/lib/etabib/schemas'
+import { checkMetaVerification, requireMetaSignature } from '@/lib/etabib/meta-signature'
 import { extractInboundMessages, processInboundMessage } from '@/lib/etabib/whatsapp'
 import { dispatchOutboundJobs } from '@/lib/etabib/outbound'
 
-// POST /api/hooks/whatsapp — forwarded Meta webhook from n8n (shared-key auth)
+// GET /api/hooks/whatsapp — Meta webhook verification, relayed by n8n (shared-key auth).
+// The verify token lives only in the app environment, never in n8n.
+export async function GET(req: NextRequest) {
+  try {
+    requireHookKey(req)
+    const challenge = checkMetaVerification(req.nextUrl.searchParams)
+    if (challenge === null) return new NextResponse('Forbidden', { status: 403 })
+    return new NextResponse(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } })
+  } catch (error) {
+    return errorResponse(error, 'hooks/whatsapp-verify')
+  }
+}
+
+// POST /api/hooks/whatsapp — forwarded Meta webhook from n8n (shared-key auth +
+// original Meta X-Hub-Signature-256 verification over the unmodified raw body)
 export async function POST(req: NextRequest) {
   try {
     requireHookKey(req)
-    const body = await readJson(req, 256 * 1024)
+    const raw = await readRawBody(req, 256 * 1024)
+    requireMetaSignature(raw, req.headers.get('x-hub-signature-256'))
+    const body = parseJsonBody(raw)
     const messages = extractInboundMessages(body)
     if (messages.length === 0) {
       // Status callbacks / unsupported events: acknowledge so Meta does not retry

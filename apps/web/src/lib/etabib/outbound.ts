@@ -17,9 +17,10 @@
 import { db } from '@etabeeb/db'
 import { notificationOutbox, consultationCases, prescriptions, prescriptionItems } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
-import { and, eq, asc } from 'drizzle-orm'
-import { ETABIB_KEY_HEADER, getOutboundConfig } from './config'
+import { and, eq, asc, lt, sql } from 'drizzle-orm'
+import { ETABIB_KEY_HEADER, getAdminWhatsapp, getDoctorWhatsapp, getOutboundConfig } from './config'
 import { PATIENT_MESSAGES_PS, formatConsultationTimePs } from './messages.ps'
+import { STAFF_MESSAGES } from './messages.staff'
 import type { Tx } from './transitions'
 
 export const OUTBOUND_JOB_TYPES = [
@@ -139,9 +140,12 @@ export interface OutboundPayload {
   type: OutboundJobType
   audience: OutboundAudience
   consultationId: string
-  /** Patient WhatsApp recipient (E.164). Admin/doctor recipients are resolved by n8n. */
+  /**
+   * WhatsApp recipient (E.164), always resolved by the app: the patient's number,
+   * or the configured admin / doctor number. Absent only when not configured.
+   */
   to?: string
-  /** Ready-to-send Pashto text for patient messages. */
+  /** Ready-to-send text: Pashto for patients, short English notice for staff. */
   text?: string
   data?: Record<string, unknown>
   /** Callback contract for n8n. */
@@ -182,7 +186,13 @@ async function buildPayload(
     consultationId: c.id,
     callback: { path: '/api/hooks/outbound-result' as const },
   }
-  const to = job.recipientPhone ?? patientRecipient(c)
+  const audience = JOB_AUDIENCE[type]
+  const to =
+    audience === 'ADMIN'
+      ? (getAdminWhatsapp() ?? undefined)
+      : audience === 'DOCTOR'
+        ? (getDoctorWhatsapp() ?? undefined)
+        : (job.recipientPhone ?? patientRecipient(c))
   const invalid = refs.messageKey === 'invalid'
 
   switch (type) {
@@ -201,6 +211,12 @@ async function buildPayload(
     case 'ADMIN_NEW_CASE':
       return {
         ...base,
+        ...(to ? { to } : {}),
+        text: STAFF_MESSAGES.adminNewCase({
+          consultationId: c.id,
+          patientName: c.patientName,
+          patientPhone: c.patientPhone,
+        }),
         data: {
           consultationId: c.id,
           patientName: c.patientName,
@@ -208,19 +224,18 @@ async function buildPayload(
           createdAt: iso(c.createdAt),
         },
       }
-    case 'DOCTOR_APPROVAL_REQUEST':
-      return {
-        ...base,
-        data: {
-          consultationId: c.id,
-          patientName: c.patientName,
-          age: c.age,
-          sex: c.sex,
-          location: c.location,
-          shortComplaint: shortComplaint(c.mainComplaint),
-          proposedConsultationTime: iso(c.proposedConsultationTime),
-        },
+    case 'DOCTOR_APPROVAL_REQUEST': {
+      const data = {
+        consultationId: c.id,
+        patientName: c.patientName,
+        age: c.age,
+        sex: c.sex,
+        location: c.location,
+        shortComplaint: shortComplaint(c.mainComplaint),
+        proposedConsultationTime: iso(c.proposedConsultationTime),
       }
+      return { ...base, ...(to ? { to } : {}), text: STAFF_MESSAGES.doctorApprovalRequest(data), data }
+    }
     case 'CONSULTATION_CONFIRMED_PATIENT':
       return {
         ...base,
@@ -231,20 +246,19 @@ async function buildPayload(
         ),
         data: { approvedTime: iso(c.doctorApprovedTime), consultationLink: c.consultationLink },
       }
-    case 'CONSULTATION_CONFIRMED_DOCTOR':
-      return {
-        ...base,
-        data: {
-          consultationId: c.id,
-          patientName: c.patientName,
-          age: c.age,
-          sex: c.sex,
-          location: c.location,
-          shortComplaint: shortComplaint(c.mainComplaint),
-          approvedTime: iso(c.doctorApprovedTime),
-          consultationLink: c.consultationLink,
-        },
+    case 'CONSULTATION_CONFIRMED_DOCTOR': {
+      const data = {
+        consultationId: c.id,
+        patientName: c.patientName,
+        age: c.age,
+        sex: c.sex,
+        location: c.location,
+        shortComplaint: shortComplaint(c.mainComplaint),
+        approvedTime: iso(c.doctorApprovedTime),
+        consultationLink: c.consultationLink,
       }
+      return { ...base, ...(to ? { to } : {}), text: STAFF_MESSAGES.doctorConfirmed(data), data }
+    }
     case 'PRESCRIPTION_READY': {
       const prescriptionId = refs.prescriptionId ?? c.prescriptionId
       if (!prescriptionId) return null
@@ -361,4 +375,27 @@ export async function dispatchOutboundJobs(jobIds: string[]): Promise<DispatchRe
     }
   }
   return results
+}
+
+/**
+ * Re-dispatch eTabib jobs still `pending` (never reached n8n, or n8n rejected
+ * them) — called by the n8n "eTabib - Scheduler". Bounded batch, oldest first,
+ * only V1 jobs under their attempt limit. Each job is claimed atomically inside
+ * dispatchOutboundJobs, so overlapping runs cannot double-dispatch. Jobs stuck in
+ * `processing` are intentionally NOT re-sent here (n8n may already have sent them).
+ */
+export async function dispatchPendingOutboundJobs(limit = 20): Promise<DispatchResult[]> {
+  const rows = await db
+    .select({ id: notificationOutbox.id })
+    .from(notificationOutbox)
+    .where(
+      and(
+        eq(notificationOutbox.status, 'pending'),
+        sql`${notificationOutbox.idempotencyKey} LIKE ${KEY_PREFIX + '%'}`,
+        lt(notificationOutbox.attempts, notificationOutbox.maxAttempts),
+      ),
+    )
+    .orderBy(asc(notificationOutbox.createdAt))
+    .limit(Math.min(Math.max(limit, 1), 50))
+  return dispatchOutboundJobs(rows.map((r) => r.id))
 }
