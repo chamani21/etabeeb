@@ -46,6 +46,8 @@ export async function middleware(request: NextRequest) {
     const token = await getToken({ req: request })
     if (!token) {
       const loginUrl = new URL('/login', request.url)
+      // Return to the requested page after sign-in (e.g. the case link in WhatsApp)
+      loginUrl.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
       return NextResponse.redirect(loginUrl)
     }
   }

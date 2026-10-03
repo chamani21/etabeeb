@@ -18,7 +18,7 @@ import { db } from '@etabeeb/db'
 import { notificationOutbox, consultationCases, prescriptions, prescriptionItems } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
 import { and, eq, asc, lt, sql } from 'drizzle-orm'
-import { ETABIB_KEY_HEADER, getAdminWhatsapp, getDoctorWhatsapp, getOutboundConfig } from './config'
+import { ETABIB_KEY_HEADER, getAdminWhatsapp, getAppUrl, getDoctorWhatsapp, getOutboundConfig } from './config'
 import { PATIENT_MESSAGES_PS, formatConsultationTimePs, formatPrescriptionTextPs } from './messages.ps'
 import { STAFF_MESSAGES, clinicTime } from './messages.staff'
 import { JOB_INTENT, buildTemplatePayload, getApprovedTemplates, type TemplatePayload } from './templates'
@@ -254,9 +254,12 @@ async function buildTextPayload(
       return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.acknowledged } }
     case 'PATIENT_CASE_IN_PROGRESS':
       return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.caseInProgress } }
-    case 'ADMIN_NEW_CASE':
+    case 'ADMIN_NEW_CASE': {
+      // Direct link to the admin case page (login returns there via callbackUrl)
+      const appUrl = getAppUrl()
+      const intakeUrl = appUrl ? `${appUrl}/admin/cases/${c.id}` : null
       return {
-        templateValues: [c.patientName, c.patientPhone, caseRef(c.id)],
+        templateValues: [c.patientName, c.patientPhone, caseRef(c.id), intakeUrl ?? `/admin/cases/${c.id}`],
         payload: {
         ...base,
         ...(to ? { to } : {}),
@@ -264,6 +267,7 @@ async function buildTextPayload(
           consultationId: c.id,
           patientName: c.patientName,
           patientPhone: c.patientPhone,
+          intakeUrl,
         }),
         data: {
           consultationId: c.id,
@@ -273,6 +277,7 @@ async function buildTextPayload(
         },
         },
       }
+    }
     case 'DOCTOR_APPROVAL_REQUEST': {
       const data = {
         consultationId: c.id,

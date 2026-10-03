@@ -81,7 +81,9 @@ describe('middleware API routing', () => {
     for (const path of ['/admin', '/admin/cases', '/doctor/cases', '/account/password']) {
       const res = await middleware(req(path))
       expect(res.status).toBe(307)
-      expect(res.headers.get('location')).toBe('http://localhost/login')
+      const location = new URL(res.headers.get('location')!)
+      expect(location.pathname).toBe('/login')
+      expect(location.searchParams.get('callbackUrl')).toBe(path)
     }
   })
 
@@ -94,6 +96,23 @@ describe('middleware API routing', () => {
   it('new admin/doctor/account APIs require a session', async () => {
     for (const path of ['/api/admin/cases', '/api/admin/senders', '/api/admin/status', '/api/doctor/cases', '/api/account/password']) {
       expect((await middleware(req(path))).status).toBe(401)
+    }
+  })
+})
+
+describe('post-login callback (WhatsApp case links)', () => {
+  it('keeps the requested case link, including the query string', async () => {
+    const res = await middleware(req('/admin/cases/0b6a9a3e-1111-4222-8333-444455556666?x=1'))
+    expect(new URL(res.headers.get('location')!).searchParams.get('callbackUrl')).toBe('/admin/cases/0b6a9a3e-1111-4222-8333-444455556666?x=1')
+  })
+
+  it('accepts only same-site staff paths', async () => {
+    const { safeStaffCallback } = await import('@/components/staff/callback')
+    for (const ok of ['/admin/cases/0b6a9a3e-1111-4222-8333-444455556666', '/en/admin/cases', '/doctor/cases/abc', '/admin/cases?status=OPEN']) {
+      expect(safeStaffCallback(ok)).toBe(ok)
+    }
+    for (const bad of [null, '', 'https://evil.example/admin', '//evil.example/admin', '/\\evil.example', '/patient/dashboard', '/login', '/admin<script>', 'javascript:alert(1)', '/api/admin/cases']) {
+      expect(safeStaffCallback(bad)).toBeNull()
     }
   })
 })

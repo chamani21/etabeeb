@@ -32,7 +32,7 @@ in `ETABIB_WA_TEMPLATES`. Each body has only body variables (no header/buttons).
 
 | Intent | Proposed name | Language | Wired | Body (variables in order) |
 |---|---|---|---|---|
-| `ADMIN_NEW_CASE` | `etabib_admin_new_case_v1` | `en` | yes | eTabib: new consultation request. Patient: {{1}}. Phone: {{2}}. Case: {{3}}. Please complete the intake in the admin dashboard. |
+| `ADMIN_NEW_CASE` | `etabib_admin_new_case_v1` | `en` | yes | eTabib: new consultation request. Patient: {{1}}. Phone: {{2}}. Case: {{3}}. Open the intake form: {{4}} |
 | `DOCTOR_APPROVAL_REQUEST` | `etabib_doctor_approval_v1` | `en` | yes | eTabib: consultation time approval needed. Patient: {{1}}. Location: {{2}}. Complaint: {{3}}. Proposed time: {{4}}. Case: {{5}}. Please respond in the doctor dashboard. |
 | `CONSULTATION_CONFIRMED_DOCTOR` | `etabib_doctor_confirmed_v1` | `en` | yes | eTabib: consultation confirmed. Patient: {{1}}. Time: {{2}}. Link: {{3}}. Case: {{4}}. |
 | `CONSULTATION_CONFIRMED` (patient) | `etabib_consultation_confirmed_ps_v1` | `ps_AF` | yes | ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه. وخت: {{1}}. د مشورې لینک: {{2}} |
@@ -41,7 +41,8 @@ in `ETABIB_WA_TEMPLATES`. Each body has only body variables (no header/buttons).
 | `FOLLOWUP_REMINDER` | `etabib_followup_reminder_ps_v1` | `ps_AF` | no (defined only) | یادونه: ستاسو د بیا کتنې وخت له ډاکټر جلال الدین سره {{1}} دی. |
 
 Sample values for review: patient "Test Patient", phone "+92 300 0000000", case "1a2b3c4d",
-time "2026-10-05 12:00 (Pakistan time)", link "https://meet.example.com/abc".
+time "2026-10-05 12:00 (Pakistan time)", link "https://meet.example.com/abc",
+intake form "https://staging-v1.etabeeb.online/admin/cases/1a2b3c4d-…".
 
 ### Verify before submitting
 

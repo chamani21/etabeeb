@@ -60,8 +60,8 @@ export interface TemplateDefinition {
 export const TEMPLATE_DEFINITIONS: Readonly<Record<MessageIntent, TemplateDefinition>> = {
   ADMIN_NEW_CASE: {
     intent: 'ADMIN_NEW_CASE', proposedName: 'etabib_admin_new_case_v1', language: 'en', audience: 'ADMIN', category: 'UTILITY',
-    params: ['patientName', 'patientPhone', 'caseRef'],
-    body: 'eTabib: new consultation request. Patient: {{1}}. Phone: {{2}}. Case: {{3}}. Please complete the intake in the admin dashboard.',
+    params: ['patientName', 'patientPhone', 'caseRef', 'intakeUrl'],
+    body: 'eTabib: new consultation request. Patient: {{1}}. Phone: {{2}}. Case: {{3}}. Open the intake form: {{4}}',
     wired: true,
   },
   DOCTOR_APPROVAL_REQUEST: {

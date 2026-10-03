@@ -58,8 +58,8 @@ describe('template configuration and payloads', () => {
   })
 
   it('builds a strictly valid payload and rejects wrong parameter counts or arbitrary structure', () => {
-    const t = buildTemplatePayload('ADMIN_NEW_CASE', { name: 'etabib_admin_new_case_v1', language: 'en' }, ['Syn', '+920000000000', 'abcd1234'])
-    expect(t.components[0]!.parameters).toHaveLength(3)
+    const t = buildTemplatePayload('ADMIN_NEW_CASE', { name: 'etabib_admin_new_case_v1', language: 'en' }, ['Syn', '+920000000000', 'abcd1234', 'https://staging.example.test/admin/cases/abcd1234'])
+    expect(t.components[0]!.parameters).toHaveLength(4)
     expect(() => buildTemplatePayload('ADMIN_NEW_CASE', { name: 'etabib_admin_new_case_v1', language: 'en' }, ['only one'])).toThrow()
     // browser-style injection attempts are not valid template payloads
     for (const bad of [
@@ -121,6 +121,21 @@ describe.skipIf(!hasTestDb)('template transport', () => {
     expect(JSON.stringify(a.template)).not.toMatch(/\\n/)
     expect(a.idempotencyKey).toBe(approval!.idempotencyKey)
     expect(b.messageKind).toBe('text')
+  })
+
+  it('admin new-case notice links straight to the case intake page (text and template)', async () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://staging.example.test/'
+    const { id } = await caseAt('ADMIN_INTAKE', { adminId, doctorId })
+    const [job] = await jobsOfType('ADMIN_NEW_CASE')
+    await dispatchOutboundJobs([job!.id])
+    expect(sent()[0].text).toContain(`Open the intake form: https://staging.example.test/admin/cases/${id}`)
+    process.env.ETABIB_WA_TEMPLATES = JSON.stringify({ ADMIN_NEW_CASE: { name: 'etabib_admin_new_case_v1', language: 'en' } })
+    await db.update(notificationOutbox).set({ status: 'pending' }).where(eq(notificationOutbox.id, job!.id))
+    await dispatchOutboundJobs([job!.id])
+    const params = sent()[1].template.components[0].parameters
+    expect(params).toHaveLength(4)
+    expect(params[3].text).toBe(`https://staging.example.test/admin/cases/${id}`)
+    delete process.env.NEXT_PUBLIC_APP_URL
   })
 
   it('patient conversational replies are always text, even if every intent is approved', async () => {

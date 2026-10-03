@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { safeStaffCallback } from '@/components/staff/callback'
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('')
@@ -28,12 +29,15 @@ export default function LoginPage() {
       setError('Invalid phone or password')
       return
     }
-    // Route staff by role (and forced password rotation); patients keep the portal
+    // Route staff by role (and forced password rotation); patients keep the portal.
+    // A same-site staff callback (e.g. the case link in a WhatsApp notice) wins.
     try {
       const me = await fetch('/api/account/me', { cache: 'no-store' })
       if (me.ok) {
         const { user } = await me.json()
         if (user?.mustChangePassword) return router.push('/account/password')
+        const callback = safeStaffCallback(new URLSearchParams(window.location.search).get('callbackUrl'))
+        if (callback) return router.push(callback)
         if (user?.role === 'administrator') return router.push('/admin/cases')
         if (user?.role === 'practitioner') return router.push('/doctor/cases')
       }

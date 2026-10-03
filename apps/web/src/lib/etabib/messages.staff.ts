@@ -27,8 +27,9 @@ export function clinicTime(iso: string | null | undefined): string {
 const val = (v: unknown): string => (v === null || v === undefined || v === '' ? '-' : String(v))
 
 export const STAFF_MESSAGES = {
-  adminNewCase: (d: { consultationId: string; patientName: string | null; patientPhone: string | null }) =>
-    `eTabib: new consultation request\nPatient: ${val(d.patientName)}\nPhone: ${val(d.patientPhone)}\nCase: ${d.consultationId}\nPlease complete the intake form.`,
+  adminNewCase: (d: { consultationId: string; patientName: string | null; patientPhone: string | null; intakeUrl: string | null }) =>
+    `eTabib: new consultation request\nPatient: ${val(d.patientName)}\nPhone: ${val(d.patientPhone)}\nCase: ${d.consultationId}\n` +
+    (d.intakeUrl ? `Open the intake form: ${d.intakeUrl}` : 'Please complete the intake form.'),
   doctorApprovalRequest: (d: {
     consultationId: string
     patientName: string | null
