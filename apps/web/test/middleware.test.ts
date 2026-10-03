@@ -13,7 +13,17 @@ let sessionCookie = ''
 
 beforeAll(async () => {
   process.env.NEXTAUTH_SECRET = SECRET
-  const jwt = await encode({ token: { id: 'synthetic-user', role: 'administrator' }, secret: SECRET })
+  const jwt = await encode({
+    token: {
+      id: 'synthetic-user',
+      publicId: 'synthetic-public-id',
+      phone: '+920000000000',
+      displayName: 'Synthetic Admin',
+      role: 'administrator',
+      locale: 'en',
+    },
+    secret: SECRET,
+  })
   sessionCookie = `next-auth.session-token=${jwt}`
 })
 
