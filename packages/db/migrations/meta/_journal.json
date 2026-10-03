@@ -15,6 +15,13 @@
       "when": 1790958577093,
       "tag": "0001_etabib_v1_consultation",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791060404548,
+      "tag": "0002_etabib_p1_hardening",
+      "breakpoints": true
     }
   ]
 }

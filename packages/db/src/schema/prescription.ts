@@ -56,6 +56,12 @@ export const prescriptions = pgTable(
     // PDF
     pdfKey: text('pdf_key'), // storage key for signed PDF
     documentHash: text('document_hash'), // SHA-256 of canonical document bytes
+    // eTabib V1 clinical sections (all optional; legacy flow leaves them null)
+    diagnosis: text('diagnosis'), // diagnosis / assessment
+    investigations: text('investigations'),
+    advice: text('advice'),
+    followUp: text('follow_up'),
+    notes: text('notes'), // free-text doctor notes
     // Audit
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

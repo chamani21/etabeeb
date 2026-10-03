@@ -95,6 +95,8 @@ export const consultationCases = pgTable(
     doctorDecisionAt: timestamp('doctor_decision_at', { withTimezone: true }),
     // Consultation
     consultationLink: text('consultation_link'),
+    // Free-text operational notes by the admin (not sent to WhatsApp)
+    adminNotes: text('admin_notes'),
     // Prescription — reuses the existing prescriptions table
     prescriptionId: uuid('prescription_id').references(() => prescriptions.id, {
       onDelete: 'restrict',
@@ -163,6 +165,9 @@ export const whatsappEvents = pgTable('whatsapp_events', {
     onDelete: 'restrict',
   }),
   processedAt: timestamp('processed_at', { withTimezone: true }),
+  // Inbound gate outcome: processed | ignored_disabled | ignored_not_allowed |
+  // ignored_blocked | ignored_staff (see lib/etabib/inbound-policy.ts)
+  disposition: text('disposition'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
@@ -191,3 +196,81 @@ export const integrationErrors = pgTable(
     occurredIdx: index('integration_errors_occurred_idx').on(t.occurredAt),
   }),
 )
+
+// ============================================================
+// eTABIB V1 — P1 HARDENING
+// ============================================================
+
+export const whatsappSenderPurposeValues = ['PATIENT_TEST', 'STAFF', 'PILOT_PATIENT', 'BLOCKED'] as const
+export const whatsappSenderPurposeEnum = pgEnum('whatsapp_sender_purpose', whatsappSenderPurposeValues)
+
+// Inbound sender policy list. In `allowlist` mode only active PATIENT_TEST /
+// PILOT_PATIENT numbers may start or continue a consultation; STAFF and
+// BLOCKED numbers never enter the patient flow in any mode. Rows are soft-
+// deactivated (active = false), never hard-deleted.
+export const whatsappAllowedSenders = pgTable(
+  'whatsapp_allowed_senders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    phoneE164: text('phone_e164').notNull(),
+    label: text('label').notNull(),
+    purpose: whatsappSenderPurposeEnum('purpose').notNull(),
+    active: boolean('active').notNull().default(true),
+    notes: text('notes'),
+    createdBy: uuid('created_by').references(() => users.id),
+    updatedBy: uuid('updated_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    phoneUq: uniqueIndex('whatsapp_allowed_senders_phone_uq').on(t.phoneE164),
+  }),
+)
+
+// Append-only audit of staff actions that are not tied to one consultation case
+// (password changes/resets, allow-list changes). A trigger in the migration
+// rejects UPDATE/DELETE. Never passwords, tokens or secrets in metadata.
+export const staffAuditEvents = pgTable(
+  'staff_audit_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    action: text('action').notNull(),
+    actorType: text('actor_type').notNull(), // ADMIN | DOCTOR | SYSTEM | ANONYMOUS
+    actorId: uuid('actor_id').references(() => users.id),
+    targetType: text('target_type'),
+    targetId: text('target_id'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    createdIdx: index('staff_audit_events_created_idx').on(t.createdAt),
+  }),
+)
+
+// One-time staff password reset tokens. Only the SHA-256 of the token is stored.
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    createdBy: uuid('created_by').references(() => users.id),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    tokenUq: uniqueIndex('password_reset_tokens_hash_uq').on(t.tokenHash),
+    userIdx: index('password_reset_tokens_user_idx').on(t.userId),
+  }),
+)
+
+// Small operational key/value store (e.g. last Scheduler dispatch time).
+// Non-secret, non-clinical values only.
+export const etabibRuntimeStatus = pgTable('etabib_runtime_status', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').$type<Record<string, unknown>>().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
