@@ -78,8 +78,22 @@ describe('middleware API routing', () => {
   })
 
   it('protected UI pages still redirect to /login without a session', async () => {
-    const res = await middleware(req('/admin'))
-    expect(res.status).toBe(307)
-    expect(res.headers.get('location')).toBe('http://localhost/login')
+    for (const path of ['/admin', '/admin/cases', '/doctor/cases', '/account/password']) {
+      const res = await middleware(req(path))
+      expect(res.status).toBe(307)
+      expect(res.headers.get('location')).toBe('http://localhost/login')
+    }
+  })
+
+  it('the staff reset page and the reset API are reachable without a session', async () => {
+    expect((await middleware(req('/reset-password'))).status).not.toBe(307)
+    const api = await middleware(req('/api/auth/password-reset'))
+    expect(passedThrough(api)).toBe(true)
+  })
+
+  it('new admin/doctor/account APIs require a session', async () => {
+    for (const path of ['/api/admin/cases', '/api/admin/senders', '/api/admin/status', '/api/doctor/cases', '/api/account/password']) {
+      expect((await middleware(req(path))).status).toBe(401)
+    }
   })
 })

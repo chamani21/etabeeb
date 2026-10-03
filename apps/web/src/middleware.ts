@@ -10,7 +10,7 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'as-needed', // /ps/... for non-default, / for ps default
 })
 
-const protectedPaths = ['/patient', '/doctor', '/admin']
+const protectedPaths = ['/patient', '/doctor', '/admin', '/account']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

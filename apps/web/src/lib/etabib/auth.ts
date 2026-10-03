@@ -8,11 +8,29 @@ export interface StaffActor {
   role: string
 }
 
+/** A staff member flagged for password rotation may only change the password. */
+function assertPasswordCurrent(user: { mustChangePassword?: boolean }): void {
+  if (user.mustChangePassword) {
+    throw new EtabibError('password_change_required', 'Change your password before continuing', 403)
+  }
+}
+
+/** Any signed-in staff member (admin or practitioner); used by account routes. */
+export async function requireStaffSession(): Promise<StaffActor> {
+  const user = await getCurrentUser()
+  if (!user?.id) throw new EtabibError('unauthorized', 'Unauthorized', 401)
+  if (user.role !== 'administrator' && user.role !== 'practitioner') {
+    throw new EtabibError('forbidden', 'Staff access required', 403)
+  }
+  return { id: user.id, role: user.role }
+}
+
 /** Admin routes: existing NextAuth session + `administrator` role. */
 export async function requireAdmin(): Promise<StaffActor> {
   const user = await getCurrentUser()
   if (!user?.id) throw new EtabibError('unauthorized', 'Unauthorized', 401)
   if (user.role !== 'administrator') throw new EtabibError('forbidden', 'Admin access required', 403)
+  assertPasswordCurrent(user)
   return { id: user.id, role: user.role }
 }
 
@@ -32,6 +50,7 @@ export async function requireV1Doctor(): Promise<StaffActor> {
   if (user.role !== 'practitioner' || user.id !== doctorUserId) {
     throw new EtabibError('forbidden', 'Not authorized for eTabib consultations', 403)
   }
+  assertPasswordCurrent(user)
   return { id: user.id, role: user.role }
 }
 

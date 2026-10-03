@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('')
@@ -27,9 +26,21 @@ export default function LoginPage() {
 
     if (res?.error) {
       setError('Invalid phone or password')
-    } else {
-      router.push('/patient/dashboard')
+      return
     }
+    // Route staff by role (and forced password rotation); patients keep the portal
+    try {
+      const me = await fetch('/api/account/me', { cache: 'no-store' })
+      if (me.ok) {
+        const { user } = await me.json()
+        if (user?.mustChangePassword) return router.push('/account/password')
+        if (user?.role === 'administrator') return router.push('/admin/cases')
+        if (user?.role === 'practitioner') return router.push('/doctor/cases')
+      }
+    } catch {
+      /* fall through */
+    }
+    router.push('/patient/dashboard')
   }
 
   return (
@@ -86,12 +97,6 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <div className="text-center mt-4">
-          <Link href="/register" className="text-primary-container hover:text-primary">
-            نوی اکاونټ جوړ کړئ
-          </Link>
-        </div>
-        
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>د مرستې لپاره واټساپ شمیره: 03332357055</p>
         </div>
