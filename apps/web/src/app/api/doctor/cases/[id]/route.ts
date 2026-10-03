@@ -4,6 +4,9 @@ import { errorResponse } from '@/lib/etabib/errors'
 import { parseCaseId } from '@/lib/etabib/schemas'
 import { getCaseDetailForDoctor } from '@/lib/etabib/queries'
 
+// Per-request data behind a session: never prerender or cache at build time
+export const dynamic = 'force-dynamic'
+
 // GET /api/doctor/cases/[id] — clinical view (no payment amount/reference/confirmer)
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {

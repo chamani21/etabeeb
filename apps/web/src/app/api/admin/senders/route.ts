@@ -5,6 +5,9 @@ import { readJson, senderCreateSchema } from '@/lib/etabib/schemas'
 import { createSender, listSenders } from '@/lib/etabib/senders'
 import { getInboundPolicy } from '@/lib/etabib/inbound-policy'
 
+// Per-request data behind a session: never prerender or cache at build time
+export const dynamic = 'force-dynamic'
+
 // GET /api/admin/senders — WhatsApp sender allow-list (+ current inbound policy, read-only)
 export async function GET() {
   try {

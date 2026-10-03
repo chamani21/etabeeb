@@ -4,6 +4,9 @@ import { errorResponse, validationErrorResponse } from '@/lib/etabib/errors'
 import { caseListQuerySchema } from '@/lib/etabib/schemas'
 import { listCasesForAdmin, statusCounts } from '@/lib/etabib/queries'
 
+// Per-request data behind a session: never prerender or cache at build time
+export const dynamic = 'force-dynamic'
+
 // GET /api/admin/cases?status=OPEN|ALL|<STATUS>&q=<case id | phone | name>
 export async function GET(req: NextRequest) {
   try {

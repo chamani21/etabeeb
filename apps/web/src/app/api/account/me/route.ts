@@ -3,6 +3,9 @@ import { getCurrentUser } from '@/lib/auth-helpers'
 import { errorResponse } from '@/lib/etabib/errors'
 import { requireStaffSession } from '@/lib/etabib/auth'
 
+// Per-request data behind a session: never prerender or cache at build time
+export const dynamic = 'force-dynamic'
+
 // GET /api/account/me — signed-in staff identity for the UI (no secrets)
 export async function GET() {
   try {
