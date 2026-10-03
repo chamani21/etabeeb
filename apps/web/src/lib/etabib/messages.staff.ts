@@ -7,7 +7,7 @@
  */
 import { CLINIC_TIMEZONE } from './config'
 
-function clinicTime(iso: string | null | undefined): string {
+export function clinicTime(iso: string | null | undefined): string {
   if (!iso) return 'not set'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return 'not set'

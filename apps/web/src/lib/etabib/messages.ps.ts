@@ -46,3 +46,53 @@ export function formatConsultationTimePs(date: Date): string {
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} (د پاکستان وخت)`
 }
+
+/** Pashto section labels for the plain-text prescription (doctor content is inserted as written). */
+export const PRESCRIPTION_LABELS_PS = {
+  number: 'د نسخې شمېره',
+  diagnosis: 'تشخیص',
+  medicines: 'درمل',
+  days: 'ورځې',
+  investigations: 'معاینات',
+  advice: 'مشورې',
+  followUp: 'بیا کتنه',
+  notes: 'یادښت',
+} as const
+
+export interface PrescriptionTextInput {
+  number: string
+  diagnosis?: string | null
+  investigations?: string | null
+  advice?: string | null
+  followUp?: string | null
+  notes?: string | null
+  items: Array<{
+    genericName: string
+    strength?: string | null
+    formulation?: string | null
+    dose: string
+    frequency: string
+    timing?: string | null
+    durationDays?: number | null
+    patientInstructions?: string | null
+  }>
+}
+
+/** Full plain-text prescription message (Pashto frame + doctor-entered content). */
+export function formatPrescriptionTextPs(rx: PrescriptionTextInput): string {
+  const L = PRESCRIPTION_LABELS_PS
+  const lines: string[] = [PATIENT_MESSAGES_PS.prescriptionReady, '', `${L.number}: ${rx.number}`]
+  if (rx.diagnosis) lines.push(`${L.diagnosis}: ${rx.diagnosis}`)
+  lines.push(`${L.medicines}:`)
+  rx.items.forEach((i, n) => {
+    const name = [i.genericName, i.strength, i.formulation].filter(Boolean).join(' ')
+    const how = [i.dose, i.frequency, i.timing].filter(Boolean).join(' | ')
+    lines.push(`${n + 1}. ${name} - ${how}${i.durationDays ? ` | ${i.durationDays} ${L.days}` : ''}`)
+    if (i.patientInstructions) lines.push(`   ${i.patientInstructions}`)
+  })
+  if (rx.investigations) lines.push(`${L.investigations}: ${rx.investigations}`)
+  if (rx.advice) lines.push(`${L.advice}: ${rx.advice}`)
+  if (rx.followUp) lines.push(`${L.followUp}: ${rx.followUp}`)
+  if (rx.notes) lines.push(`${L.notes}: ${rx.notes}`)
+  return lines.join('\n').slice(0, 4000)
+}

@@ -19,8 +19,9 @@ import { notificationOutbox, consultationCases, prescriptions, prescriptionItems
 import type { ConsultationCase } from '@etabeeb/db'
 import { and, eq, asc, lt, sql } from 'drizzle-orm'
 import { ETABIB_KEY_HEADER, getAdminWhatsapp, getDoctorWhatsapp, getOutboundConfig } from './config'
-import { PATIENT_MESSAGES_PS, formatConsultationTimePs } from './messages.ps'
-import { STAFF_MESSAGES } from './messages.staff'
+import { PATIENT_MESSAGES_PS, formatConsultationTimePs, formatPrescriptionTextPs } from './messages.ps'
+import { STAFF_MESSAGES, clinicTime } from './messages.staff'
+import { JOB_INTENT, buildTemplatePayload, getApprovedTemplates, type TemplatePayload } from './templates'
 import type { Tx } from './transitions'
 
 export const OUTBOUND_JOB_TYPES = [
@@ -145,8 +146,12 @@ export interface OutboundPayload {
    * or the configured admin / doctor number. Absent only when not configured.
    */
   to?: string
-  /** Ready-to-send text: Pashto for patients, short English notice for staff. */
+  /** `text` (free-form, 24-hour window) or `template` (approved Meta template). */
+  messageKind: 'text' | 'template'
+  /** Ready-to-send text: Pashto for patients, short English notice for staff (text kind only). */
   text?: string
+  /** Strictly validated template (template kind only). Never built from browser input. */
+  template?: TemplatePayload
   data?: Record<string, unknown>
   /** Callback contract for n8n. */
   callback: { path: '/api/hooks/outbound-result' }
@@ -165,10 +170,48 @@ function patientRecipient(c: ConsultationCase): string | undefined {
   return c.whatsappPhone ?? c.patientPhone ?? undefined
 }
 
+type TextPayload = Omit<OutboundPayload, 'messageKind' | 'template'>
+interface BuiltText {
+  payload: TextPayload
+  /** Body parameters if this job's intent is sent as an approved template. */
+  templateValues: unknown[] | null
+}
+
+const caseRef = (id: string) => id.slice(0, 8)
+
+/** Thrown when a configured template cannot be built; the job fails permanently. */
+export class InvalidTemplateError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'InvalidTemplateError'
+  }
+}
+
 async function buildPayload(
   job: { id: string; idempotencyKey: string; templateKey: string; recipientPhone: string | null },
   refs: OutboundJobRefs,
 ): Promise<OutboundPayload | null> {
+  const built = await buildTextPayload(job, refs)
+  if (!built) return null
+  const intent = JOB_INTENT[built.payload.type]
+  const approved = intent ? getApprovedTemplates()[intent] : undefined
+  if (!intent || !approved || !built.templateValues) return { ...built.payload, messageKind: 'text' }
+  let template: TemplatePayload
+  try {
+    template = buildTemplatePayload(intent, approved, built.templateValues)
+  } catch (error) {
+    throw new InvalidTemplateError(error instanceof Error ? error.message.slice(0, 150) : 'invalid template')
+  }
+  // Template kind: the free-form text is not sent to n8n
+  const { text: _unused, ...rest } = built.payload
+  void _unused
+  return { ...rest, messageKind: 'template', template }
+}
+
+async function buildTextPayload(
+  job: { id: string; idempotencyKey: string; templateKey: string; recipientPhone: string | null },
+  refs: OutboundJobRefs,
+): Promise<BuiltText | null> {
   if (!isOutboundJobType(job.templateKey)) return null
   const type = job.templateKey
   const [c] = await db
@@ -197,19 +240,24 @@ async function buildPayload(
 
   switch (type) {
     case 'ASK_PATIENT_NAME':
-      return { ...base, ...(to ? { to } : {}), text: invalid ? PATIENT_MESSAGES_PS.invalidName : PATIENT_MESSAGES_PS.askName }
+      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: invalid ? PATIENT_MESSAGES_PS.invalidName : PATIENT_MESSAGES_PS.askName } }
     case 'ASK_PATIENT_PHONE':
       return {
-        ...base,
-        ...(to ? { to } : {}),
-        text: invalid ? PATIENT_MESSAGES_PS.invalidPhone : PATIENT_MESSAGES_PS.askPhone(c.patientName ?? ''),
+        templateValues: null,
+        payload: {
+          ...base,
+          ...(to ? { to } : {}),
+          text: invalid ? PATIENT_MESSAGES_PS.invalidPhone : PATIENT_MESSAGES_PS.askPhone(c.patientName ?? ''),
+        },
       }
     case 'PATIENT_ACKNOWLEDGED':
-      return { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.acknowledged }
+      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.acknowledged } }
     case 'PATIENT_CASE_IN_PROGRESS':
-      return { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.caseInProgress }
+      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.caseInProgress } }
     case 'ADMIN_NEW_CASE':
       return {
+        templateValues: [c.patientName, c.patientPhone, caseRef(c.id)],
+        payload: {
         ...base,
         ...(to ? { to } : {}),
         text: STAFF_MESSAGES.adminNewCase({
@@ -223,6 +271,7 @@ async function buildPayload(
           patientPhone: c.patientPhone,
           createdAt: iso(c.createdAt),
         },
+        },
       }
     case 'DOCTOR_APPROVAL_REQUEST': {
       const data = {
@@ -234,10 +283,24 @@ async function buildPayload(
         shortComplaint: shortComplaint(c.mainComplaint),
         proposedConsultationTime: iso(c.proposedConsultationTime),
       }
-      return { ...base, ...(to ? { to } : {}), text: STAFF_MESSAGES.doctorApprovalRequest(data), data }
+      return {
+        templateValues: [
+          [c.patientName, c.age, c.sex].filter((v) => v !== null && v !== undefined).join(', '),
+          c.location,
+          data.shortComplaint,
+          clinicTime(data.proposedConsultationTime),
+          caseRef(c.id),
+        ],
+        payload: { ...base, ...(to ? { to } : {}), text: STAFF_MESSAGES.doctorApprovalRequest(data), data },
+      }
     }
     case 'CONSULTATION_CONFIRMED_PATIENT':
       return {
+        templateValues: [
+          c.doctorApprovedTime ? formatConsultationTimePs(c.doctorApprovedTime) : '',
+          c.consultationLink ?? 'وروسته به درته ولېږل شي',
+        ],
+        payload: {
         ...base,
         ...(to ? { to } : {}),
         text: PATIENT_MESSAGES_PS.consultationConfirmed(
@@ -245,6 +308,7 @@ async function buildPayload(
           c.consultationLink,
         ),
         data: { approvedTime: iso(c.doctorApprovedTime), consultationLink: c.consultationLink },
+        },
       }
     case 'CONSULTATION_CONFIRMED_DOCTOR': {
       const data = {
@@ -257,7 +321,10 @@ async function buildPayload(
         approvedTime: iso(c.doctorApprovedTime),
         consultationLink: c.consultationLink,
       }
-      return { ...base, ...(to ? { to } : {}), text: STAFF_MESSAGES.doctorConfirmed(data), data }
+      return {
+        templateValues: [c.patientName, clinicTime(data.approvedTime), c.consultationLink ?? 'to follow', caseRef(c.id)],
+        payload: { ...base, ...(to ? { to } : {}), text: STAFF_MESSAGES.doctorConfirmed(data), data },
+      }
     }
     case 'PRESCRIPTION_READY': {
       const prescriptionId = refs.prescriptionId ?? c.prescriptionId
@@ -269,29 +336,27 @@ async function buildPayload(
         .from(prescriptionItems)
         .where(eq(prescriptionItems.prescriptionId, rx.id))
         .orderBy(asc(prescriptionItems.sortOrder))
+      const number = rx.publicId.slice(0, 8).toUpperCase()
+      const text = formatPrescriptionTextPs({
+        number,
+        diagnosis: rx.diagnosis,
+        investigations: rx.investigations,
+        advice: rx.advice,
+        followUp: rx.followUp,
+        notes: rx.notes,
+        items,
+      })
+      const medicines = items
+        .map((i) => [i.genericName, i.strength, i.dose, i.frequency].filter(Boolean).join(' '))
+        .join('; ')
       return {
-        ...base,
-        ...(to ? { to } : {}),
-        text: PATIENT_MESSAGES_PS.prescriptionReady,
-        data: {
-          patientName: c.patientName,
-          prescription: {
-            number: rx.publicId,
-            verificationToken: rx.verificationToken,
-            signedAt: iso(rx.signedAt),
-            items: items.map((i) => ({
-              genericName: i.genericName,
-              strength: i.strength,
-              formulation: i.formulation,
-              route: i.route,
-              dose: i.dose,
-              frequency: i.frequency,
-              timing: i.timing,
-              durationDays: i.durationDays,
-              quantity: i.quantity,
-              patientInstructions: i.patientInstructions,
-            })),
-          },
+        templateValues: [number, medicines],
+        payload: {
+          ...base,
+          ...(to ? { to } : {}),
+          // Complete text built here (Pashto frame + doctor content); n8n sends it as-is
+          text,
+          data: { prescription: { number, textComplete: true } },
         },
       }
     }
@@ -343,7 +408,19 @@ export async function dispatchOutboundJobs(jobIds: string[]): Promise<DispatchRe
         continue
       }
       const refs = parseJobRefs(claimed.templateVariables)
-      const payload = refs ? await buildPayload(claimed, refs) : null
+      let payload: OutboundPayload | null
+      try {
+        payload = refs ? await buildPayload(claimed, refs) : null
+      } catch (error) {
+        if (!(error instanceof InvalidTemplateError)) throw error
+        await db
+          .update(notificationOutbox)
+          .set({ status: 'failed', lastError: 'invalid_template', processedAt: new Date() })
+          .where(eq(notificationOutbox.id, jobId))
+        console.error(`[etabib:outbound] job ${jobId} has an invalid template configuration`)
+        results.push({ jobId, dispatched: false, reason: 'invalid_template' })
+        continue
+      }
       if (!payload) {
         await db
           .update(notificationOutbox)
