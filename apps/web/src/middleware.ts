@@ -15,19 +15,26 @@ const protectedPaths = ['/patient', '/doctor', '/admin']
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Protect API routes — add CSRF check header requirement
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
-    const origin = request.headers.get('origin')
-    const host = request.headers.get('host')
-    // Only allow same-origin API calls
-    if (origin && host && !origin.includes(host)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (pathname.startsWith('/api/')) {
+    // Protect API routes — add CSRF check header requirement.
+    // Public: NextAuth's own routes and the unauthenticated health probe.
+    if (!pathname.startsWith('/api/auth/') && pathname !== '/api/health') {
+      const origin = request.headers.get('origin')
+      const host = request.headers.get('host')
+      // Only allow same-origin API calls
+      if (origin && host && !origin.includes(host)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+
+      const token = await getToken({ req: request })
+      if (!token) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
 
-    const token = await getToken({ req: request })
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // API routes are not localized: never let next-intl rewrite them to
+    // /<locale>/api/..., which has no route and returns 404.
+    return NextResponse.next()
   }
 
   // Check UI protected paths
