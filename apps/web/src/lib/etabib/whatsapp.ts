@@ -14,6 +14,7 @@ import { and, eq, ne, sql } from 'drizzle-orm'
 import { normalizePhone, toAsciiDigits, waIdToE164 } from './phone'
 import { createCase, transitionCase, updateCaseFields, type Actor, type ConsultationStatus } from './transitions'
 import { enqueueOutboundJob, type EnqueuedJob } from './outbound'
+import { evaluateInboundSender, type InboundDisposition } from './inbound-policy'
 
 export interface InboundMessage {
   wamid: string
@@ -104,6 +105,7 @@ export function sanitizePatientName(text: string | null): string | null {
 
 export type IntakeOutcome =
   | 'duplicate'
+  | 'ignored'
   | 'asked_name'
   | 'asked_name_again'
   | 'name_saved_asked_phone'
@@ -118,6 +120,8 @@ export interface InboundResult {
   consultationId: string | null
   status: ConsultationStatus | null
   jobs: EnqueuedJob[]
+  /** Inbound gate result; absent for duplicates (decided on first delivery). */
+  disposition?: InboundDisposition
 }
 
 const PATIENT: Actor = { type: 'PATIENT', id: null }
@@ -138,6 +142,18 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
     const ledgerId = ledger[0]?.id
     if (!ledgerId) {
       return { wamid: msg.wamid, duplicate: true, outcome: 'duplicate', consultationId: null, status: null, jobs: [] }
+    }
+
+    // P1 gate: kill switch, inbound mode, staff exclusion, allow/block list.
+    // An ignored message keeps its ledger row (so redeliveries stay duplicates)
+    // but creates no case, advances no state and enqueues no message.
+    const disposition = await evaluateInboundSender(tx, msg.from)
+    if (disposition !== 'processed') {
+      await tx
+        .update(whatsappEvents)
+        .set({ disposition, processedAt: new Date() })
+        .where(eq(whatsappEvents.id, ledgerId))
+      return { wamid: msg.wamid, duplicate: false, outcome: 'ignored', consultationId: null, status: null, jobs: [], disposition }
     }
 
     // Serialise processing per sender (ordering of name → phone, and a single
@@ -257,7 +273,7 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
 
     await tx
       .update(whatsappEvents)
-      .set({ consultationId: current.id, processedAt: new Date() })
+      .set({ consultationId: current.id, processedAt: new Date(), disposition })
       .where(eq(whatsappEvents.id, ledgerId))
 
     return {
@@ -267,6 +283,7 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
       consultationId: current.id,
       status: current.status,
       jobs,
+      disposition,
     }
   })
 }

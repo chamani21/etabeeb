@@ -70,6 +70,10 @@ export const intakeSchema = z
   })
   .strict()
 
+export const adminNotesSchema = z.object({ notes: z.string().trim().max(4000).nullable() }).strict()
+
+const optionalSection = z.string().trim().max(2000).nullable().optional()
+
 // .strict(): paymentConfirmedBy / paymentConfirmedAt from the client are rejected
 export const paymentSchema = z
   .object({
@@ -114,8 +118,57 @@ export const doctorDecisionSchema = z.discriminatedUnion('decision', [
 })
 
 export const casePrescriptionSchema = z
-  .object({ items: z.array(prescriptionItemSchema).min(1).max(30) })
+  .object({
+    items: z.array(prescriptionItemSchema).min(1).max(30),
+    diagnosis: optionalSection,
+    investigations: optionalSection,
+    advice: optionalSection,
+    followUp: optionalSection,
+    notes: optionalSection,
+  })
   .strict()
+
+// ---- P1 schemas ----
+
+export const senderPurposeSchema = z.enum(['PATIENT_TEST', 'STAFF', 'PILOT_PATIENT', 'BLOCKED'])
+export const senderCreateSchema = z
+  .object({
+    phone: z.string().trim().min(5).max(32),
+    label: trimmed(1, 80),
+    purpose: senderPurposeSchema,
+    notes: z.string().trim().max(500).nullable().optional(),
+  })
+  .strict()
+export const senderUpdateSchema = z
+  .object({
+    label: trimmed(1, 80).optional(),
+    purpose: senderPurposeSchema.optional(),
+    notes: z.string().trim().max(500).nullable().optional(),
+    active: z.boolean().optional(),
+  })
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, 'No changes supplied')
+
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(256),
+    newPassword: z.string().min(1).max(256),
+    confirmPassword: z.string().min(1).max(256),
+  })
+  .strict()
+
+export const passwordResetCompleteSchema = z
+  .object({
+    token: z.string().regex(/^[A-Za-z0-9_-]{20,100}$/),
+    newPassword: z.string().min(1).max(256),
+    confirmPassword: z.string().min(1).max(256),
+  })
+  .strict()
+
+export const caseListQuerySchema = z.object({
+  status: z.enum(['NEW', 'ADMIN_INTAKE', 'INTAKE_COMPLETE', 'AWAITING_PAYMENT', 'PAYMENT_RECEIVED', 'AWAITING_DOCTOR_APPROVAL', 'CONFIRMED', 'IN_CONSULTATION', 'PRESCRIPTION_SENT', 'COMPLETED', 'OPEN', 'ALL']).default('OPEN'),
+  q: z.string().trim().max(80).optional(),
+})
 
 export const outboundResultSchema = z
   .object({

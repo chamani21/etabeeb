@@ -23,7 +23,8 @@ export async function resetDb(): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.execute(sql`SET LOCAL client_min_messages = warning`)
     await tx.execute(sql`TRUNCATE case_events, whatsapp_events, consultation_cases, integration_errors,
-      notification_outbox, prescription_items, prescriptions, users CASCADE`)
+      notification_outbox, prescription_items, prescriptions, whatsapp_allowed_senders, staff_audit_events,
+      password_reset_tokens, etabib_runtime_status, user_roles, roles, users CASCADE`)
   })
 }
 
@@ -136,4 +137,30 @@ export async function caseAt(
     }
   }
   return { id, sender, approvedTime }
+}
+
+// ---- P1 helpers ----
+import { roles, userRoles } from '@etabeeb/db/schema'
+import bcryptjs from 'bcryptjs'
+
+/** Create a staff user with a real role row (and optionally a known password). */
+export async function createStaffUser(
+  role: 'administrator' | 'practitioner' | 'patient',
+  opts: { phone?: string; password?: string; mustChangePassword?: boolean; displayName?: string; email?: string } = {},
+): Promise<{ id: string; phone: string }> {
+  const phone = opts.phone ?? fakePhone()
+  const [r] = await db.insert(roles).values({ name: role }).onConflictDoNothing().returning({ id: roles.id })
+  const roleId = r?.id ?? (await db.select({ id: roles.id }).from(roles).where(eq(roles.name, role)))[0]!.id
+  const [u] = await db
+    .insert(users)
+    .values({
+      phoneE164: phone,
+      displayName: opts.displayName ?? `Synthetic ${role}`,
+      email: opts.email ?? null,
+      passwordHash: opts.password ? await bcryptjs.hash(opts.password, 4) : null,
+      mustChangePassword: opts.mustChangePassword ?? false,
+    })
+    .returning({ id: users.id })
+  await db.insert(userRoles).values({ userId: u!.id, roleId })
+  return { id: u!.id, phone }
 }

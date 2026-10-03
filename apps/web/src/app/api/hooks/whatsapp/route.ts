@@ -42,11 +42,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      processed: results.filter((r) => !r.duplicate).length,
+      processed: results.filter((r) => !r.duplicate && r.outcome !== 'ignored').length,
       results: results.map((r) => ({
         wamid: r.wamid,
         duplicate: r.duplicate,
         outcome: r.outcome,
+        ...(r.disposition ? { disposition: r.disposition } : {}),
         consultationId: r.consultationId,
         status: r.status,
         jobs: r.jobs.map((j) => ({ id: j.id, type: j.type })),
