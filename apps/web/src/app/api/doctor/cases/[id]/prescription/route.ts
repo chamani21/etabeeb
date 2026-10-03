@@ -15,7 +15,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const parsed = casePrescriptionSchema.safeParse(await readJson(req))
     if (!parsed.success) return validationErrorResponse(parsed.error)
 
-    const result = await createCasePrescription(caseId, parsed.data.items, { type: 'DOCTOR', id: doctor.id })
+    const { items, diagnosis, investigations, advice, followUp, notes } = parsed.data
+    const result = await createCasePrescription(caseId, items, { type: 'DOCTOR', id: doctor.id }, {
+      diagnosis: diagnosis ?? null,
+      investigations: investigations ?? null,
+      advice: advice ?? null,
+      followUp: followUp ?? null,
+      notes: notes ?? null,
+    })
     await dispatchOutboundJobs(result.jobs.filter((j) => j.created).map((j) => j.id))
     return NextResponse.json(
       {

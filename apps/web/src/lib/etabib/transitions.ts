@@ -75,6 +75,9 @@ export const CASE_EVENT_TYPES = [
   'PRESCRIPTION_SENT',
   'PRESCRIPTION_DELIVERY_FAILED',
   'CASE_COMPLETED',
+  // P1: operational staff actions (no status change)
+  'ADMIN_NOTES_UPDATED',
+  'OUTBOX_RETRY_REQUESTED',
 ] as const
 export type CaseEventType = (typeof CASE_EVENT_TYPES)[number]
 

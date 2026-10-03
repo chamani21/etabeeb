@@ -8,7 +8,7 @@
  * no new events or jobs.
  */
 import { db } from '@etabeeb/db'
-import { notificationOutbox } from '@etabeeb/db/schema'
+import { notificationOutbox, prescriptions } from '@etabeeb/db/schema'
 import type { ConsultationCase, Prescription } from '@etabeeb/db'
 import { eq } from 'drizzle-orm'
 import { EtabibError, TransitionError } from './errors'
@@ -41,6 +41,14 @@ function patientRecipient(c: ConsultationCase): string | null {
 // ------------------------------------------------------------------
 // Admin intake: ADMIN_INTAKE → INTAKE_COMPLETE → AWAITING_PAYMENT
 // ------------------------------------------------------------------
+
+/** Statuses in which a completed intake may still be corrected (before the consultation starts). */
+export const INTAKE_EDITABLE: readonly ConsultationStatus[] = [
+  'AWAITING_PAYMENT',
+  'PAYMENT_RECEIVED',
+  'AWAITING_DOCTOR_APPROVAL',
+  'CONFIRMED',
+]
 
 export interface IntakeInput {
   age: number
@@ -85,7 +93,8 @@ export async function submitAdminIntake(
       const updated = await transitionCase(tx, { caseId, to: 'AWAITING_PAYMENT', expectedFrom: 'INTAKE_COMPLETE', actor: admin, patch, metadata: corrected })
       return { case: updated, changed: true, jobs: [] }
     }
-    if (current.status === 'AWAITING_PAYMENT') {
+    // Corrections are allowed until the consultation starts (P1: was AWAITING_PAYMENT only)
+    if (INTAKE_EDITABLE.includes(current.status)) {
       const unchanged =
         current.age === input.age &&
         current.sex === input.sex &&
@@ -332,10 +341,19 @@ export async function startConsultation(caseId: string, doctor: Actor): Promise<
 // Prescription (reuses the existing prescriptions module)
 // ------------------------------------------------------------------
 
+export interface PrescriptionDetails {
+  diagnosis?: string | null
+  investigations?: string | null
+  advice?: string | null
+  followUp?: string | null
+  notes?: string | null
+}
+
 export async function createCasePrescription(
   caseId: string,
   items: PrescriptionItemInput[],
   doctor: Actor & { id: string },
+  details: PrescriptionDetails = {},
 ): Promise<CaseActionResult & { prescription: Prescription }> {
   return db.transaction(async (tx) => {
     const current = await lockCase(tx, caseId)
@@ -353,6 +371,16 @@ export async function createCasePrescription(
       items,
       finalize: true, // V1: saved by the doctor = signed
     })
+    const sections = {
+      diagnosis: details.diagnosis ?? null,
+      investigations: details.investigations ?? null,
+      advice: details.advice ?? null,
+      followUp: details.followUp ?? null,
+      notes: details.notes ?? null,
+    }
+    if (Object.values(sections).some((v) => v !== null)) {
+      await tx.update(prescriptions).set(sections).where(eq(prescriptions.id, prescription.id))
+    }
     const updated = await updateCaseFields(tx, {
       caseId,
       patch: { prescriptionId: prescription.id },
@@ -503,6 +531,64 @@ export async function applyOutboundResult(input: OutboundResultInput): Promise<O
       jobStatus: after?.status ?? job.status,
       consultationId: refs.consultationId,
       consultationStatus,
+    }
+  })
+}
+
+// ------------------------------------------------------------------
+// P1: admin notes and outbound retry
+// ------------------------------------------------------------------
+
+export async function updateAdminNotes(caseId: string, notes: string | null, admin: Actor): Promise<CaseActionResult> {
+  return db.transaction(async (tx) => {
+    const current = await lockCase(tx, caseId)
+    if ((current.adminNotes ?? null) === notes) return { case: current, changed: false, jobs: [] }
+    const updated = await updateCaseFields(tx, {
+      caseId,
+      patch: { adminNotes: notes },
+      eventType: 'ADMIN_NOTES_UPDATED',
+      actor: admin,
+      metadata: { length: notes?.length ?? 0 }, // never the note text itself
+    })
+    return { case: updated, changed: true, jobs: [] }
+  })
+}
+
+/**
+ * Re-queue an eTabib outbound job that FAILED (or exhausted its dispatch
+ * attempts while pending). Successful, in-flight (`processing`) or other
+ * cases' jobs are never re-sent. The same idempotency key is kept, so n8n and
+ * the callback still treat it as the same message. The caller dispatches the
+ * returned job after commit.
+ */
+export async function retryOutboundJob(caseId: string, jobId: string, admin: Actor): Promise<CaseActionResult> {
+  return db.transaction(async (tx) => {
+    const [job] = await tx.select().from(notificationOutbox).where(eq(notificationOutbox.id, jobId)).limit(1).for('update')
+    const refs = job ? parseJobRefs(job.templateVariables) : null
+    if (!job || !refs || refs.consultationId !== caseId || !job.idempotencyKey.startsWith('etabib:')) {
+      throw new EtabibError('not_found', 'Outbound job not found for this case', 404)
+    }
+    const exhaustedPending = job.status === 'pending' && job.attempts >= job.maxAttempts
+    if (job.status !== 'failed' && !exhaustedPending) {
+      throw new EtabibError('retry_not_allowed', `A ${job.status} message cannot be retried`, 409)
+    }
+    await tx
+      .update(notificationOutbox)
+      .set({ status: 'pending', attempts: 0, lastError: `retry_requested (was: ${(job.lastError ?? job.status).slice(0, 120)})` })
+      .where(eq(notificationOutbox.id, job.id))
+    const c = await lockCase(tx, caseId)
+    await recordCaseEvent(tx, {
+      caseId,
+      eventType: 'OUTBOX_RETRY_REQUESTED',
+      oldStatus: c.status,
+      newStatus: c.status,
+      actor: admin,
+      metadata: { outboundJobId: job.id, jobType: job.templateKey },
+    })
+    return {
+      case: c,
+      changed: true,
+      jobs: [{ id: job.id, type: job.templateKey as EnqueuedJob['type'], idempotencyKey: job.idempotencyKey, created: false }],
     }
   })
 }
