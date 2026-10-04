@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { NextRequest } from 'next/server'
 import { EtabibError } from './errors'
 import { normalizePhone } from './phone'
+import { CANCELLATION_REASONS } from './transitions'
 import { prescriptionItemSchema } from '@/lib/prescriptions'
 
 export const caseIdSchema = z.string().uuid()
@@ -117,6 +118,17 @@ export const doctorDecisionSchema = z.discriminatedUnion('decision', [
   }
 })
 
+/** Cancellation: a reason code is mandatory; a short note only (and required) for OTHER. */
+export const cancelCaseSchema = z
+  .object({
+    reason: z.enum(CANCELLATION_REASONS),
+    note: z.string().trim().max(200).nullable().optional(),
+  })
+  .strict()
+  .superRefine((v, ctx) => {
+    if (v.reason === 'OTHER' && !v.note) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['note'], message: 'A short note is required for "Other"' })
+  })
+
 export const casePrescriptionSchema = z
   .object({
     items: z.array(prescriptionItemSchema).min(1).max(30),
@@ -166,7 +178,7 @@ export const passwordResetCompleteSchema = z
   .strict()
 
 export const caseListQuerySchema = z.object({
-  status: z.enum(['NEW', 'ADMIN_INTAKE', 'INTAKE_COMPLETE', 'AWAITING_PAYMENT', 'PAYMENT_RECEIVED', 'AWAITING_DOCTOR_APPROVAL', 'CONFIRMED', 'IN_CONSULTATION', 'PRESCRIPTION_SENT', 'COMPLETED', 'OPEN', 'ALL']).default('OPEN'),
+  status: z.enum(['NEW', 'ADMIN_INTAKE', 'INTAKE_COMPLETE', 'AWAITING_PAYMENT', 'PAYMENT_RECEIVED', 'AWAITING_DOCTOR_APPROVAL', 'CONFIRMED', 'IN_CONSULTATION', 'PRESCRIPTION_SENT', 'COMPLETED', 'CANCELLED', 'OPEN', 'ALL']).default('OPEN'),
   q: z.string().trim().max(80).optional(),
 })
 

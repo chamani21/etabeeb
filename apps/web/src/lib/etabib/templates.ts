@@ -30,6 +30,9 @@ export const MESSAGE_INTENTS = [
   'CONSULTATION_TIME_CHANGED',
   'PATIENT_PRESCRIPTION_READY',
   'FOLLOWUP_REMINDER',
+  'CONSULTATION_CANCELLED',
+  'ADMIN_CONSULTATION_CANCELLED',
+  'DOCTOR_CONSULTATION_CANCELLED',
 ] as const
 export type MessageIntent = (typeof MESSAGE_INTENTS)[number]
 
@@ -40,6 +43,9 @@ export const JOB_INTENT: Readonly<Partial<Record<OutboundJobType, MessageIntent>
   CONSULTATION_CONFIRMED_PATIENT: 'CONSULTATION_CONFIRMED',
   CONSULTATION_CONFIRMED_DOCTOR: 'CONSULTATION_CONFIRMED_DOCTOR',
   PRESCRIPTION_READY: 'PATIENT_PRESCRIPTION_READY',
+  CONSULTATION_CANCELLED_PATIENT: 'CONSULTATION_CANCELLED',
+  CONSULTATION_CANCELLED_ADMIN: 'ADMIN_CONSULTATION_CANCELLED',
+  CONSULTATION_CANCELLED_DOCTOR: 'DOCTOR_CONSULTATION_CANCELLED',
 }
 
 export interface TemplateDefinition {
@@ -59,27 +65,27 @@ export interface TemplateDefinition {
 
 export const TEMPLATE_DEFINITIONS: Readonly<Record<MessageIntent, TemplateDefinition>> = {
   ADMIN_NEW_CASE: {
-    intent: 'ADMIN_NEW_CASE', proposedName: 'etabib_admin_new_case_v1', language: 'en', audience: 'ADMIN', category: 'UTILITY',
-    params: ['patientName', 'patientPhone', 'caseRef', 'intakeUrl'],
-    body: 'eTabib: new consultation request. Patient: {{1}}. Phone: {{2}}. Case: {{3}}. Open the intake form: {{4}}',
+    intent: 'ADMIN_NEW_CASE', proposedName: 'etabib_admin_new_case_v2', language: 'en', audience: 'ADMIN', category: 'UTILITY',
+    params: ['patientName', 'patientPhone', 'chatUrl', 'caseUrl', 'caseRef'],
+    body: 'eTabeeb — New consultation request. Patient: {{1}}. Phone: {{2}}. Chat with patient: {{3}} Open intake form: {{4}} Ref: {{5}}',
     wired: true,
   },
   DOCTOR_APPROVAL_REQUEST: {
-    intent: 'DOCTOR_APPROVAL_REQUEST', proposedName: 'etabib_doctor_approval_v1', language: 'en', audience: 'DOCTOR', category: 'UTILITY',
-    params: ['patientSummary', 'location', 'complaint', 'proposedTime', 'caseRef'],
-    body: 'eTabib: consultation time approval needed. Patient: {{1}}. Location: {{2}}. Complaint: {{3}}. Proposed time: {{4}}. Case: {{5}}. Please respond in the doctor dashboard.',
+    intent: 'DOCTOR_APPROVAL_REQUEST', proposedName: 'etabib_doctor_approval_v2', language: 'en', audience: 'DOCTOR', category: 'UTILITY',
+    params: ['patientName', 'ageSex', 'location', 'proposedTime', 'caseUrl'],
+    body: 'eTabeeb — Consultation approval required. Patient: {{1}}. Age/Sex: {{2}}. Location: {{3}}. Proposed time: {{4}}. Review & approve: {{5}} Clinical details are available securely in the doctor dashboard.',
     wired: true,
   },
   CONSULTATION_CONFIRMED: {
-    intent: 'CONSULTATION_CONFIRMED', proposedName: 'etabib_consultation_confirmed_ps_v1', language: 'ps_AF', audience: 'PATIENT', category: 'UTILITY',
-    params: ['time', 'link'],
-    body: 'ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه. وخت: {{1}}. د مشورې لینک: {{2}}',
+    intent: 'CONSULTATION_CONFIRMED', proposedName: 'etabib_consultation_confirmed_ps_v2', language: 'ps_AF', audience: 'PATIENT', category: 'UTILITY',
+    params: ['time', 'link', 'helpUrl'],
+    body: 'ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه. وخت: {{1}}. د آنلاین مشورې لپاره دا خوندي لینک خلاص کړئ: {{2}} که کومه پوښتنه لرئ، زموږ له استازي سره دلته خبرې وکړئ: {{3}}',
     wired: true,
   },
   CONSULTATION_CONFIRMED_DOCTOR: {
-    intent: 'CONSULTATION_CONFIRMED_DOCTOR', proposedName: 'etabib_doctor_confirmed_v1', language: 'en', audience: 'DOCTOR', category: 'UTILITY',
-    params: ['patientName', 'time', 'link', 'caseRef'],
-    body: 'eTabib: consultation confirmed. Patient: {{1}}. Time: {{2}}. Link: {{3}}. Case: {{4}}.',
+    intent: 'CONSULTATION_CONFIRMED_DOCTOR', proposedName: 'etabib_doctor_confirmed_v2', language: 'en', audience: 'DOCTOR', category: 'UTILITY',
+    params: ['patientName', 'time', 'caseUrl'],
+    body: 'eTabeeb — Consultation confirmed. Patient: {{1}}. Time: {{2}}. Open case & join video: {{3}}',
     wired: true,
   },
   CONSULTATION_TIME_CHANGED: {
@@ -99,6 +105,24 @@ export const TEMPLATE_DEFINITIONS: Readonly<Record<MessageIntent, TemplateDefini
     params: ['time'],
     body: 'یادونه: ستاسو د بیا کتنې وخت له ډاکټر جلال الدین سره {{1}} دی.',
     wired: false,
+  },
+  CONSULTATION_CANCELLED: {
+    intent: 'CONSULTATION_CANCELLED', proposedName: 'etabib_consultation_cancelled_ps', language: 'ps_AF', audience: 'PATIENT', category: 'UTILITY',
+    params: ['name', 'reason', 'helpUrl'],
+    body: 'محترم/محترمه {{1}}، ستاسو د eTabeeb آنلاین مشوره لغوه شوه. د لغوه کېدو لامل: {{2}}. که غواړئ بله مشوره وټاکئ یا کومه پوښتنه لرئ، زموږ له استازي سره دلته خبرې وکړئ: {{3}}',
+    wired: true,
+  },
+  ADMIN_CONSULTATION_CANCELLED: {
+    intent: 'ADMIN_CONSULTATION_CANCELLED', proposedName: 'etabib_admin_consultation_cancelled_v1', language: 'en', audience: 'ADMIN', category: 'UTILITY',
+    params: ['patientName', 'scheduledTime', 'reason', 'caseUrl'],
+    body: 'eTabeeb — Consultation cancelled by doctor. Patient: {{1}}. Scheduled time: {{2}}. Reason: {{3}}. Open case: {{4}}',
+    wired: true,
+  },
+  DOCTOR_CONSULTATION_CANCELLED: {
+    intent: 'DOCTOR_CONSULTATION_CANCELLED', proposedName: 'etabib_doctor_consultation_cancelled_v1', language: 'en', audience: 'DOCTOR', category: 'UTILITY',
+    params: ['patientName', 'scheduledTime', 'caseUrl'],
+    body: 'eTabeeb — Consultation cancelled. Patient: {{1}}. Scheduled time: {{2}}. View case: {{3}}',
+    wired: true,
   },
 }
 

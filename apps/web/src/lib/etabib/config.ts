@@ -8,6 +8,7 @@
  *   ETABIB_V1_DOCTOR_USER_ID   users.id of the fixed V1 doctor (Dr. Jalaluddin)
  *   ETABIB_ADMIN_WHATSAPP      admin WhatsApp number (E.164) for staff notifications
  *   ETABIB_DOCTOR_WHATSAPP     Dr. Jalaluddin's WhatsApp number (E.164)
+ *   ETABIB_REPRESENTATIVE_WHATSAPP  patient-facing human help number (E.164); falls back to ETABIB_ADMIN_WHATSAPP
  *   ETABIB_META_APP_SECRET     Meta app secret, used to verify X-Hub-Signature-256
  *   ETABIB_META_VERIFY_TOKEN   Meta webhook verification token (GET hub.verify_token)
  *   NEXT_PUBLIC_APP_URL        existing canonical app URL
@@ -44,6 +45,11 @@ export function getAdminWhatsapp(): string | null {
 
 export function getDoctorWhatsapp(): string | null {
   return readEnv('ETABIB_DOCTOR_WHATSAPP')
+}
+
+/** Human representative patients can chat with; staging may fall back to the admin number. */
+export function getRepresentativeWhatsapp(): string | null {
+  return readEnv('ETABIB_REPRESENTATIVE_WHATSAPP') ?? readEnv('ETABIB_ADMIN_WHATSAPP')
 }
 
 export function getMetaAppSecret(): string | null {

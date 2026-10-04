@@ -28,6 +28,7 @@ import type { ConsultationCase } from '@etabeeb/db'
 import { and, eq, gt, isNull, sql } from 'drizzle-orm'
 import { getAppUrl, getLiveKitConfig, getV1DoctorUserId, getVideoWindows } from './config'
 import { EtabibError } from './errors'
+import { representativeLink } from './links'
 import { recordCaseEvent, type Actor, type Tx } from './transitions'
 
 export type VideoSession = typeof consultationVideoSessions.$inferSelect
@@ -144,11 +145,16 @@ export async function revokePatientLinksTx(tx: Tx, c: ConsultationCase, actor: A
   return session
 }
 
-/** Close the session when the case completes: no further tokens, links revoked. */
-export async function endVideoSessionTx(tx: Tx, c: ConsultationCase, actor: Actor): Promise<VideoSession | null> {
+/** Close the session when the case completes or is cancelled: no further tokens, links revoked. */
+export async function endVideoSessionTx(
+  tx: Tx,
+  c: ConsultationCase,
+  actor: Actor,
+  reason: 'case_completed' | 'case_cancelled' = 'case_completed',
+): Promise<VideoSession | null> {
   const session = await sessionForCase(tx, c.id)
   if (!session || session.status === 'ENDED') return session
-  await revokeActiveLinks(tx, session, c, actor, 'case_completed')
+  await revokeActiveLinks(tx, session, c, actor, reason)
   const [ended] = await tx
     .update(consultationVideoSessions)
     .set({ status: 'ENDED', endedAt: new Date(), updatedAt: new Date() })
@@ -160,7 +166,7 @@ export async function endVideoSessionTx(tx: Tx, c: ConsultationCase, actor: Acto
     oldStatus: c.status,
     newStatus: c.status,
     actor,
-    metadata: { videoSessionId: session.id },
+    metadata: { videoSessionId: session.id, reason },
   })
   return ended ?? null
 }
@@ -188,12 +194,15 @@ export type PatientAccessStatus =
   | 'expired'
   | 'too_early'
   | 'ended'
+  | 'cancelled'
   | 'not_configured'
 
 export interface PatientAccess {
   status: PatientAccessStatus
   /** Display info for the Pashto pre-join page (no case id, no clinical data). */
   info?: { doctorName: string; scheduledAt: string; opensAt: string }
+  /** Human representative chat link (wa.me), shown on closed/cancelled pages. */
+  helpUrl?: string | null
 }
 
 interface ResolvedLink {
@@ -213,6 +222,8 @@ async function resolveLink(rawToken: string): Promise<{ status: PatientAccessSta
     .limit(1)
   if (!row) return { status: 'invalid' }
   const link = { tokenId: row.token.id, session: row.session, c: row.c }
+  // A legitimately issued link to a cancelled case gets a friendly page, not "invalid"
+  if (row.c.status === 'CANCELLED') return { status: 'cancelled', link }
   if (row.c.status === 'PRESCRIPTION_SENT' || row.c.status === 'COMPLETED' || row.session.status === 'ENDED') return { status: 'ended', link }
   if (row.token.revokedAt) return { status: 'revoked', link }
   if (row.token.expiresAt.getTime() <= Date.now() || row.session.status === 'EXPIRED') return { status: 'expired', link }
@@ -236,6 +247,7 @@ async function doctorDisplayName(): Promise<string> {
 
 export async function getPatientAccess(rawToken: string): Promise<PatientAccess> {
   const { status, link } = await resolveLink(rawToken)
+  if (status === 'cancelled') return { status, helpUrl: representativeLink() }
   if (!link || status === 'invalid' || status === 'revoked') return { status }
   const w = getVideoWindows()
   const info = {
@@ -273,6 +285,7 @@ const ACCESS_ERRORS: Record<Exclude<PatientAccessStatus, 'ok'>, [string, number]
   expired: ['This link has expired', 410],
   too_early: ['It is too early to join', 425],
   ended: ['The consultation has ended', 410],
+  cancelled: ['The consultation was cancelled', 410],
   not_configured: ['Video is not available yet', 503],
 }
 

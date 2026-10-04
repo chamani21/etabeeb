@@ -29,6 +29,13 @@
       "when": 1791095126632,
       "tag": "0003_etabib_video_consultation",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791148446434,
+      "tag": "0004_etabib_cancellation",
+      "breakpoints": true
     }
   ]
 }

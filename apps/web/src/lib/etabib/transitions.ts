@@ -23,6 +23,7 @@ import { consultationCases, caseEvents } from '@etabeeb/db/schema'
 import type { ConsultationCase, NewConsultationCase } from '@etabeeb/db'
 import { and, eq } from 'drizzle-orm'
 import { EtabibError, TransitionError } from './errors'
+import { CANCELLABLE_FROM, CANCELLATION_REASONS, canCancel, type CancelActorRole, type CancellationReason } from './cancellation'
 
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
@@ -39,7 +40,11 @@ export const CONSULTATION_STATUSES: readonly ConsultationStatus[] = [
   'IN_CONSULTATION',
   'PRESCRIPTION_SENT',
   'COMPLETED',
+  'CANCELLED',
 ] as const
+
+/** Terminal statuses: the case is closed (a new WhatsApp message opens a new case). */
+export const CLOSED_STATUSES: readonly ConsultationStatus[] = ['COMPLETED', 'CANCELLED']
 
 /** The V1 lifecycle is strictly linear: each status has exactly one successor. */
 export const NEXT_STATUS: Readonly<Record<ConsultationStatus, ConsultationStatus | null>> = {
@@ -53,6 +58,7 @@ export const NEXT_STATUS: Readonly<Record<ConsultationStatus, ConsultationStatus
   IN_CONSULTATION: 'PRESCRIPTION_SENT',
   PRESCRIPTION_SENT: 'COMPLETED',
   COMPLETED: null,
+  CANCELLED: null,
 }
 
 export const CASE_EVENT_TYPES = [
@@ -87,6 +93,8 @@ export const CASE_EVENT_TYPES = [
   'DOCTOR_VIDEO_JOINED',
   'DOCTOR_VIDEO_LEFT',
   'VIDEO_SESSION_ENDED',
+  // Explicit terminal cancellation (cancelCase only)
+  'CONSULTATION_CANCELLED',
 ] as const
 export type CaseEventType = (typeof CASE_EVENT_TYPES)[number]
 
@@ -101,6 +109,7 @@ export const TRANSITION_EVENT: Readonly<Record<Exclude<ConsultationStatus, 'NEW'
   IN_CONSULTATION: 'CONSULTATION_STARTED',
   PRESCRIPTION_SENT: 'PRESCRIPTION_SENT',
   COMPLETED: 'CASE_COMPLETED',
+  CANCELLED: 'CONSULTATION_CANCELLED',
 }
 
 export type ActorType = 'SYSTEM' | 'PATIENT' | 'ADMIN' | 'DOCTOR' | 'N8N'
@@ -203,6 +212,9 @@ export function assertTransitionAllowed(
       return
     case 'COMPLETED':
       return
+    case 'CANCELLED':
+      // Unreachable (NEXT_STATUS never yields CANCELLED) — cancellation uses cancelCase
+      throw new TransitionError('illegal_transition', 'Use cancelCase to cancel a consultation')
     case 'NEW':
       throw new TransitionError('illegal_transition', 'Cannot transition into NEW')
   }
@@ -347,4 +359,58 @@ export async function updateCaseFields(
     ...(input.metadata ? { metadata: input.metadata } : {}),
   })
   return updated
+}
+
+// ------------------------------------------------------------------
+// Cancellation: the only non-linear transition (any allowed open state → CANCELLED)
+// ------------------------------------------------------------------
+
+export { CANCELLABLE_FROM, CANCELLATION_REASONS, canCancel, type CancelActorRole, type CancellationReason }
+
+/**
+ * Cancel a case (caller holds the transaction). Locks the row, checks the role
+ * may cancel from the current status, records cancellation facts and the
+ * CONSULTATION_CANCELLED event (reason code only — never the free-text note).
+ */
+export async function cancelCase(
+  tx: Tx,
+  input: {
+    caseId: string
+    actor: Actor & { type: CancelActorRole; id: string }
+    reason: CancellationReason
+    note?: string | null
+  },
+): Promise<{ before: ConsultationCase; after: ConsultationCase }> {
+  const current = await lockCase(tx, input.caseId)
+  if (!canCancel(input.actor.type, current.status)) {
+    throw new TransitionError(
+      'cancel_not_allowed',
+      `${input.actor.type === 'DOCTOR' ? 'Doctor' : 'Admin'} cannot cancel a consultation that is ${current.status}`,
+    )
+  }
+  const now = new Date()
+  const [updated] = await tx
+    .update(consultationCases)
+    .set({
+      status: 'CANCELLED',
+      cancelledAt: now,
+      cancelledBy: input.actor.id,
+      cancelledByRole: input.actor.type,
+      cancellationReason: input.reason,
+      cancellationNote: input.reason === 'OTHER' ? (input.note ?? null) : null,
+      cancelledFromStatus: current.status,
+      updatedAt: now,
+    })
+    .where(and(eq(consultationCases.id, current.id), eq(consultationCases.status, current.status)))
+    .returning()
+  if (!updated) throw new TransitionError('concurrent_modification', 'Case was modified concurrently')
+  await recordCaseEvent(tx, {
+    caseId: current.id,
+    eventType: 'CONSULTATION_CANCELLED',
+    oldStatus: current.status,
+    newStatus: 'CANCELLED',
+    actor: input.actor,
+    metadata: { actorRole: input.actor.type, reason: input.reason, hasNote: Boolean(input.reason === 'OTHER' && input.note) },
+  })
+  return { before: current, after: updated }
 }

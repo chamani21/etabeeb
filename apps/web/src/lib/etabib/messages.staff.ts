@@ -26,25 +26,38 @@ export function clinicTime(iso: string | null | undefined): string {
 
 const val = (v: unknown): string => (v === null || v === undefined || v === '' ? '-' : String(v))
 
+export { CANCELLATION_REASON_LABELS } from './cancellation'
+
+const ref = (id: string) => `Ref: ${id.slice(0, 8)}`
+
+/**
+ * Lock-screen safe: names, demographics and times only. Complaint, history,
+ * documents, notes and prescriptions stay in the authenticated app.
+ */
 export const STAFF_MESSAGES = {
-  adminNewCase: (d: { consultationId: string; patientName: string | null; patientPhone: string | null; intakeUrl: string | null }) =>
-    `eTabib: new consultation request\nPatient: ${val(d.patientName)}\nPhone: ${val(d.patientPhone)}\nCase: ${d.consultationId}\n` +
-    (d.intakeUrl ? `Open the intake form: ${d.intakeUrl}` : 'Please complete the intake form.'),
+  adminNewCase: (d: { consultationId: string; patientName: string | null; patientPhone: string | null; chatUrl: string | null; caseUrl: string }) =>
+    `eTabeeb — New consultation request\n\nPatient: ${val(d.patientName)}\nPhone: ${val(d.patientPhone)}\n` +
+    (d.chatUrl ? `\n💬 Chat with patient\n${d.chatUrl}\n` : '') +
+    `\n📋 Open intake form\n${d.caseUrl}\n\n${ref(d.consultationId)}`,
   doctorApprovalRequest: (d: {
     consultationId: string
     patientName: string | null
     age: number | null
     sex: string | null
     location: string | null
-    shortComplaint: string | null
     proposedConsultationTime: string | null
+    caseUrl: string
   }) =>
-    `eTabib: consultation time approval needed\nPatient: ${val(d.patientName)}, ${val(d.age)}, ${val(d.sex)}\nLocation: ${val(d.location)}\nComplaint: ${val(d.shortComplaint)}\nProposed time: ${clinicTime(d.proposedConsultationTime)}\nCase: ${d.consultationId}\nPlease approve or propose another time in the doctor dashboard.`,
-  doctorConfirmed: (d: {
-    consultationId: string
-    patientName: string | null
-    approvedTime: string | null
-    consultationLink: string | null
-  }) =>
-    `eTabib: consultation confirmed\nPatient: ${val(d.patientName)}\nTime: ${clinicTime(d.approvedTime)}\nLink: ${d.consultationLink ?? 'to follow'}\nCase: ${d.consultationId}`,
+    `eTabeeb — Consultation approval required\n\nPatient: ${val(d.patientName)}\nAge/Sex: ${val(d.age)} / ${val(d.sex)}\n` +
+    `Location: ${val(d.location)}\nProposed time: ${clinicTime(d.proposedConsultationTime)}\n\n🩺 Review & approve\n${d.caseUrl}\n\n` +
+    `Clinical details are available securely in the doctor dashboard.\n${ref(d.consultationId)}`,
+  doctorConfirmed: (d: { consultationId: string; patientName: string | null; approvedTime: string | null; caseUrl: string }) =>
+    `eTabeeb — Consultation confirmed\n\nPatient: ${val(d.patientName)}\nTime: ${clinicTime(d.approvedTime)}\n\n` +
+    `🎥 Open case & join video\n${d.caseUrl}\n\n${ref(d.consultationId)}`,
+  adminCancelledByDoctor: (d: { consultationId: string; patientName: string | null; scheduledTime: string | null; reason: string; caseUrl: string }) =>
+    `eTabeeb — Consultation cancelled by doctor\n\nPatient: ${val(d.patientName)}\nScheduled time: ${clinicTime(d.scheduledTime)}\n` +
+    `Reason: ${d.reason}\n\n📋 Open case\n${d.caseUrl}\n\n${ref(d.consultationId)}`,
+  doctorCancelled: (d: { consultationId: string; patientName: string | null; scheduledTime: string | null; caseUrl: string }) =>
+    `eTabeeb — Consultation cancelled\n\nPatient: ${val(d.patientName)}\nScheduled time: ${clinicTime(d.scheduledTime)}\n\n` +
+    `View case\n${d.caseUrl}\n\n${ref(d.consultationId)}`,
 } as const

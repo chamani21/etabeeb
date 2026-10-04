@@ -106,6 +106,17 @@ describe('post-login callback (WhatsApp case links)', () => {
     expect(new URL(res.headers.get('location')!).searchParams.get('callbackUrl')).toBe('/admin/cases/0b6a9a3e-1111-4222-8333-444455556666?x=1')
   })
 
+  it('doctor WhatsApp deep link: logged out → /login, then back to the exact doctor case', async () => {
+    const path = '/doctor/cases/0b6a9a3e-1111-4222-8333-444455556666'
+    const res = await middleware(req(path))
+    expect(res.status).toBe(307)
+    const location = new URL(res.headers.get('location')!)
+    expect(location.pathname).toBe('/login')
+    expect(location.searchParams.get('callbackUrl')).toBe(path)
+    const { safeStaffCallback } = await import('@/components/staff/callback')
+    expect(safeStaffCallback(path)).toBe(path)
+  })
+
   it('accepts only same-site staff paths', async () => {
     const { safeStaffCallback } = await import('@/components/staff/callback')
     for (const ok of ['/admin/cases/0b6a9a3e-1111-4222-8333-444455556666', '/en/admin/cases', '/doctor/cases/abc', '/admin/cases?status=OPEN']) {
@@ -122,7 +133,7 @@ describe('video routes', () => {
     for (const path of ['/api/video/patient/access', '/api/video/patient/token', '/api/video/livekit-webhook', '/api/hooks/livekit']) {
       expect(passedThrough(await middleware(req(path)))).toBe(true)
     }
-    for (const path of ['/api/doctor/cases/x/video/token', '/api/doctor/cases/x/video/status', '/api/admin/cases/x/video/regenerate-link', '/api/video/token']) {
+    for (const path of ['/api/doctor/cases/x/video/token', '/api/doctor/cases/x/video/status', '/api/admin/cases/x/video/regenerate-link', '/api/video/token', '/api/admin/cases/x/cancel', '/api/doctor/cases/x/cancel']) {
       expect((await middleware(req(path))).status).toBe(401)
     }
   })

@@ -13,6 +13,7 @@ const STATUS_COLORS: Record<string, string> = {
   IN_CONSULTATION: 'bg-teal-100 text-teal-900',
   PRESCRIPTION_SENT: 'bg-lime-100 text-lime-900',
   COMPLETED: 'bg-green-200 text-green-900',
+  CANCELLED: 'bg-red-100 text-red-800 line-through decoration-red-400',
 }
 
 export function StatusBadge({ status }: { status: string }) {

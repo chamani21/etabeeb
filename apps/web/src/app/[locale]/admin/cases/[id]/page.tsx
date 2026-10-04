@@ -5,12 +5,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/components/staff/api'
 import { clinicLocalToIso, fmtTime, isoToClinicLocal, shortId } from '@/components/staff/format'
 import { Button, Card, Dl, Field, Notice, StatusBadge, inputCls, useAction } from '@/components/staff/ui'
+import { CancelConsultation, CancellationSummary } from '@/components/staff/CancelConsultation'
+import { cancellationReasonLabel } from '@/lib/etabib/cancellation'
 
 const INTAKE_STATUSES = ['ADMIN_INTAKE', 'INTAKE_COMPLETE', 'AWAITING_PAYMENT', 'PAYMENT_RECEIVED', 'AWAITING_DOCTOR_APPROVAL', 'CONFIRMED']
 
 type Detail = {
   case: any
-  events: Array<{ id: string; eventType: string; oldStatus: string | null; newStatus: string | null; actorType: string; actorName: string | null; createdAt: string }>
+  events: Array<{ id: string; eventType: string; oldStatus: string | null; newStatus: string | null; actorType: string; actorName: string | null; createdAt: string; reason?: string }>
   outbox: Array<{ id: string; type: string; audience: string; to: string | null; status: string; attempts: number; providerMessageId: string | null; lastError: string | null; createdAt: string; processedAt: string | null; deliveredAt: string | null; readAt: string | null; failedAt: string | null; canRetry: boolean }>
   prescription: any
   documents: unknown[]
@@ -42,6 +44,8 @@ export default function AdminCaseDetailPage({ params }: { params: { id: string }
         <StatusBadge status={c.status} />
         <Button variant="secondary" onClick={() => void load()}>Refresh</Button>
       </div>
+
+      <CancellationSummary c={c} showNote />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card title="Patient">
@@ -83,6 +87,7 @@ export default function AdminCaseDetailPage({ params }: { params: { id: string }
       {c.status === 'AWAITING_PAYMENT' && <PaymentForm caseId={c.id} onDone={load} />}
       {(c.status === 'PAYMENT_RECEIVED' || c.status === 'AWAITING_DOCTOR_APPROVAL') && <ApprovalRequestForm c={c} onDone={load} />}
       {data.video && <VideoAdminCard c={c} video={data.video} outbox={data.outbox} onDone={load} />}
+      <CancelConsultation role="ADMIN" c={c} onDone={load} />
       <NotesForm c={c} onDone={load} />
 
       {data.prescription && (
@@ -112,9 +117,10 @@ export default function AdminCaseDetailPage({ params }: { params: { id: string }
           {data.events.map((e) => (
             <li key={e.id} className="flex flex-wrap gap-2 border-b border-gray-100 py-1 last:border-0">
               <span className="w-40 shrink-0 font-mono text-xs text-gray-500">{fmtTime(e.createdAt)}</span>
-              <span className="font-medium">{e.eventType}</span>
+              <span className={`font-medium ${e.eventType === 'CONSULTATION_CANCELLED' ? 'text-red-700' : ''}`}>{e.eventType === 'CONSULTATION_CANCELLED' ? 'Consultation cancelled' : e.eventType}</span>
               {e.oldStatus !== e.newStatus && <span className="text-gray-600">{e.oldStatus ?? '∅'} → {e.newStatus}</span>}
               <span className="text-gray-500">by {e.actorType}{e.actorName ? ` (${e.actorName})` : ''}</span>
+              {e.reason && <span className="text-red-700">— {cancellationReasonLabel(e.reason)}</span>}
             </li>
           ))}
         </ol>

@@ -58,9 +58,9 @@ describe('template configuration and payloads', () => {
   })
 
   it('builds a strictly valid payload and rejects wrong parameter counts or arbitrary structure', () => {
-    const t = buildTemplatePayload('ADMIN_NEW_CASE', { name: 'etabib_admin_new_case_v1', language: 'en' }, ['Syn', '+920000000000', 'abcd1234', 'https://staging.example.test/admin/cases/abcd1234'])
-    expect(t.components[0]!.parameters).toHaveLength(4)
-    expect(() => buildTemplatePayload('ADMIN_NEW_CASE', { name: 'etabib_admin_new_case_v1', language: 'en' }, ['only one'])).toThrow()
+    const t = buildTemplatePayload('ADMIN_NEW_CASE', { name: 'etabib_admin_new_case_v2', language: 'en' }, ['Syn', '+920000000000', 'https://wa.me/920000000000', 'https://staging.example.test/admin/cases/abcd1234', 'abcd1234'])
+    expect(t.components[0]!.parameters).toHaveLength(5)
+    expect(() => buildTemplatePayload('ADMIN_NEW_CASE', { name: 'etabib_admin_new_case_v2', language: 'en' }, ['only one'])).toThrow()
     // browser-style injection attempts are not valid template payloads
     for (const bad of [
       { name: 'x', language: 'en', components: [{ type: 'header', parameters: [] }] },
@@ -102,7 +102,7 @@ describe.skipIf(!hasTestDb)('template transport', () => {
     await dispatchOutboundJobs([job!.id])
     const [p] = sent()
     expect(p).toMatchObject({ messageKind: 'text', type: 'DOCTOR_APPROVAL_REQUEST', to: '+923009990002' })
-    expect(p.text).toContain('approval needed')
+    expect(p.text).toContain('Consultation approval required')
     expect(p.template).toBeUndefined()
   })
 
@@ -123,17 +123,26 @@ describe.skipIf(!hasTestDb)('template transport', () => {
     expect(b.messageKind).toBe('text')
   })
 
-  it('admin new-case notice links straight to the case intake page (text and template)', async () => {
+  it('admin new-case notice has action links: chat with the patient and open the intake (text and template)', async () => {
     process.env.NEXT_PUBLIC_APP_URL = 'https://staging.example.test/'
     const { id } = await caseAt('ADMIN_INTAKE', { adminId, doctorId })
+    const c = await getCase(id)
+    const chat = `https://wa.me/${c.whatsappPhone!.replace(/\D/g, '')}?text=${encodeURIComponent('Hello, this is eTabeeb regarding your online consultation request.')}`
     const [job] = await jobsOfType('ADMIN_NEW_CASE')
     await dispatchOutboundJobs([job!.id])
-    expect(sent()[0].text).toContain(`Open the intake form: https://staging.example.test/admin/cases/${id}`)
-    process.env.ETABIB_WA_TEMPLATES = JSON.stringify({ ADMIN_NEW_CASE: { name: 'etabib_admin_new_case_v1', language: 'en' } })
+    const text = sent()[0].text as string
+    expect(text).toContain('eTabeeb — New consultation request')
+    expect(text).toContain(`💬 Chat with patient\n${chat}`)
+    expect(text).toContain(`📋 Open intake form\nhttps://staging.example.test/admin/cases/${id}`)
+    // the full UUID appears only inside the case URL; elsewhere just a short reference
+    expect(text.replace(`https://staging.example.test/admin/cases/${id}`, '')).not.toContain(id)
+    expect(text).toContain(`Ref: ${id.slice(0, 8)}`)
+    process.env.ETABIB_WA_TEMPLATES = JSON.stringify({ ADMIN_NEW_CASE: { name: 'etabib_admin_new_case_v2', language: 'en' } })
     await db.update(notificationOutbox).set({ status: 'pending' }).where(eq(notificationOutbox.id, job!.id))
     await dispatchOutboundJobs([job!.id])
     const params = sent()[1].template.components[0].parameters
-    expect(params).toHaveLength(4)
+    expect(params).toHaveLength(5)
+    expect(params[2].text).toBe(chat)
     expect(params[3].text).toBe(`https://staging.example.test/admin/cases/${id}`)
     delete process.env.NEXT_PUBLIC_APP_URL
   })

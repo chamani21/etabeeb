@@ -20,17 +20,50 @@ export const PATIENT_MESSAGES_PS = {
   invalidPhone:
     'بښنه غواړو، دا شمېره سمه نه ده. مهرباني وکړئ سمه د تلیفون شمېره ولیکئ، لکه 03001234567 یا 0701234567.',
   /** Name + phone received: automated questions stop here. */
-  acknowledged:
-    'مننه! ستاسو معلومات ترلاسه شول.\nزموږ همکار به ډېر ژر له تاسو سره اړیکه ونیسي او پاتې معلومات به درڅخه واخلي.',
+  acknowledged: (helpUrl: string | null) =>
+    'مننه! ستاسو د آنلاین مشورې غوښتنه ثبت شوه.\n\n' +
+    'زموږ استازی به ستاسو معلومات وګوري او د راتلونکو مرحلو په اړه به له تاسو سره اړیکه ونیسي.' +
+    helpLine(helpUrl, 'کولی شئ'),
   /** Patient writes again while the team handles the case. */
-  caseInProgress: 'ستاسو غوښتنه زموږ له ټیم سره ده. مهرباني وکړئ لږ صبر وکړئ، موږ به ژر له تاسو سره اړیکه ونیسو.',
-  /** Consultation confirmed by Dr. Jalaluddin. */
-  consultationConfirmed: (time: string, link: string | null) =>
-    `ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه.\nوخت: ${time}` +
-    (link ? `\nد مشورې لینک: ${link}` : '\nد مشورې لینک به وروسته درته ولیږل شي.'),
+  caseInProgress: (helpUrl: string | null) =>
+    'ستاسو غوښتنه زموږ له ټیم سره ده. مهرباني وکړئ لږ صبر وکړئ، موږ به ژر له تاسو سره اړیکه ونیسو.' +
+    helpLine(helpUrl, 'کولی شئ'),
+  /** Consultation confirmed by Dr. Jalaluddin (secure eTabeeb link; never a raw video token). */
+  consultationConfirmed: (time: string, link: string | null, helpUrl: string | null = null) =>
+    `ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه.\n\nوخت: ${time}\n\n` +
+    (link
+      ? `د آنلاین مشورې لپاره لاندې خوندي لینک خلاص کړئ:\n${link}`
+      : 'د مشورې لینک به وروسته درته ولیږل شي.') +
+    helpLine(helpUrl, 'وکړئ'),
+  /** Consultation cancelled (reason is a fixed Pashto label — never staff notes). */
+  consultationCancelled: (d: { name: string | null; sex: 'MALE' | 'FEMALE' | null; reason: string; helpUrl: string | null }) =>
+    `${d.sex === 'MALE' ? 'محترم' : d.sex === 'FEMALE' ? 'محترمه' : 'محترم/محترمه'} ${d.name ?? ''}،`.replace(' ،', '،') +
+    '\n\nستاسو د eTabeeb آنلاین مشوره لغوه شوه.\n\n' +
+    `د لغوه کېدو لامل: ${d.reason}` +
+    (d.helpUrl
+      ? `\n\nکه غواړئ بله مشوره وټاکئ یا کومه پوښتنه لرئ، زموږ له استازي سره دلته خبرې وکړئ:\n${d.helpUrl}`
+      : ''),
   /** Prescription delivery (the document itself is attached by the sender). */
   prescriptionReady: 'ستاسو نسخه چمتو ده او له دې پیغام سره درلېږل کېږي. د ښه روغتیا هیله لرو.',
 } as const
+
+/** "Talk to our representative" footer; omitted when no representative number is configured. */
+function helpLine(helpUrl: string | null, verb: 'کولی شئ' | 'وکړئ'): string {
+  if (!helpUrl) return ''
+  return `\n\nکه کومه پوښتنه لرئ یا مرستې ته اړتیا لرئ، زموږ له استازي سره دلته خبرې ${verb}:\n${helpUrl}`
+}
+
+/** Patient-safe Pashto label for each cancellation reason code. */
+export const CANCELLATION_REASON_PS: Readonly<Record<string, string>> = {
+  PATIENT_REQUESTED: 'ستاسو د غوښتنې له مخې',
+  DOCTOR_UNAVAILABLE: 'ډاکټر په دې وخت کې شتون نه لري',
+  PATIENT_UNREACHABLE: 'له تاسو سره اړیکه ونه شوه',
+  PAYMENT_ISSUE: 'د فیس د ورکړې ستونزه',
+  SCHEDULING_PROBLEM: 'د وخت ټاکلو ستونزه',
+  DUPLICATE_REQUEST: 'دا غوښتنه دوه ځله ثبت شوې وه',
+  TEST_CASE: 'دا د ازموینې غوښتنه وه',
+  OTHER: 'اداري لامل',
+}
 
 /** Format a consultation time for patients, e.g. "2026-10-05 14:30 (د پاکستان وخت)". */
 export function formatConsultationTimePs(date: Date): string {

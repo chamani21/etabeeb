@@ -32,16 +32,28 @@ in `ETABIB_WA_TEMPLATES`. Each body has only body variables (no header/buttons).
 
 | Intent | Proposed name | Language | Wired | Body (variables in order) |
 |---|---|---|---|---|
-| `ADMIN_NEW_CASE` | `etabib_admin_new_case_v1` | `en` | yes | eTabib: new consultation request. Patient: {{1}}. Phone: {{2}}. Case: {{3}}. Open the intake form: {{4}} |
-| `DOCTOR_APPROVAL_REQUEST` | `etabib_doctor_approval_v1` | `en` | yes | eTabib: consultation time approval needed. Patient: {{1}}. Location: {{2}}. Complaint: {{3}}. Proposed time: {{4}}. Case: {{5}}. Please respond in the doctor dashboard. |
-| `CONSULTATION_CONFIRMED_DOCTOR` | `etabib_doctor_confirmed_v1` | `en` | yes | eTabib: consultation confirmed. Patient: {{1}}. Time: {{2}}. Link: {{3}}. Case: {{4}}. |
-| `CONSULTATION_CONFIRMED` (patient) | `etabib_consultation_confirmed_ps_v1` | `ps_AF` | yes | ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه. وخت: {{1}}. د مشورې لینک: {{2}} |
+| `ADMIN_NEW_CASE` | `etabib_admin_new_case_v2` | `en` | yes | eTabeeb — New consultation request. Patient: {{1}}. Phone: {{2}}. Chat with patient: {{3}} Open intake form: {{4}} Ref: {{5}} |
+| `DOCTOR_APPROVAL_REQUEST` | `etabib_doctor_approval_v2` | `en` | yes | eTabeeb — Consultation approval required. Patient: {{1}}. Age/Sex: {{2}}. Location: {{3}}. Proposed time: {{4}}. Review & approve: {{5}} Clinical details are available securely in the doctor dashboard. |
+| `CONSULTATION_CONFIRMED_DOCTOR` | `etabib_doctor_confirmed_v2` | `en` | yes | eTabeeb — Consultation confirmed. Patient: {{1}}. Time: {{2}}. Open case & join video: {{3}} |
+| `CONSULTATION_CONFIRMED` (patient) | `etabib_consultation_confirmed_ps_v2` | `ps_AF` | yes | ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه. وخت: {{1}}. د آنلاین مشورې لپاره دا خوندي لینک خلاص کړئ: {{2}} که کومه پوښتنه لرئ، زموږ له استازي سره دلته خبرې وکړئ: {{3}} |
+| `CONSULTATION_CANCELLED` (patient) | `etabib_consultation_cancelled_ps` | `ps_AF` | yes | محترم/محترمه {{1}}، ستاسو د eTabeeb آنلاین مشوره لغوه شوه. د لغوه کېدو لامل: {{2}}. که غواړئ بله مشوره وټاکئ یا کومه پوښتنه لرئ، زموږ له استازي سره دلته خبرې وکړئ: {{3}} |
+| `ADMIN_CONSULTATION_CANCELLED` | `etabib_admin_consultation_cancelled_v1` | `en` | yes | eTabeeb — Consultation cancelled by doctor. Patient: {{1}}. Scheduled time: {{2}}. Reason: {{3}}. Open case: {{4}} |
+| `DOCTOR_CONSULTATION_CANCELLED` | `etabib_doctor_consultation_cancelled_v1` | `en` | yes | eTabeeb — Consultation cancelled. Patient: {{1}}. Scheduled time: {{2}}. View case: {{3}} |
 | `PATIENT_PRESCRIPTION_READY` | `etabib_prescription_ready_ps_v1` | `ps_AF` | yes | ستاسو نسخه چمتو ده. د نسخې شمېره: {{1}}. درمل: {{2}}. د بشپړې نسخې لپاره همدې شمېرې ته ځواب ولیکئ. |
 | `CONSULTATION_TIME_CHANGED` | `etabib_time_changed_ps_v1` | `ps_AF` | no (defined only) | ستاسو د مشورې وخت بدل شو. نوی وخت: {{1}}. د پوښتنو لپاره همدې شمېرې ته ولیکئ. |
 | `FOLLOWUP_REMINDER` | `etabib_followup_reminder_ps_v1` | `ps_AF` | no (defined only) | یادونه: ستاسو د بیا کتنې وخت له ډاکټر جلال الدین سره {{1}} دی. |
 
+The `_v2` bodies replace the v1 proposals (lock-screen safe staff notices with direct links,
+patient help link). If a v1 template was already approved, do not map it to the v2 intent:
+the parameter count differs and the backend rejects the mismatch (job fails as `invalid_template`).
+
+**Cancellation without an approved template.** Inside the 24-hour customer-care window the
+Pashto cancellation is sent as text. Outside it Meta rejects free-form text (e.g. error
+131047); the job is then shown as **failed** in the admin outbox — never as delivered.
+
 Sample values for review: patient "Test Patient", phone "+92 300 0000000", case "1a2b3c4d",
-time "2026-10-05 12:00 (Pakistan time)", link "https://meet.example.com/abc",
+time "2026-10-05 12:00 (Pakistan time)", link "https://staging-v1.etabeeb.online/consult/…",
+help "https://wa.me/923000000000?text=…", reason "د وخت ټاکلو ستونزه",
 intake form "https://staging-v1.etabeeb.online/admin/cases/1a2b3c4d-…".
 
 ### Verify before submitting

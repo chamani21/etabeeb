@@ -35,6 +35,8 @@ export const consultationStatusValues = [
   'IN_CONSULTATION',
   'PRESCRIPTION_SENT',
   'COMPLETED',
+  // Terminal, explicit cancellation (never deleted; never COMPLETED)
+  'CANCELLED',
 ] as const
 
 export const consultationStatusEnum = pgEnum('consultation_status', consultationStatusValues)
@@ -102,6 +104,13 @@ export const consultationCases = pgTable(
       onDelete: 'restrict',
     }),
     prescriptionSentAt: timestamp('prescription_sent_at', { withTimezone: true }),
+    // Cancellation (fast-query mirror; case_events stays the authoritative audit)
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    cancelledBy: uuid('cancelled_by').references(() => users.id),
+    cancelledByRole: text('cancelled_by_role'), // ADMIN | DOCTOR
+    cancellationReason: text('cancellation_reason'), // reason code (validated in app code)
+    cancellationNote: text('cancellation_note'), // short note, only for reason OTHER
+    cancelledFromStatus: consultationStatusEnum('cancelled_from_status'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -113,13 +122,18 @@ export const consultationCases = pgTable(
     // messages from the same sender converge on one case.
     activeSenderUq: uniqueIndex('consultation_cases_active_sender_uq')
       .on(t.whatsappPhone)
-      .where(sql`status <> 'COMPLETED' AND whatsapp_phone IS NOT NULL`),
+      // CANCELLED cases always carry cancelled_at (see cancelledCheck)
+      .where(sql`status <> 'COMPLETED' AND cancelled_at IS NULL AND whatsapp_phone IS NOT NULL`),
     prescriptionUq: uniqueIndex('consultation_cases_prescription_uq').on(t.prescriptionId),
     ageCheck: check('consultation_cases_age_check', sql`age IS NULL OR (age >= 0 AND age <= 130)`),
     // DB backstop for the CONFIRMED guard (see transitions.ts)
     confirmedGuardCheck: check(
       'consultation_cases_confirmed_guard_check',
       sql`status NOT IN ('CONFIRMED', 'IN_CONSULTATION', 'PRESCRIPTION_SENT', 'COMPLETED') OR (payment_received = true AND payment_confirmed_at IS NOT NULL AND payment_confirmed_by IS NOT NULL AND doctor_decision = 'APPROVED' AND doctor_approved_time IS NOT NULL)`,
+    ),
+    cancelledCheck: check(
+      'consultation_cases_cancelled_check',
+      sql`status::text <> 'CANCELLED' OR (cancelled_at IS NOT NULL AND cancellation_reason IS NOT NULL AND cancelled_from_status IS NOT NULL)`,
     ),
     amountCheck: check(
       'consultation_cases_payment_amount_check',

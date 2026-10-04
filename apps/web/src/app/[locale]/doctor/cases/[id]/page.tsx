@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/components/staff/api'
 import { clinicLocalToIso, fmtTime, isoToClinicLocal, shortId } from '@/components/staff/format'
 import { Button, Card, Dl, Field, Notice, StatusBadge, inputCls, useAction } from '@/components/staff/ui'
+import { CancelConsultation, CancellationSummary } from '@/components/staff/CancelConsultation'
+import { cancellationReasonLabel } from '@/lib/etabib/cancellation'
 import dynamic from 'next/dynamic'
 
 const VideoRoom = dynamic(() => import('@/components/video/VideoRoom').then((m) => m.VideoRoom), { ssr: false })
@@ -37,6 +39,8 @@ export default function DoctorCaseDetailPage({ params }: { params: { id: string 
         <Button variant="secondary" onClick={() => void load()}>Refresh</Button>
       </div>
 
+      <CancellationSummary c={c} showNote={false} />
+
       <Card title="Patient intake">
         <Dl rows={[
           ['Name', c.patientName],
@@ -56,12 +60,13 @@ export default function DoctorCaseDetailPage({ params }: { params: { id: string 
       {c.status === 'AWAITING_DOCTOR_APPROVAL' && <DecisionForm c={c} onDone={load} />}
       {c.status === 'CONFIRMED' && <StartCard caseId={c.id} approvedTime={c.doctorApprovedTime} onDone={load} />}
       {c.status === 'IN_CONSULTATION' && !c.hasPrescription && <PrescriptionEditor caseId={c.id} patientName={c.patientName} onDone={load} />}
+      <CancelConsultation role="DOCTOR" c={c} onDone={load} />
       {data.prescription && <PrescriptionView rx={data.prescription} delivery={data.prescriptionDelivery} status={c.status} />}
 
       <Card title="Timeline">
         <ol className="space-y-1 text-sm">
           {data.events.map((e: any, i: number) => (
-            <li key={i} className="flex gap-2"><span className="w-40 shrink-0 font-mono text-xs text-gray-500">{fmtTime(e.createdAt)}</span><span>{e.eventType}</span><span className="text-gray-500">({e.actorType})</span></li>
+            <li key={i} className="flex gap-2"><span className="w-40 shrink-0 font-mono text-xs text-gray-500">{fmtTime(e.createdAt)}</span><span className={e.eventType === 'CONSULTATION_CANCELLED' ? 'text-red-700' : ''}>{e.eventType === 'CONSULTATION_CANCELLED' ? 'Consultation cancelled' : e.eventType}</span><span className="text-gray-500">({e.actorType})</span>{e.reason && <span className="text-red-700">— {cancellationReasonLabel(e.reason)}</span>}</li>
           ))}
         </ol>
       </Card>

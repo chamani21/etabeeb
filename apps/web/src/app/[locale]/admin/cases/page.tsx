@@ -8,7 +8,7 @@ import { Button, Card, Notice, StatusBadge, inputCls } from '@/components/staff/
 
 const STATUSES = [
   'NEW', 'ADMIN_INTAKE', 'INTAKE_COMPLETE', 'AWAITING_PAYMENT', 'PAYMENT_RECEIVED',
-  'AWAITING_DOCTOR_APPROVAL', 'CONFIRMED', 'IN_CONSULTATION', 'PRESCRIPTION_SENT', 'COMPLETED',
+  'AWAITING_DOCTOR_APPROVAL', 'CONFIRMED', 'IN_CONSULTATION', 'PRESCRIPTION_SENT', 'COMPLETED', 'CANCELLED',
 ] as const
 
 interface Row {
@@ -53,7 +53,7 @@ export default function AdminCasesPage() {
   }, [load])
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0)
-  const open = total - (counts.COMPLETED ?? 0)
+  const open = total - (counts.COMPLETED ?? 0) - (counts.CANCELLED ?? 0)
   const chip = (value: string, label: string, n?: number) => (
     <button
       key={value}

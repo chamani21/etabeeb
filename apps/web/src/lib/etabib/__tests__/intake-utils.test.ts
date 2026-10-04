@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { normalizePhone, waIdToE164 } from '../phone'
 import { extractInboundMessages, sanitizePatientName } from '../whatsapp'
 import { sanitizeErrorText } from '../sanitize'
-import { PATIENT_MESSAGES_PS, formatConsultationTimePs } from '../messages.ps'
+import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatConsultationTimePs } from '../messages.ps'
 
 describe('phone normalization', () => {
   it.each([
@@ -89,9 +89,11 @@ describe('Pashto patient messages', () => {
     PATIENT_MESSAGES_PS.invalidName,
     PATIENT_MESSAGES_PS.askPhone('احمد'),
     PATIENT_MESSAGES_PS.invalidPhone,
-    PATIENT_MESSAGES_PS.acknowledged,
-    PATIENT_MESSAGES_PS.caseInProgress,
-    PATIENT_MESSAGES_PS.consultationConfirmed('2026-10-05 14:30', 'https://example.test/x'),
+    PATIENT_MESSAGES_PS.acknowledged('https://wa.me/920000000000'),
+    PATIENT_MESSAGES_PS.caseInProgress('https://wa.me/920000000000'),
+    PATIENT_MESSAGES_PS.consultationConfirmed('2026-10-05 14:30', 'https://example.test/x', 'https://wa.me/920000000000'),
+    PATIENT_MESSAGES_PS.consultationCancelled({ name: 'احمد', sex: 'MALE', reason: CANCELLATION_REASON_PS.DOCTOR_UNAVAILABLE!, helpUrl: 'https://wa.me/920000000000' }),
+    ...Object.values(CANCELLATION_REASON_PS),
     PATIENT_MESSAGES_PS.prescriptionReady,
   ]
   it('are Arabic-script Pashto without Urdu-only letters', () => {
@@ -101,7 +103,9 @@ describe('Pashto patient messages', () => {
     }
   })
   it('do not ask clinical questions in the acknowledgement', () => {
-    expect(PATIENT_MESSAGES_PS.acknowledged).not.toMatch(/\?|؟/)
+    // (the representative link's own query string is not a question)
+    expect(PATIENT_MESSAGES_PS.acknowledged('https://wa.me/920000000000?text=x').replace(/https:\/\/\S+/g, '')).not.toMatch(/\?|؟/)
+    expect(PATIENT_MESSAGES_PS.acknowledged(null)).not.toMatch(/\?|؟|wa\.me/)
   })
   it('formats times in clinic time', () => {
     expect(formatConsultationTimePs(new Date('2026-10-05T09:30:00Z'))).toBe('2026-10-05 14:30 (د پاکستان وخت)')

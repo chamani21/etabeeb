@@ -30,6 +30,8 @@ export const notificationStatusEnum = pgEnum('notification_status', [
   'failed',
   'dead_lettered',
   'opted_out',
+  // eTabib: obsolete job withdrawn before sending (e.g. its case was cancelled)
+  'cancelled',
 ])
 
 // Transactional outbox — committed in same transaction as domain event

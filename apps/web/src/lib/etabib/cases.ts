@@ -13,15 +13,18 @@ import type { ConsultationCase, Prescription } from '@etabeeb/db'
 import { eq, sql } from 'drizzle-orm'
 import { EtabibError, TransitionError } from './errors'
 import {
+  cancelCase,
   lockCase,
   recordCaseEvent,
   transitionCase,
   updateCaseFields,
   type Actor,
+  type CancelActorRole,
+  type CancellationReason,
   type CasePatch,
   type ConsultationStatus,
 } from './transitions'
-import { enqueueOutboundJob, isOutboundJobType, parseJobRefs, type EnqueuedJob } from './outbound'
+import { enqueueOutboundJob, isOutboundJobType, parseJobRefs, withdrawPendingJobsTx, type EnqueuedJob } from './outbound'
 import { sanitizeErrorText } from './sanitize'
 import { createVideoSessionTx, endVideoSessionTx, revokePatientLinksTx } from './video'
 import { insertPrescription, type PrescriptionItemInput } from '@/lib/prescriptions'
@@ -639,5 +642,62 @@ export async function regeneratePatientVideoLink(caseId: string, admin: Actor): 
       recipientPhone: patientRecipient(current),
     })
     return { case: current, changed: true, jobs: [job] }
+  })
+}
+
+// ------------------------------------------------------------------
+// Cancellation (admin or doctor; explicit terminal state)
+// ------------------------------------------------------------------
+
+export interface CancelInput {
+  reason: CancellationReason
+  /** Short note, only kept for reason OTHER; never sent to WhatsApp. */
+  note?: string | null
+}
+
+export interface CancelResult extends CaseActionResult {
+  /** Internal: LiveKit room to close after commit. Never returned to clients. */
+  videoRoomToClose?: string
+  withdrawnJobs: number
+}
+
+/** Statuses in which the doctor had already been involved (doctor is told about an admin cancellation). */
+const DOCTOR_INVOLVED: readonly ConsultationStatus[] = ['AWAITING_DOCTOR_APPROVAL', 'CONFIRMED']
+
+/**
+ * Cancel a consultation: CANCELLED + audit event, video access closed, obsolete
+ * outbox jobs withdrawn, and notifications queued exactly once (dedupe by case).
+ * Repeating the request on a CANCELLED case is a no-op (no events, no messages).
+ */
+export async function cancelConsultation(
+  caseId: string,
+  input: CancelInput,
+  actor: Actor & { type: CancelActorRole; id: string },
+): Promise<CancelResult> {
+  return db.transaction(async (tx) => {
+    const current = await lockCase(tx, caseId)
+    if (current.status === 'CANCELLED') return { case: current, changed: false, jobs: [], withdrawnJobs: 0 }
+
+    const { before, after } = await cancelCase(tx, { caseId, actor, reason: input.reason, note: input.note ?? null })
+    const ended = await endVideoSessionTx(tx, after, actor, 'case_cancelled')
+    const withdrawnJobs = await withdrawPendingJobsTx(tx, caseId)
+
+    const jobs: EnqueuedJob[] = []
+    const recipient = patientRecipient(after)
+    if (recipient) {
+      jobs.push(await enqueueOutboundJob(tx, { type: 'CONSULTATION_CANCELLED_PATIENT', consultationId: caseId, dedupeKey: caseId, recipientPhone: recipient }))
+    }
+    if (actor.type === 'DOCTOR') {
+      jobs.push(await enqueueOutboundJob(tx, { type: 'CONSULTATION_CANCELLED_ADMIN', consultationId: caseId, dedupeKey: caseId }))
+    } else if (DOCTOR_INVOLVED.includes(before.status)) {
+      jobs.push(await enqueueOutboundJob(tx, { type: 'CONSULTATION_CANCELLED_DOCTOR', consultationId: caseId, dedupeKey: caseId }))
+    }
+    return {
+      case: after,
+      changed: true,
+      jobs,
+      withdrawnJobs,
+      ...(ended && ended.status === 'ENDED' ? { videoRoomToClose: ended.roomName } : {}),
+    }
   })
 }

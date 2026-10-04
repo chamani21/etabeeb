@@ -18,9 +18,11 @@ import { db } from '@etabeeb/db'
 import { notificationOutbox, consultationCases, prescriptions, prescriptionItems } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
 import { and, eq, asc, lt, sql } from 'drizzle-orm'
-import { ETABIB_KEY_HEADER, getAdminWhatsapp, getAppUrl, getDoctorWhatsapp, getOutboundConfig } from './config'
-import { PATIENT_MESSAGES_PS, formatConsultationTimePs, formatPrescriptionTextPs } from './messages.ps'
+import { ETABIB_KEY_HEADER, getAdminWhatsapp, getDoctorWhatsapp, getOutboundConfig } from './config'
+import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatConsultationTimePs, formatPrescriptionTextPs } from './messages.ps'
 import { STAFF_MESSAGES, clinicTime } from './messages.staff'
+import { cancellationReasonLabel } from './cancellation'
+import { ADMIN_TO_PATIENT_PREFILL, adminCaseUrl, doctorCaseUrl, representativeLink, waMeLink } from './links'
 import { JOB_INTENT, buildTemplatePayload, getApprovedTemplates, type TemplatePayload } from './templates'
 import type { Tx } from './transitions'
 import { mintPatientJoinLink } from './video'
@@ -35,6 +37,9 @@ export const OUTBOUND_JOB_TYPES = [
   'CONSULTATION_CONFIRMED_PATIENT',
   'CONSULTATION_CONFIRMED_DOCTOR',
   'PRESCRIPTION_READY',
+  'CONSULTATION_CANCELLED_PATIENT',
+  'CONSULTATION_CANCELLED_ADMIN',
+  'CONSULTATION_CANCELLED_DOCTOR',
 ] as const
 export type OutboundJobType = (typeof OUTBOUND_JOB_TYPES)[number]
 
@@ -50,7 +55,17 @@ export const JOB_AUDIENCE: Readonly<Record<OutboundJobType, OutboundAudience>> =
   CONSULTATION_CONFIRMED_PATIENT: 'PATIENT',
   CONSULTATION_CONFIRMED_DOCTOR: 'DOCTOR',
   PRESCRIPTION_READY: 'PATIENT',
+  CONSULTATION_CANCELLED_PATIENT: 'PATIENT',
+  CONSULTATION_CANCELLED_ADMIN: 'ADMIN',
+  CONSULTATION_CANCELLED_DOCTOR: 'DOCTOR',
 }
+
+/** Jobs that still make sense once a case is CANCELLED; every other pending job is withdrawn. */
+export const CANCELLATION_JOB_TYPES: ReadonlySet<string> = new Set<OutboundJobType>([
+  'CONSULTATION_CANCELLED_PATIENT',
+  'CONSULTATION_CANCELLED_ADMIN',
+  'CONSULTATION_CANCELLED_DOCTOR',
+])
 
 /** Message variants for patient jobs (selects the Pashto string). */
 export type PatientMessageKey = 'default' | 'invalid'
@@ -158,11 +173,6 @@ export interface OutboundPayload {
   callback: { path: '/api/hooks/outbound-result' }
 }
 
-function shortComplaint(text: string | null): string | null {
-  if (!text) return null
-  return text.length > 200 ? `${text.slice(0, 197)}...` : text
-}
-
 function iso(date: Date | null): string | null {
   return date ? date.toISOString() : null
 }
@@ -252,51 +262,36 @@ async function buildTextPayload(
         },
       }
     case 'PATIENT_ACKNOWLEDGED':
-      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.acknowledged } }
+      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.acknowledged(representativeLink()) } }
     case 'PATIENT_CASE_IN_PROGRESS':
-      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.caseInProgress } }
+      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.caseInProgress(representativeLink()) } }
     case 'ADMIN_NEW_CASE': {
-      // Direct link to the admin case page (login returns there via callbackUrl)
-      const appUrl = getAppUrl()
-      const intakeUrl = appUrl ? `${appUrl}/admin/cases/${c.id}` : null
+      // Action links: chat with the patient's WhatsApp number, open the case (login returns there)
+      const caseUrl = adminCaseUrl(c.id)
+      const chatUrl = waMeLink(c.whatsappPhone ?? c.patientPhone, ADMIN_TO_PATIENT_PREFILL)
       return {
-        templateValues: [c.patientName, c.patientPhone, caseRef(c.id), intakeUrl ?? `/admin/cases/${c.id}`],
+        templateValues: [c.patientName, c.patientPhone, chatUrl, caseUrl, caseRef(c.id)],
         payload: {
-        ...base,
-        ...(to ? { to } : {}),
-        text: STAFF_MESSAGES.adminNewCase({
-          consultationId: c.id,
-          patientName: c.patientName,
-          patientPhone: c.patientPhone,
-          intakeUrl,
-        }),
-        data: {
-          consultationId: c.id,
-          patientName: c.patientName,
-          patientPhone: c.patientPhone,
-          createdAt: iso(c.createdAt),
-        },
+          ...base,
+          ...(to ? { to } : {}),
+          text: STAFF_MESSAGES.adminNewCase({ consultationId: c.id, patientName: c.patientName, patientPhone: c.patientPhone, chatUrl, caseUrl }),
+          data: { consultationId: c.id, patientName: c.patientName, patientPhone: c.patientPhone, createdAt: iso(c.createdAt) },
         },
       }
     }
     case 'DOCTOR_APPROVAL_REQUEST': {
+      // Lock-screen safe: no complaint/history in WhatsApp (read in the dashboard)
       const data = {
         consultationId: c.id,
         patientName: c.patientName,
         age: c.age,
         sex: c.sex,
         location: c.location,
-        shortComplaint: shortComplaint(c.mainComplaint),
         proposedConsultationTime: iso(c.proposedConsultationTime),
+        caseUrl: doctorCaseUrl(c.id),
       }
       return {
-        templateValues: [
-          [c.patientName, c.age, c.sex].filter((v) => v !== null && v !== undefined).join(', '),
-          c.location,
-          data.shortComplaint,
-          clinicTime(data.proposedConsultationTime),
-          caseRef(c.id),
-        ],
+        templateValues: [c.patientName, `${c.age ?? '-'} / ${c.sex ?? '-'}`, c.location, clinicTime(data.proposedConsultationTime), data.caseUrl],
         payload: { ...base, ...(to ? { to } : {}), text: STAFF_MESSAGES.doctorApprovalRequest(data), data },
       }
     }
@@ -305,10 +300,12 @@ async function buildTextPayload(
       // falls back to a doctor-supplied external link when there is no session.
       const video = await mintPatientJoinLink(c.id)
       const link = video?.url ?? c.consultationLink
+      const helpUrl = representativeLink()
       return {
         templateValues: [
           c.doctorApprovedTime ? formatConsultationTimePs(c.doctorApprovedTime) : '',
           link ?? 'وروسته به درته ولېږل شي',
+          helpUrl,
         ],
         payload: {
         ...base,
@@ -316,25 +313,60 @@ async function buildTextPayload(
         text: PATIENT_MESSAGES_PS.consultationConfirmed(
           c.doctorApprovedTime ? formatConsultationTimePs(c.doctorApprovedTime) : '',
           link,
+          helpUrl,
         ),
         data: { approvedTime: iso(c.doctorApprovedTime), hasVideoLink: Boolean(video) },
         },
       }
     }
     case 'CONSULTATION_CONFIRMED_DOCTOR': {
-      const data = {
-        consultationId: c.id,
-        patientName: c.patientName,
-        age: c.age,
-        sex: c.sex,
-        location: c.location,
-        shortComplaint: shortComplaint(c.mainComplaint),
-        approvedTime: iso(c.doctorApprovedTime),
-        consultationLink: c.consultationLink,
-      }
+      const data = { consultationId: c.id, patientName: c.patientName, approvedTime: iso(c.doctorApprovedTime), caseUrl: doctorCaseUrl(c.id) }
       return {
-        templateValues: [c.patientName, clinicTime(data.approvedTime), c.consultationLink ?? 'to follow', caseRef(c.id)],
+        templateValues: [c.patientName, clinicTime(data.approvedTime), data.caseUrl],
         payload: { ...base, ...(to ? { to } : {}), text: STAFF_MESSAGES.doctorConfirmed(data), data },
+      }
+    }
+    case 'CONSULTATION_CANCELLED_PATIENT': {
+      if (c.status !== 'CANCELLED') return null
+      const reason = CANCELLATION_REASON_PS[c.cancellationReason ?? 'OTHER'] ?? 'اداري لامل'
+      const helpUrl = representativeLink()
+      return {
+        templateValues: [c.patientName ?? '-', reason, helpUrl],
+        payload: {
+          ...base,
+          ...(to ? { to } : {}),
+          text: PATIENT_MESSAGES_PS.consultationCancelled({ name: c.patientName, sex: c.sex, reason, helpUrl }),
+          data: { reason: c.cancellationReason },
+        },
+      }
+    }
+    case 'CONSULTATION_CANCELLED_ADMIN':
+    case 'CONSULTATION_CANCELLED_DOCTOR': {
+      if (c.status !== 'CANCELLED') return null
+      // The time the patient was booked for, if any
+      const scheduled = iso(c.doctorApprovedTime ?? c.proposedConsultationTime)
+      if (type === 'CONSULTATION_CANCELLED_ADMIN') {
+        const reason = cancellationReasonLabel(c.cancellationReason)
+        const caseUrl = adminCaseUrl(c.id)
+        return {
+          templateValues: [c.patientName, clinicTime(scheduled), reason, caseUrl],
+          payload: {
+            ...base,
+            ...(to ? { to } : {}),
+            text: STAFF_MESSAGES.adminCancelledByDoctor({ consultationId: c.id, patientName: c.patientName, scheduledTime: scheduled, reason, caseUrl }),
+            data: { reason: c.cancellationReason },
+          },
+        }
+      }
+      const caseUrl = doctorCaseUrl(c.id)
+      return {
+        templateValues: [c.patientName, clinicTime(scheduled), caseUrl],
+        payload: {
+          ...base,
+          ...(to ? { to } : {}),
+          text: STAFF_MESSAGES.doctorCancelled({ consultationId: c.id, patientName: c.patientName, scheduledTime: scheduled, caseUrl }),
+          data: { reason: c.cancellationReason },
+        },
       }
     }
     case 'PRESCRIPTION_READY': {
@@ -396,6 +428,38 @@ async function releaseJob(jobId: string, reason: string): Promise<void> {
     .where(and(eq(notificationOutbox.id, jobId), eq(notificationOutbox.status, 'processing')))
 }
 
+async function isCaseCancelled(caseId: string): Promise<boolean> {
+  const [row] = await db.select({ status: consultationCases.status }).from(consultationCases).where(eq(consultationCases.id, caseId)).limit(1)
+  return row?.status === 'CANCELLED'
+}
+
+async function withdrawJob(jobId: string): Promise<void> {
+  await db
+    .update(notificationOutbox)
+    .set({ status: 'cancelled', lastError: 'superseded: case cancelled', processedAt: new Date() })
+    .where(eq(notificationOutbox.id, jobId))
+}
+
+/**
+ * Inside the cancellation transaction: withdraw every not-yet-sent job of the
+ * case (kept as `cancelled` for audit). Jobs already handed to n8n
+ * (`processing`) or sent cannot be recalled. Returns the number withdrawn.
+ */
+export async function withdrawPendingJobsTx(tx: Tx, caseId: string): Promise<number> {
+  const rows = await tx
+    .update(notificationOutbox)
+    .set({ status: 'cancelled', lastError: 'superseded: case cancelled', processedAt: new Date() })
+    .where(
+      and(
+        eq(notificationOutbox.status, 'pending'),
+        sql`${notificationOutbox.idempotencyKey} LIKE ${KEY_PREFIX + '%'}`,
+        sql`(${notificationOutbox.templateVariables}::jsonb ->> 'consultationId') = ${caseId}`,
+      ),
+    )
+    .returning({ id: notificationOutbox.id })
+  return rows.length
+}
+
 export async function dispatchOutboundJobs(jobIds: string[]): Promise<DispatchResult[]> {
   const results: DispatchResult[] = []
   if (jobIds.length === 0) return results
@@ -419,6 +483,12 @@ export async function dispatchOutboundJobs(jobIds: string[]): Promise<DispatchRe
         continue
       }
       const refs = parseJobRefs(claimed.templateVariables)
+      if (refs && !CANCELLATION_JOB_TYPES.has(claimed.templateKey) && (await isCaseCancelled(refs.consultationId))) {
+        // Race with cancellation: never send an obsolete message for a cancelled case
+        await withdrawJob(jobId)
+        results.push({ jobId, dispatched: false, reason: 'case_cancelled' })
+        continue
+      }
       let payload: OutboundPayload | null
       try {
         payload = refs ? await buildPayload(claimed, refs) : null

@@ -39,6 +39,9 @@ const T = {
   revoked: 'دا لینک نور د اعتبار وړ نه دی. که نوی لینک مو نه وي ترلاسه کړی، له موږ سره په واټساپ اړیکه ونیسئ.',
   expired: 'د دې لینک موده پای ته رسېدلې ده. مهرباني وکړئ له موږ سره په واټساپ اړیکه ونیسئ.',
   ended: 'دا مشوره پای ته رسېدلې ده. مننه چې ای طبیب مو وکاراوه.',
+  cancelled: 'دا مشوره لغوه شوې ده.',
+  cancelledHelp: 'که مرستې ته اړتیا لرئ یا غواړئ بله مشوره وټاکئ، زموږ له استازي سره اړیکه ونیسئ.',
+  talkToRepresentative: 'له استازي سره په واټساپ خبرې وکړئ',
   tooEarly: 'لا وخت نه دی شوی. تاسو کولی شئ له دې وخت نه وروسته ورننوځئ:',
   autoRefresh: 'دا پاڼه پخپله تازه کېږي.',
   notConfigured: 'ویډیو مشوره اوس چمتو نه ده. مهرباني وکړئ لږ وروسته بیا هڅه وکړئ.',
@@ -52,6 +55,7 @@ const T = {
 type Access =
   | { status: 'loading' }
   | { status: 'ok' | 'too_early' | 'expired' | 'ended' | 'not_configured'; info?: { doctorName: string; scheduledAt: string; opensAt: string } }
+  | { status: 'cancelled'; helpUrl?: string | null }
   | { status: 'invalid' | 'revoked' | 'error' }
 
 function fmtPs(iso: string): string {
@@ -121,6 +125,17 @@ export default function ConsultPage({ params }: { params: { token: string } }) {
         {access.status === 'revoked' && <Box kind="error">{T.revoked}</Box>}
         {access.status === 'expired' && <Box kind="error">{T.expired}</Box>}
         {access.status === 'ended' && <Box>{T.ended}</Box>}
+        {access.status === 'cancelled' && (
+          <Box kind="warning">
+            <p className="font-semibold">{T.cancelled}</p>
+            <p className="mt-2">{T.cancelledHelp}</p>
+            {access.helpUrl?.startsWith('https://wa.me/') && (
+              <a href={access.helpUrl} target="_blank" rel="noopener noreferrer" className="mt-3 flex min-h-[48px] items-center justify-center rounded-xl bg-[#25D366] px-4 text-base font-semibold text-white" data-testid="representative-link">
+                {T.talkToRepresentative}
+              </a>
+            )}
+          </Box>
+        )}
         {access.status === 'not_configured' && <Box kind="warning">{T.notConfigured}</Box>}
         {access.status === 'too_early' && info && (
           <Box kind="warning">

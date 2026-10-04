@@ -63,12 +63,16 @@ function expectFail(fn: () => void, code: string) {
 }
 
 describe('state machine: allowed transitions', () => {
-  it('is a strictly linear lifecycle ending at COMPLETED', () => {
-    expect(CONSULTATION_STATUSES).toHaveLength(10)
-    for (let i = 0; i < CONSULTATION_STATUSES.length - 1; i++) {
-      expect(NEXT_STATUS[CONSULTATION_STATUSES[i]!]).toBe(CONSULTATION_STATUSES[i + 1])
+  it('is a strictly linear lifecycle ending at COMPLETED; CANCELLED is a separate terminal state', () => {
+    const linear = CONSULTATION_STATUSES.filter((s) => s !== 'CANCELLED')
+    expect(linear).toHaveLength(10)
+    for (let i = 0; i < linear.length - 1; i++) {
+      expect(NEXT_STATUS[linear[i]!]).toBe(linear[i + 1])
     }
     expect(NEXT_STATUS.COMPLETED).toBeNull()
+    expect(NEXT_STATUS.CANCELLED).toBeNull()
+    // No status ever advances INTO CANCELLED: only cancelCase can cancel
+    expect(Object.values(NEXT_STATUS)).not.toContain('CANCELLED')
   })
 
   it('accepts every forward step when guards are satisfied', () => {
@@ -89,6 +93,8 @@ describe('state machine: allowed transitions', () => {
     ['COMPLETED', 'IN_CONSULTATION'],
     ['NEW', 'NEW'],
     ['IN_CONSULTATION', 'COMPLETED'],
+    ['CONFIRMED', 'CANCELLED'],
+    ['CANCELLED', 'CONFIRMED'],
   ])('rejects illegal transition %s → %s even with all fields set', (from, to) => {
     expectFail(() => assertTransitionAllowed(at(from), to, { prescriptionDeliveryJobId: 'j' }), 'illegal_transition')
   })

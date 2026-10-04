@@ -10,9 +10,9 @@ import { z } from 'zod'
 import { db } from '@etabeeb/db'
 import { consultationCases, whatsappEvents } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
-import { and, eq, ne, sql } from 'drizzle-orm'
+import { and, eq, notInArray, sql } from 'drizzle-orm'
 import { normalizePhone, toAsciiDigits, waIdToE164 } from './phone'
-import { createCase, transitionCase, updateCaseFields, type Actor, type ConsultationStatus } from './transitions'
+import { CLOSED_STATUSES, createCase, transitionCase, updateCaseFields, type Actor, type ConsultationStatus } from './transitions'
 import { enqueueOutboundJob, type EnqueuedJob } from './outbound'
 import { evaluateInboundSender, type InboundDisposition } from './inbound-policy'
 
@@ -167,7 +167,7 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
     const existing = await tx
       .select()
       .from(consultationCases)
-      .where(and(eq(consultationCases.whatsappPhone, msg.from), ne(consultationCases.status, 'COMPLETED')))
+      .where(and(eq(consultationCases.whatsappPhone, msg.from), notInArray(consultationCases.status, [...CLOSED_STATUSES])))
       .limit(1)
       .for('update')
     let current: ConsultationCase | undefined = existing[0]

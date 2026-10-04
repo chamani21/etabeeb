@@ -60,7 +60,7 @@ export default function DoctorCasesPage() {
           {section('Approval requests', data.pendingApproval, 'No pending approval requests.', (c) => `proposed ${fmtTime(c.proposedConsultationTime)}${c.doctorDecision && c.doctorDecision !== 'PENDING' ? ` · you: ${c.doctorDecision.replace(/_/g, ' ').toLowerCase()}` : ''}`)}
           {section('Confirmed', data.confirmed, 'No confirmed consultations.', (c) => fmtTime(c.doctorApprovedTime))}
           {section('In consultation', data.inConsultation, 'None in progress.', (c) => fmtTime(c.doctorApprovedTime))}
-          {section('Recently completed (30 days)', data.recentlyCompleted, 'None yet.', (c) => fmtTime(c.updatedAt))}
+          {section('Recently completed or cancelled (30 days)', data.recentlyCompleted, 'None yet.', (c) => fmtTime(c.updatedAt))}
         </>
       )}
     </div>

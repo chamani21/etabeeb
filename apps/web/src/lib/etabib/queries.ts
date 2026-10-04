@@ -16,17 +16,17 @@ import {
   whatsappEvents,
 } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
-import { and, asc, desc, eq, gt, ilike, inArray, ne, or, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, ilike, inArray, notInArray, or, sql, type SQL } from 'drizzle-orm'
 import { EtabibError } from './errors'
 import { JOB_AUDIENCE, isOutboundJobType, parseJobRefs } from './outbound'
 import { getAdminWhatsapp, getDoctorWhatsapp, getEnvironmentLabel, getWhatsappDisplayNumber } from './config'
 import { getInboundPolicy } from './inbound-policy'
 import { getApprovedTemplates } from './templates'
 import { maskPhone } from './staff-audit'
-import { CONSULTATION_STATUSES, type ConsultationStatus } from './transitions'
+import { CLOSED_STATUSES, CONSULTATION_STATUSES, type ConsultationStatus } from './transitions'
 import { getVideoSummary } from './video'
 
-const OPEN_STATUSES = CONSULTATION_STATUSES.filter((s) => s !== 'COMPLETED')
+const OPEN_STATUSES = CONSULTATION_STATUSES.filter((s) => !CLOSED_STATUSES.includes(s))
 
 // ------------------------------------------------------------------
 // Outbox health per case
@@ -84,7 +84,7 @@ export interface AdminCaseRow {
 
 export async function listCasesForAdmin(filter: { status: ConsultationStatus | 'OPEN' | 'ALL'; q?: string | undefined }): Promise<AdminCaseRow[]> {
   const conditions: SQL[] = []
-  if (filter.status === 'OPEN') conditions.push(ne(consultationCases.status, 'COMPLETED'))
+  if (filter.status === 'OPEN') conditions.push(notInArray(consultationCases.status, [...CLOSED_STATUSES]))
   else if (filter.status !== 'ALL') conditions.push(eq(consultationCases.status, filter.status))
   const q = filter.q?.trim()
   if (q) {
@@ -203,13 +203,13 @@ export async function getCaseDetailForAdmin(id: string) {
     .from(caseEvents)
     .where(eq(caseEvents.consultationId, id))
     .orderBy(asc(caseEvents.createdAt), asc(caseEvents.id))
-  const actorIds = [...new Set([c.paymentConfirmedBy, ...events.map((e) => e.actorId)].filter((v): v is string => !!v && /^[0-9a-f-]{36}$/.test(v)))]
+  const actorIds = [...new Set([c.paymentConfirmedBy, c.cancelledBy, ...events.map((e) => e.actorId)].filter((v): v is string => !!v && /^[0-9a-f-]{36}$/.test(v)))]
   const names = actorIds.length
     ? await db.select({ id: users.id, name: users.displayName }).from(users).where(inArray(users.id, actorIds))
     : []
   const nameOf = (uid: string | null) => (uid ? (names.find((n) => n.id === uid)?.name ?? 'Staff user') : null)
   return {
-    case: { ...c, paymentConfirmedByName: nameOf(c.paymentConfirmedBy) },
+    case: { ...c, paymentConfirmedByName: nameOf(c.paymentConfirmedBy), cancelledByName: nameOf(c.cancelledBy) },
     events: events.map((e) => ({
       id: e.id,
       eventType: e.eventType,
@@ -218,6 +218,7 @@ export async function getCaseDetailForAdmin(id: string) {
       actorType: e.actorType,
       actorName: nameOf(e.actorId),
       createdAt: e.createdAt,
+      ...eventReason(e),
     })),
     outbox: await outboxForCase(id),
     prescription: await loadPrescription(c.prescriptionId),
@@ -229,6 +230,16 @@ export async function getCaseDetailForAdmin(id: string) {
 // ------------------------------------------------------------------
 // Doctor (clinical view only — no payment amount/reference/confirmer)
 // ------------------------------------------------------------------
+
+/** Safe cancellation reason code on CONSULTATION_CANCELLED events (never a note). */
+function eventReason(e: { eventType: string; metadata: Record<string, unknown> | null }): { reason?: string } {
+  const reason = e.eventType === 'CONSULTATION_CANCELLED' ? e.metadata?.reason : undefined
+  return typeof reason === 'string' ? { reason } : {}
+}
+
+/** Cancelled cases the doctor had been involved in stay visible to the doctor. */
+const DOCTOR_INVOLVED: readonly ConsultationStatus[] = ['AWAITING_DOCTOR_APPROVAL', 'CONFIRMED']
+const doctorSeesCancelled = sql`(${consultationCases.status} = 'CANCELLED' AND ${consultationCases.cancelledFromStatus} IN ('AWAITING_DOCTOR_APPROVAL', 'CONFIRMED'))`
 
 function clinicalView(c: ConsultationCase) {
   return {
@@ -248,6 +259,9 @@ function clinicalView(c: ConsultationCase) {
     consultationLink: c.consultationLink,
     hasPrescription: Boolean(c.prescriptionId),
     prescriptionSentAt: c.prescriptionSentAt,
+    cancelledAt: c.cancelledAt,
+    cancelledByRole: c.cancelledByRole,
+    cancellationReason: c.cancellationReason,
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
   }
@@ -262,7 +276,7 @@ export async function listCasesForDoctor() {
   const recent = await db
     .select()
     .from(consultationCases)
-    .where(and(inArray(consultationCases.status, ['PRESCRIPTION_SENT', 'COMPLETED']), gt(consultationCases.updatedAt, new Date(Date.now() - 30 * 86_400_000))))
+    .where(and(or(inArray(consultationCases.status, ['PRESCRIPTION_SENT', 'COMPLETED']), doctorSeesCancelled), gt(consultationCases.updatedAt, new Date(Date.now() - 30 * 86_400_000))))
     .orderBy(desc(consultationCases.updatedAt))
     .limit(20)
   const by = (s: ConsultationStatus) => active.filter((c) => c.status === s).map(clinicalView)
@@ -279,9 +293,10 @@ const DOCTOR_VISIBLE: readonly ConsultationStatus[] = ['AWAITING_DOCTOR_APPROVAL
 
 export async function getCaseDetailForDoctor(id: string) {
   const c = await loadCase(id)
-  if (!DOCTOR_VISIBLE.includes(c.status)) throw new EtabibError('not_found', 'Consultation not found', 404)
+  const visible = DOCTOR_VISIBLE.includes(c.status) || (c.status === 'CANCELLED' && c.cancelledFromStatus !== null && DOCTOR_INVOLVED.includes(c.cancelledFromStatus))
+  if (!visible) throw new EtabibError('not_found', 'Consultation not found', 404)
   const events = await db
-    .select({ eventType: caseEvents.eventType, newStatus: caseEvents.newStatus, actorType: caseEvents.actorType, createdAt: caseEvents.createdAt })
+    .select({ eventType: caseEvents.eventType, newStatus: caseEvents.newStatus, actorType: caseEvents.actorType, createdAt: caseEvents.createdAt, metadata: caseEvents.metadata })
     .from(caseEvents)
     .where(eq(caseEvents.consultationId, id))
     .orderBy(asc(caseEvents.createdAt), asc(caseEvents.id))
@@ -290,7 +305,7 @@ export async function getCaseDetailForDoctor(id: string) {
     .map((j) => ({ status: j.status, delivered: Boolean(j.providerMessageId), lastError: j.lastError, processedAt: j.processedAt }))
   return {
     case: clinicalView(c),
-    events: events.filter((e) => !e.eventType.startsWith('PAYMENT')),
+    events: events.filter((e) => !e.eventType.startsWith('PAYMENT')).map(({ metadata, ...e }) => ({ ...e, ...eventReason({ eventType: e.eventType, metadata }) })),
     prescription: await loadPrescription(c.prescriptionId),
     prescriptionDelivery: delivery[delivery.length - 1] ?? null,
     documents: [] as Array<never>,
