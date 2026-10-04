@@ -5,6 +5,7 @@ import { parseJsonBody, readRawBody } from '@/lib/etabib/schemas'
 import { checkMetaVerification, requireMetaSignature } from '@/lib/etabib/meta-signature'
 import { extractInboundMessages, processInboundMessage } from '@/lib/etabib/whatsapp'
 import { dispatchOutboundJobs } from '@/lib/etabib/outbound'
+import { applyDeliveryStatus, extractDeliveryStatuses } from '@/lib/etabib/delivery'
 
 // GET /api/hooks/whatsapp — Meta webhook verification, relayed by n8n (shared-key auth).
 // The verify token lives only in the app environment, never in n8n.
@@ -28,9 +29,13 @@ export async function POST(req: NextRequest) {
     requireMetaSignature(raw, req.headers.get('x-hub-signature-256'))
     const body = parseJsonBody(raw)
     const messages = extractInboundMessages(body)
+    // Delivery receipts (statuses[]) update outbox jobs only — never cases
+    const statusUpdates = []
+    for (const status of extractDeliveryStatuses(body)) statusUpdates.push(await applyDeliveryStatus(status))
+    const statusSummary = { received: statusUpdates.length, applied: statusUpdates.filter((u) => u.changed).length }
     if (messages.length === 0) {
-      // Status callbacks / unsupported events: acknowledge so Meta does not retry
-      return NextResponse.json({ success: true, processed: 0, results: [] })
+      // Status-only / unsupported events: acknowledge so Meta does not retry
+      return NextResponse.json({ success: true, processed: 0, results: [], statuses: statusSummary })
     }
 
     const results = []
@@ -43,6 +48,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       processed: results.filter((r) => !r.duplicate && r.outcome !== 'ignored').length,
+      statuses: statusSummary,
       results: results.map((r) => ({
         wamid: r.wamid,
         duplicate: r.duplicate,
