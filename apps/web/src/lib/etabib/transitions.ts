@@ -78,6 +78,15 @@ export const CASE_EVENT_TYPES = [
   // P1: operational staff actions (no status change)
   'ADMIN_NOTES_UPDATED',
   'OUTBOX_RETRY_REQUESTED',
+  // Phase 6.6: video consultation (operational; never changes case status)
+  'VIDEO_SESSION_CREATED',
+  'VIDEO_LINK_CREATED',
+  'VIDEO_LINK_REVOKED',
+  'PATIENT_VIDEO_JOINED',
+  'PATIENT_VIDEO_LEFT',
+  'DOCTOR_VIDEO_JOINED',
+  'DOCTOR_VIDEO_LEFT',
+  'VIDEO_SESSION_ENDED',
 ] as const
 export type CaseEventType = (typeof CASE_EVENT_TYPES)[number]
 

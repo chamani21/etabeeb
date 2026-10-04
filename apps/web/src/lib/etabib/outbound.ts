@@ -23,6 +23,7 @@ import { PATIENT_MESSAGES_PS, formatConsultationTimePs, formatPrescriptionTextPs
 import { STAFF_MESSAGES, clinicTime } from './messages.staff'
 import { JOB_INTENT, buildTemplatePayload, getApprovedTemplates, type TemplatePayload } from './templates'
 import type { Tx } from './transitions'
+import { mintPatientJoinLink } from './video'
 
 export const OUTBOUND_JOB_TYPES = [
   'ADMIN_NEW_CASE',
@@ -299,22 +300,27 @@ async function buildTextPayload(
         payload: { ...base, ...(to ? { to } : {}), text: STAFF_MESSAGES.doctorApprovalRequest(data), data },
       }
     }
-    case 'CONSULTATION_CONFIRMED_PATIENT':
+    case 'CONSULTATION_CONFIRMED_PATIENT': {
+      // Phase 6.6: a fresh secure eTabeeb video link (older links are revoked);
+      // falls back to a doctor-supplied external link when there is no session.
+      const video = await mintPatientJoinLink(c.id)
+      const link = video?.url ?? c.consultationLink
       return {
         templateValues: [
           c.doctorApprovedTime ? formatConsultationTimePs(c.doctorApprovedTime) : '',
-          c.consultationLink ?? 'وروسته به درته ولېږل شي',
+          link ?? 'وروسته به درته ولېږل شي',
         ],
         payload: {
         ...base,
         ...(to ? { to } : {}),
         text: PATIENT_MESSAGES_PS.consultationConfirmed(
           c.doctorApprovedTime ? formatConsultationTimePs(c.doctorApprovedTime) : '',
-          c.consultationLink,
+          link,
         ),
-        data: { approvedTime: iso(c.doctorApprovedTime), consultationLink: c.consultationLink },
+        data: { approvedTime: iso(c.doctorApprovedTime), hasVideoLink: Boolean(video) },
         },
       }
+    }
     case 'CONSULTATION_CONFIRMED_DOCTOR': {
       const data = {
         consultationId: c.id,

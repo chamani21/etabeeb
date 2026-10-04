@@ -100,3 +100,51 @@ export function getWhatsappDisplayNumber(): string | null {
 export function getTemplateConfigRaw(): string | null {
   return readEnv('ETABIB_WA_TEMPLATES')
 }
+
+// ------------------------------------------------------------------
+// Video consultation (LiveKit) — Phase 6.6
+// ------------------------------------------------------------------
+
+export interface LiveKitConfig {
+  /** Client websocket URL, e.g. wss://<project>.livekit.cloud */
+  url: string
+  /** Server API base (https) derived from the websocket URL */
+  httpUrl: string
+  apiKey: string
+  apiSecret: string
+}
+
+/** LiveKit server config, or null when not configured (video unavailable, fail closed). */
+export function getLiveKitConfig(): LiveKitConfig | null {
+  const url = readEnv('LIVEKIT_URL')
+  const apiKey = readEnv('LIVEKIT_API_KEY')
+  const apiSecret = readEnv('LIVEKIT_API_SECRET')
+  if (!url || !apiKey || !apiSecret || !/^wss?:\/\//.test(url)) return null
+  return { url, httpUrl: url.replace(/^ws/, 'http'), apiKey, apiSecret }
+}
+
+function readMinutes(name: string, fallback: number, max: number): number {
+  const raw = readEnv(name)
+  const n = raw ? Number.parseInt(raw, 10) : NaN
+  return Number.isFinite(n) && n >= 0 && n <= max ? n : fallback
+}
+
+export interface VideoWindows {
+  /** Patient may join this many minutes before the scheduled time. */
+  joinEarlyMinutes: number
+  /** Patient may (first) join until this many minutes after the scheduled time. */
+  joinLateMinutes: number
+  /** Doctor may join this many minutes before the scheduled time. */
+  doctorEarlyMinutes: number
+  /** Absolute patient-link lifetime after the scheduled time. */
+  linkTtlHours: number
+}
+
+export function getVideoWindows(): VideoWindows {
+  return {
+    joinEarlyMinutes: readMinutes('ETABIB_VIDEO_JOIN_EARLY_MINUTES', 15, 24 * 60),
+    joinLateMinutes: readMinutes('ETABIB_VIDEO_JOIN_LATE_MINUTES', 120, 24 * 60),
+    doctorEarlyMinutes: readMinutes('ETABIB_VIDEO_DOCTOR_EARLY_MINUTES', 60, 24 * 60),
+    linkTtlHours: readMinutes('ETABIB_VIDEO_LINK_TTL_HOURS', 24, 24 * 7),
+  }
+}

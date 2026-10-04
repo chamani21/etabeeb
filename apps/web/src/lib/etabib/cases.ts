@@ -10,7 +10,7 @@
 import { db } from '@etabeeb/db'
 import { notificationOutbox, prescriptions } from '@etabeeb/db/schema'
 import type { ConsultationCase, Prescription } from '@etabeeb/db'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { EtabibError, TransitionError } from './errors'
 import {
   lockCase,
@@ -23,6 +23,7 @@ import {
 } from './transitions'
 import { enqueueOutboundJob, isOutboundJobType, parseJobRefs, type EnqueuedJob } from './outbound'
 import { sanitizeErrorText } from './sanitize'
+import { createVideoSessionTx, endVideoSessionTx, revokePatientLinksTx } from './video'
 import { insertPrescription, type PrescriptionItemInput } from '@/lib/prescriptions'
 
 export interface CaseActionResult {
@@ -282,6 +283,8 @@ export async function applyDoctorDecision(
         actor: doctor,
         metadata: { hasConsultationLink: Boolean(input.consultationLink ?? current.consultationLink) },
       })
+      // Phase 6.6: the case-bound video room exists only from CONFIRMED on
+      await createVideoSessionTx(tx, confirmed, doctor)
       const jobs = [
         await enqueueOutboundJob(tx, {
           type: 'CONSULTATION_CONFIRMED_PATIENT',
@@ -423,6 +426,8 @@ export interface OutboundResultOutcome {
   jobStatus: string
   consultationId: string | null
   consultationStatus: ConsultationStatus | null
+  /** Internal: LiveKit room to close after commit (case completed). Never returned to clients. */
+  videoRoomToClose?: string
 }
 
 const N8N: Actor = { type: 'N8N', id: null }
@@ -492,6 +497,7 @@ export async function applyOutboundResult(input: OutboundResultInput): Promise<O
     }
 
     let consultationStatus: ConsultationStatus | null = null
+    let videoRoomToClose: string | undefined
     if (job.templateKey === 'PRESCRIPTION_READY') {
       let c = await lockCase(tx, refs.consultationId)
       // Strongest available signal: n8n reports success AND Meta returned a
@@ -515,6 +521,9 @@ export async function applyOutboundResult(input: OutboundResultInput): Promise<O
         if (c.status === 'PRESCRIPTION_SENT') {
           c = await transitionCase(tx, { caseId: c.id, to: 'COMPLETED', expectedFrom: 'PRESCRIPTION_SENT', actor: N8N })
           changed = true
+          // Close video access: no further tokens, all patient links revoked
+          const ended = await endVideoSessionTx(tx, c, N8N)
+          if (ended) videoRoomToClose = ended.roomName
         }
       }
       consultationStatus = c.status
@@ -531,6 +540,7 @@ export async function applyOutboundResult(input: OutboundResultInput): Promise<O
       jobStatus: after?.status ?? job.status,
       consultationId: refs.consultationId,
       consultationStatus,
+      ...(videoRoomToClose ? { videoRoomToClose } : {}),
     }
   })
 }
@@ -590,5 +600,44 @@ export async function retryOutboundJob(caseId: string, jobId: string, admin: Act
       changed: true,
       jobs: [{ id: job.id, type: job.templateKey as EnqueuedJob['type'], idempotencyKey: job.idempotencyKey, created: false }],
     }
+  })
+}
+
+// ------------------------------------------------------------------
+// Phase 6.6: revoke the patient's video link and send a new one
+// ------------------------------------------------------------------
+
+const LINK_RESEND_COOLDOWN_MS = 60_000
+
+/**
+ * Admin action (audited): revoke every active patient join link and queue a new
+ * confirmation message; the new link is minted when that message is dispatched.
+ * A repeat within the cooldown (double click) is a no-op.
+ */
+export async function regeneratePatientVideoLink(caseId: string, admin: Actor): Promise<CaseActionResult> {
+  return db.transaction(async (tx) => {
+    const current = await lockCase(tx, caseId)
+    if (current.status !== 'CONFIRMED' && current.status !== 'IN_CONSULTATION') {
+      throw new TransitionError('invalid_status', `Video link cannot be changed while case is ${current.status}`)
+    }
+    const [recent] = await tx
+      .select({ id: notificationOutbox.id })
+      .from(notificationOutbox)
+      .where(
+        // only earlier rotations count (not the original confirmation message)
+        sql`${notificationOutbox.idempotencyKey} LIKE ${'etabib:CONSULTATION_CONFIRMED_PATIENT:' + caseId + ':link:%'}
+          AND ${notificationOutbox.createdAt} > now() - make_interval(secs => ${LINK_RESEND_COOLDOWN_MS / 1000})
+          AND ${notificationOutbox.status} <> 'failed'`,
+      )
+      .limit(1)
+    if (recent) return { case: current, changed: false, jobs: [] }
+    await revokePatientLinksTx(tx, current, admin)
+    const job = await enqueueOutboundJob(tx, {
+      type: 'CONSULTATION_CONFIRMED_PATIENT',
+      consultationId: caseId,
+      dedupeKey: `${caseId}:link:${Date.now()}`,
+      recipientPhone: patientRecipient(current),
+    })
+    return { case: current, changed: true, jobs: [job] }
   })
 }
