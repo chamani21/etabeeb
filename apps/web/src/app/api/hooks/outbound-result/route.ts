@@ -3,6 +3,7 @@ import { requireHookKey } from '@/lib/etabib/auth'
 import { errorResponse, validationErrorResponse } from '@/lib/etabib/errors'
 import { outboundResultSchema, readJson } from '@/lib/etabib/schemas'
 import { applyOutboundResult } from '@/lib/etabib/cases'
+import { closeLiveKitRoom } from '@/lib/etabib/video'
 
 // POST /api/hooks/outbound-result — delivery result from n8n "eTabib - Outbound Sender"
 export async function POST(req: NextRequest) {
@@ -28,7 +29,10 @@ export async function POST(req: NextRequest) {
           }
         : {}),
     })
-    return NextResponse.json({ success: true, ...outcome })
+    const { videoRoomToClose, ...publicOutcome } = outcome
+    // Case completed: disconnect anyone still in the video room (best effort)
+    if (videoRoomToClose) await closeLiveKitRoom(videoRoomToClose)
+    return NextResponse.json({ success: true, ...publicOutcome })
   } catch (error) {
     return errorResponse(error, 'hooks/outbound-result')
   }

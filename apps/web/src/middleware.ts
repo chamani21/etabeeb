@@ -17,8 +17,14 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith('/api/')) {
     // Protect API routes — add CSRF check header requirement.
-    // Public: NextAuth's own routes and the unauthenticated health probe.
-    if (!pathname.startsWith('/api/auth/') && pathname !== '/api/health') {
+    // Public: NextAuth, health, patient video links (token is the credential) and
+    // the signed LiveKit webhook. Everything else requires a session.
+    const publicApi =
+      pathname.startsWith('/api/auth/') ||
+      pathname === '/api/health' ||
+      pathname.startsWith('/api/video/patient/') ||
+      pathname === '/api/video/livekit-webhook'
+    if (!publicApi) {
       const origin = request.headers.get('origin')
       const host = request.headers.get('host')
       // Only allow same-origin API calls
