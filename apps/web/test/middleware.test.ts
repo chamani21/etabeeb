@@ -116,3 +116,18 @@ describe('post-login callback (WhatsApp case links)', () => {
     }
   })
 })
+
+describe('video routes', () => {
+  it('patient link APIs and the signed LiveKit webhook are public; doctor/admin video APIs need a session', async () => {
+    for (const path of ['/api/video/patient/access', '/api/video/patient/token', '/api/video/livekit-webhook']) {
+      expect(passedThrough(await middleware(req(path)))).toBe(true)
+    }
+    for (const path of ['/api/doctor/cases/x/video/token', '/api/doctor/cases/x/video/status', '/api/admin/cases/x/video/regenerate-link', '/api/video/token']) {
+      expect((await middleware(req(path))).status).toBe(401)
+    }
+  })
+
+  it('the patient consult page is public (no login)', async () => {
+    expect((await middleware(req('/consult/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG'))).status).not.toBe(307)
+  })
+})

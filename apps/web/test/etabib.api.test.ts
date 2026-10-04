@@ -299,7 +299,12 @@ describe.skipIf(!hasTestDb)('eTabib V1 — API', () => {
         expect(res.status).toBe(200)
         expect((await res.json()).consultationStatus).toBe('COMPLETED')
       }
-      const events = (await eventsFor(id)).map((e) => e.eventType)
+      const allEvents = (await eventsFor(id)).map((e) => e.eventType)
+      // Video events share their transaction's timestamp with the clinical event
+      // that caused them; check them separately (exactly once each)
+      expect(allEvents.filter((e) => e === 'VIDEO_SESSION_CREATED')).toHaveLength(1)
+      expect(allEvents.filter((e) => e === 'VIDEO_SESSION_ENDED')).toHaveLength(1)
+      const events = allEvents.filter((e) => !e.startsWith('VIDEO_'))
       expect(events).toEqual([
         'CASE_CREATED',
         'PATIENT_NAME_RECEIVED',

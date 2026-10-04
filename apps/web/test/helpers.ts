@@ -24,6 +24,7 @@ export async function resetDb(): Promise<void> {
     await tx.execute(sql`SET LOCAL client_min_messages = warning`)
     await tx.execute(sql`TRUNCATE case_events, whatsapp_events, consultation_cases, integration_errors,
       notification_outbox, prescription_items, prescriptions, whatsapp_allowed_senders, staff_audit_events,
+      consultation_join_tokens, consultation_video_sessions,
       password_reset_tokens, etabib_runtime_status, user_roles, roles, users CASCADE`)
   })
 }
