@@ -11,9 +11,10 @@ const INTAKE_STATUSES = ['ADMIN_INTAKE', 'INTAKE_COMPLETE', 'AWAITING_PAYMENT', 
 type Detail = {
   case: any
   events: Array<{ id: string; eventType: string; oldStatus: string | null; newStatus: string | null; actorType: string; actorName: string | null; createdAt: string }>
-  outbox: Array<{ id: string; type: string; audience: string; to: string | null; status: string; attempts: number; providerMessageId: string | null; lastError: string | null; createdAt: string; processedAt: string | null; canRetry: boolean }>
+  outbox: Array<{ id: string; type: string; audience: string; to: string | null; status: string; attempts: number; providerMessageId: string | null; lastError: string | null; createdAt: string; processedAt: string | null; deliveredAt: string | null; readAt: string | null; failedAt: string | null; canRetry: boolean }>
   prescription: any
   documents: unknown[]
+  video: any
 }
 
 export default function AdminCaseDetailPage({ params }: { params: { id: string } }) {
@@ -81,6 +82,7 @@ export default function AdminCaseDetailPage({ params }: { params: { id: string }
       {INTAKE_STATUSES.includes(c.status) && <IntakeForm c={c} onDone={load} />}
       {c.status === 'AWAITING_PAYMENT' && <PaymentForm caseId={c.id} onDone={load} />}
       {(c.status === 'PAYMENT_RECEIVED' || c.status === 'AWAITING_DOCTOR_APPROVAL') && <ApprovalRequestForm c={c} onDone={load} />}
+      {data.video && <VideoAdminCard c={c} video={data.video} outbox={data.outbox} onDone={load} />}
       <NotesForm c={c} onDone={load} />
 
       {data.prescription && (
@@ -284,7 +286,7 @@ function OutboxCard({ caseId, outbox, onDone }: { caseId: string; outbox: Detail
             <thead>
               <tr className="border-b text-left text-xs uppercase text-gray-500">
                 <th className="px-2 py-1">Created</th><th className="px-2 py-1">Message</th><th className="px-2 py-1">To</th>
-                <th className="px-2 py-1">Status</th><th className="px-2 py-1">Meta message ID</th><th className="px-2 py-1">Failure reason</th><th />
+                <th className="px-2 py-1">Status</th><th className="px-2 py-1">Delivery</th><th className="px-2 py-1">Meta message ID</th><th className="px-2 py-1">Failure reason</th><th />
               </tr>
             </thead>
             <tbody>
@@ -294,6 +296,7 @@ function OutboxCard({ caseId, outbox, onDone }: { caseId: string; outbox: Detail
                   <td className="px-2 py-1">{j.type}</td>
                   <td className="px-2 py-1 font-mono text-xs">{j.audience.toLowerCase()} {j.to ?? ''}</td>
                   <td className={`px-2 py-1 font-semibold ${j.status === 'failed' ? 'text-red-700' : j.status === 'pending' || j.status === 'processing' ? 'text-amber-700' : 'text-emerald-700'}`}>{j.status}</td>
+                  <td className="px-2 py-1 text-xs">{deliveryText(j)}</td>
                   <td className="px-2 py-1 font-mono text-xs">{j.providerMessageId ? `${j.providerMessageId.slice(0, 18)}…` : '—'}</td>
                   <td className="px-2 py-1 text-xs text-gray-600">{j.lastError ?? ''}</td>
                   <td className="px-2 py-1">
@@ -317,6 +320,58 @@ function OutboxCard({ caseId, outbox, onDone }: { caseId: string; outbox: Detail
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      <div className="mt-2 space-y-2">
+        {error && <Notice kind="error">{error}</Notice>}
+        {message && <Notice kind="success">{message}</Notice>}
+      </div>
+    </Card>
+  )
+}
+
+function deliveryText(j: { status: string; processedAt: string | null; deliveredAt: string | null; readAt: string | null; failedAt: string | null }): string {
+  if (j.failedAt) return `failed ${fmtTime(j.failedAt)}`
+  if (j.readAt) return `read ${fmtTime(j.readAt)}`
+  if (j.deliveredAt) return `delivered ${fmtTime(j.deliveredAt)}`
+  if (j.status === 'sent') return 'accepted by Meta (no delivery receipt yet)'
+  return '—'
+}
+
+function VideoAdminCard({ c, video, outbox, onDone }: { c: any; video: any; outbox: Detail['outbox']; onDone: () => Promise<void> }) {
+  const { busy, error, message, run } = useAction()
+  const linkMsgs = outbox.filter((j) => j.type === 'CONSULTATION_CONFIRMED_PATIENT')
+  const lastMsg = linkMsgs[linkMsgs.length - 1]
+  const canRotate = (c.status === 'CONFIRMED' || c.status === 'IN_CONSULTATION') && video.status !== 'ENDED' && video.status !== 'EXPIRED'
+  return (
+    <Card title="Video session">
+      {!video.configured && <div className="mb-3"><Notice kind="warning">LiveKit is not configured on this server — patients cannot join yet.</Notice></div>}
+      <Dl rows={[
+        ['Scheduled', fmtTime(video.scheduledAt)],
+        ['Session status', video.status],
+        ['Patient link', video.links.generated === 0 ? 'Not generated yet (created when the confirmation is sent)' : `${video.links.active} active of ${video.links.generated} generated${video.links.expiresAt ? ` · expires ${fmtTime(video.links.expiresAt)}` : ''}`],
+        ['Link last used', fmtTime(video.links.lastUsedAt)],
+        ['Link message (WhatsApp)', lastMsg ? `${lastMsg.status} · ${deliveryText(lastMsg)}` : 'not queued'],
+        ['Patient joined', fmtTime(video.patientJoinedAt)],
+        ['Doctor joined', fmtTime(video.doctorJoinedAt)],
+        ['Ended', fmtTime(video.endedAt)],
+      ]} />
+      {canRotate && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            disabled={busy}
+            onClick={() =>
+              run(async () => {
+                const r = await api(`/api/admin/cases/${c.id}/video/regenerate-link`, { method: 'POST', body: {} })
+                await onDone()
+                return r.changed ? 'Old link revoked; a new link was sent to the patient.' : 'A new link was just sent — wait a minute before sending another.'
+              })
+            }
+          >
+            Revoke link &amp; send a new one
+          </Button>
+          <span className="text-xs text-gray-500">Use if the link was shared by mistake or may be compromised. The old link stops working immediately.</span>
         </div>
       )}
       <div className="mt-2 space-y-2">

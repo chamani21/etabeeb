@@ -24,6 +24,7 @@ import { getInboundPolicy } from './inbound-policy'
 import { getApprovedTemplates } from './templates'
 import { maskPhone } from './staff-audit'
 import { CONSULTATION_STATUSES, type ConsultationStatus } from './transitions'
+import { getVideoSummary } from './video'
 
 const OPEN_STATUSES = CONSULTATION_STATUSES.filter((s) => s !== 'COMPLETED')
 
@@ -186,6 +187,9 @@ async function outboxForCase(caseId: string) {
       lastError: j.lastError,
       createdAt: j.createdAt,
       processedAt: j.processedAt,
+      deliveredAt: j.deliveredAt,
+      readAt: j.readAt,
+      failedAt: j.failedAt,
       canRetry,
       refs: parseJobRefs(j.templateVariables) ? undefined : 'invalid',
     }
@@ -218,6 +222,7 @@ export async function getCaseDetailForAdmin(id: string) {
     outbox: await outboxForCase(id),
     prescription: await loadPrescription(c.prescriptionId),
     documents: [] as Array<never>, // V1 cases have no uploaded documents yet
+    video: await getVideoSummary(id),
   }
 }
 
@@ -290,6 +295,8 @@ export async function getCaseDetailForDoctor(id: string) {
     prescriptionDelivery: delivery[delivery.length - 1] ?? null,
     documents: [] as Array<never>,
     deliveryMode: 'text' as const,
+    // Doctor sees session status only — never patient link details
+    video: await getVideoSummary(id).then((v) => (v ? { status: v.status, scheduledAt: v.scheduledAt, configured: v.configured, patientJoinedAt: v.patientJoinedAt, doctorJoinedAt: v.doctorJoinedAt } : null)),
   }
 }
 

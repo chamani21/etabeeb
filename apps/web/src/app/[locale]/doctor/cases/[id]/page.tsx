@@ -5,8 +5,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/components/staff/api'
 import { clinicLocalToIso, fmtTime, isoToClinicLocal, shortId } from '@/components/staff/format'
 import { Button, Card, Dl, Field, Notice, StatusBadge, inputCls, useAction } from '@/components/staff/ui'
+import dynamic from 'next/dynamic'
 
-type Detail = { case: any; events: any[]; prescription: any; prescriptionDelivery: any; documents: unknown[]; deliveryMode: 'text' }
+const VideoRoom = dynamic(() => import('@/components/video/VideoRoom').then((m) => m.VideoRoom), { ssr: false })
+
+type Detail = { case: any; events: any[]; prescription: any; prescriptionDelivery: any; documents: unknown[]; deliveryMode: 'text'; video: any }
 
 export default function DoctorCaseDetailPage({ params }: { params: { id: string } }) {
   const [data, setData] = useState<Detail | null>(null)
@@ -49,6 +52,7 @@ export default function DoctorCaseDetailPage({ params }: { params: { id: string 
         ]} />
       </Card>
 
+      {(c.status === 'CONFIRMED' || c.status === 'IN_CONSULTATION') && data.video && <DoctorVideoCard caseId={c.id} video={data.video} />}
       {c.status === 'AWAITING_DOCTOR_APPROVAL' && <DecisionForm c={c} onDone={load} />}
       {c.status === 'CONFIRMED' && <StartCard caseId={c.id} approvedTime={c.doctorApprovedTime} onDone={load} />}
       {c.status === 'IN_CONSULTATION' && !c.hasPrescription && <PrescriptionEditor caseId={c.id} patientName={c.patientName} onDone={load} />}
@@ -85,7 +89,7 @@ function DecisionForm({ c, onDone }: { c: any; onDone: () => Promise<void> }) {
         <div className="space-y-2 rounded border border-emerald-200 p-3">
           <div className="font-semibold text-emerald-900">Approve</div>
           <Field label="Approved time (Pakistan time)"><input type="datetime-local" className={inputCls} value={approvedTime} onChange={(e) => setApprovedTime(e.target.value)} /></Field>
-          <Field label="Consultation link (https, optional)"><input className={inputCls} placeholder="https://…" value={link} onChange={(e) => setLink(e.target.value)} /></Field>
+          <Field label="External link (optional)" hint="Not needed: approving creates the secure eTabeeb video room and sends the patient their link."><input className={inputCls} placeholder="https://…" value={link} onChange={(e) => setLink(e.target.value)} /></Field>
           <Button
             disabled={busy || !approvedTime}
             onClick={() => {
@@ -260,6 +264,62 @@ function PrescriptionView({ rx, delivery, status }: { rx: any; delivery: any; st
         ['Notes', rx.notes],
         ['Signed', fmtTime(rx.signedAt)],
       ]} />
+    </Card>
+  )
+}
+
+function DoctorVideoCard({ caseId, video }: { caseId: string; video: any }) {
+  const [presence, setPresence] = useState<{ patient: boolean; doctor: boolean } | null>(null)
+  const [call, setCall] = useState<{ serverUrl: string; participantToken: string } | null>(null)
+  const [state, setState] = useState<'idle' | 'incall' | 'left' | 'dropped'>('idle')
+  const { busy, error, run } = useAction()
+  const poll = useCallback(async () => {
+    try {
+      const r = await api<{ presence: { patient: boolean; doctor: boolean } | null }>(`/api/doctor/cases/${caseId}/video/status`)
+      setPresence(r.presence)
+    } catch {
+      /* keep last known */
+    }
+  }, [caseId])
+  useEffect(() => {
+    void poll()
+    const t = setInterval(() => void poll(), 10_000)
+    return () => clearInterval(t)
+  }, [poll])
+  const join = () =>
+    run(async () => {
+      const r = await api<{ serverUrl: string; participantToken: string }>(`/api/doctor/cases/${caseId}/video/token`, { method: 'POST', body: {} })
+      setCall({ serverUrl: r.serverUrl, participantToken: r.participantToken })
+      setState('incall')
+    })
+  const patientState = presence === null ? 'unknown' : presence.patient ? 'in the room' : 'not connected'
+  return (
+    <Card title="Video consultation">
+      {!video.configured && <div className="mb-3"><Notice kind="warning">Video is not configured on this server yet (LiveKit).</Notice></div>}
+      <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        <span>Scheduled: <b>{fmtTime(video.scheduledAt)}</b></span>
+        <span>Room: <b>{video.status}</b></span>
+        <span data-testid="patient-presence">Patient: <b className={presence?.patient ? 'text-emerald-700' : 'text-gray-700'}>{patientState}</b></span>
+      </div>
+      {state === 'incall' && call ? (
+        <VideoRoom
+          serverUrl={call.serverUrl}
+          token={call.participantToken}
+          lang="en"
+          audio
+          video
+          onLeave={() => (setCall(null), setState('left'), void poll())}
+          onDropped={() => (setCall(null), setState('dropped'), void poll())}
+        />
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button disabled={busy || !video.configured} onClick={() => void join()}>{state === 'idle' ? 'Join consultation' : 'Rejoin consultation'}</Button>
+          {state === 'left' && <span className="text-sm text-gray-600">You left the call.</span>}
+          {state === 'dropped' && <span className="text-sm text-red-700">Connection lost — rejoin when ready.</span>}
+          <span className="text-xs text-gray-500">Joining does not start the consultation; use “Start consultation” when you begin.</span>
+        </div>
+      )}
+      {error && <div className="mt-2"><Notice kind="error">{error}</Notice></div>}
     </Card>
   )
 }
