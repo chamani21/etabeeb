@@ -371,10 +371,15 @@ export async function handleLiveKitWebhook(rawBody: string, authHeader: string |
   let event
   try {
     event = await new WebhookReceiver(cfg.apiKey, cfg.apiSecret).receive(rawBody, authHeader ?? undefined)
-  } catch {
+  } catch (error) {
+    // Reason only (no header, token or body) so a misconfigured LiveKit webhook is diagnosable.
+    const e = error as { code?: unknown; claim?: unknown; message?: unknown }
+    const reason = !authHeader ? 'missing_authorization' : [e.code, e.claim, e.message].filter((v) => typeof v === 'string').join(' ').slice(0, 160)
+    console.warn(`[etabib:video/livekit-webhook] rejected: ${reason || 'unknown'}`)
     throw new EtabibError('unauthorized', 'Unauthorized', 401)
   }
   const roomName = event.room?.name
+  console.info(`[etabib:video/livekit-webhook] event=${event.event} ours=${roomName?.startsWith('etb-') ? 'maybe' : 'no'}`)
   if (!roomName) return { handled: false }
   return db.transaction(async (tx) => {
     const [session] = await tx.select().from(consultationVideoSessions).where(eq(consultationVideoSessions.roomName, roomName)).limit(1).for('update')
