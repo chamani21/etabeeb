@@ -58,6 +58,9 @@ export const notificationOutbox = pgTable(
     providerMessageId: text('provider_message_id'),
     deliveredAt: timestamp('delivered_at', { withTimezone: true }),
     readAt: timestamp('read_at', { withTimezone: true }),
+    // Meta delivery-status webhook (statuses[]): failure after acceptance
+    failedAt: timestamp('failed_at', { withTimezone: true }),
+    statusUpdatedAt: timestamp('status_updated_at', { withTimezone: true }),
     // Opt-out tracking
     optedOutAt: timestamp('opted_out_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -66,6 +69,7 @@ export const notificationOutbox = pgTable(
     statusIdx: index('outbox_status_idx').on(t.status),
     retryIdx: index('outbox_retry_idx').on(t.nextRetryAt),
     idempotencyIdx: index('outbox_idempotency_idx').on(t.idempotencyKey),
+    providerMessageIdx: index('outbox_provider_message_idx').on(t.providerMessageId),
   }),
 )
 

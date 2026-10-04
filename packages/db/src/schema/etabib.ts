@@ -274,3 +274,63 @@ export const etabibRuntimeStatus = pgTable('etabib_runtime_status', {
   value: jsonb('value').$type<Record<string, unknown>>().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+// ============================================================
+// eTABIB V1 — VIDEO CONSULTATION (Phase 6.6)
+// One LiveKit room per consultation case. The session is created inside the
+// transaction that moves the case to CONFIRMED (never before payment + doctor
+// approval). The consultation case stays the clinical state machine; the
+// session only tracks the video room's operational lifecycle.
+// ============================================================
+
+export const videoSessionStatusValues = ['CREATED', 'OPEN', 'IN_PROGRESS', 'ENDED', 'EXPIRED'] as const
+export const videoSessionStatusEnum = pgEnum('video_session_status', videoSessionStatusValues)
+
+export const consultationVideoSessions = pgTable(
+  'consultation_video_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    consultationId: uuid('consultation_id')
+      .notNull()
+      .references(() => consultationCases.id, { onDelete: 'restrict' }),
+    // Random, opaque (no case id, name or phone); never accepted from clients
+    roomName: text('room_name').notNull(),
+    status: videoSessionStatusEnum('status').notNull().default('CREATED'),
+    scheduledAt: timestamp('scheduled_at', { withTimezone: true }).notNull(),
+    openedAt: timestamp('opened_at', { withTimezone: true }),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    patientJoinedAt: timestamp('patient_joined_at', { withTimezone: true }),
+    doctorJoinedAt: timestamp('doctor_joined_at', { withTimezone: true }),
+    lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // One video session per consultation case; one case per room
+    consultationUq: uniqueIndex('consultation_video_sessions_case_uq').on(t.consultationId),
+    roomUq: uniqueIndex('consultation_video_sessions_room_uq').on(t.roomName),
+  }),
+)
+
+// Public join links (patient). Only the SHA-256 of the token is stored; the raw
+// token exists only in the outgoing WhatsApp message. Expiring + revocable.
+export const consultationJoinTokens = pgTable(
+  'consultation_join_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => consultationVideoSessions.id, { onDelete: 'restrict' }),
+    role: text('role').notNull().default('PATIENT'),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    tokenUq: uniqueIndex('consultation_join_tokens_hash_uq').on(t.tokenHash),
+    sessionIdx: index('consultation_join_tokens_session_idx').on(t.sessionId),
+  }),
+)
