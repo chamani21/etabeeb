@@ -23,6 +23,7 @@ import { POST as doctorTokenRoute } from '@/app/api/doctor/cases/[id]/video/toke
 import { POST as legacyVideoRoute } from '@/app/api/video/token/route'
 import { POST as regenerateRoute } from '@/app/api/admin/cases/[id]/video/regenerate-link/route'
 import { POST as webhookRoute } from '@/app/api/video/livekit-webhook/route'
+import { POST as hooksLivekitRoute } from '@/app/api/hooks/livekit/route'
 import { POST as whatsappHook } from '@/app/api/hooks/whatsapp/route'
 import { POST as outboundResultRoute } from '@/app/api/hooks/outbound-result/route'
 import { GET as adminDetailRoute } from '@/app/api/admin/cases/[id]/route'
@@ -321,6 +322,10 @@ describe.skipIf(!hasTestDb)('Phase 6.6 video consultation', () => {
       expect(unsigned.status).toBe(401)
       const other = await signedWebhook({ event: 'participant_joined', room: { name: 'etb-unknown' }, participant: { identity: 'patient-x' } })
       expect((await other.json()).handled).toBe(false)
+      // the configured LiveKit URL (/api/hooks/livekit) is the same verified handler
+      expect(hooksLivekitRoute).toBe(webhookRoute)
+      const unsignedAlias = await hooksLivekitRoute(new NextRequest('http://localhost/api/hooks/livekit', { method: 'POST', body: '{"event":"participant_joined"}' }))
+      expect(unsignedAlias.status).toBe(401)
     })
   })
 

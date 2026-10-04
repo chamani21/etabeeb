@@ -119,7 +119,7 @@ describe('post-login callback (WhatsApp case links)', () => {
 
 describe('video routes', () => {
   it('patient link APIs and the signed LiveKit webhook are public; doctor/admin video APIs need a session', async () => {
-    for (const path of ['/api/video/patient/access', '/api/video/patient/token', '/api/video/livekit-webhook']) {
+    for (const path of ['/api/video/patient/access', '/api/video/patient/token', '/api/video/livekit-webhook', '/api/hooks/livekit']) {
       expect(passedThrough(await middleware(req(path)))).toBe(true)
     }
     for (const path of ['/api/doctor/cases/x/video/token', '/api/doctor/cases/x/video/status', '/api/admin/cases/x/video/regenerate-link', '/api/video/token']) {

@@ -17,10 +17,12 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith('/api/')) {
     // Protect API routes — add CSRF check header requirement.
-    // Public: NextAuth, health, patient video links (token is the credential) and
-    // the signed LiveKit webhook. Everything else requires a session.
+    // Public: NextAuth, health, patient video links (token is the credential),
+    // integration hooks (shared key / signature checked in each handler; also
+    // excluded by the matcher) and the signed LiveKit webhook.
     const publicApi =
       pathname.startsWith('/api/auth/') ||
+      pathname.startsWith('/api/hooks/') ||
       pathname === '/api/health' ||
       pathname.startsWith('/api/video/patient/') ||
       pathname === '/api/video/livekit-webhook'

@@ -59,7 +59,7 @@ webhooks), `VIDEO_SESSION_ENDED`.
 1. Create a LiveKit project (LiveKit Cloud or self-hosted).
 2. Set `LIVEKIT_URL` (wss://…), `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` in the server
    env (staging helper: `/root/etabeeb-v1-set-livekit.sh`, hidden input).
-3. Webhook: `https://<app>/api/video/livekit-webhook`, signed with the same API key
+3. Webhook: `https://<app>/api/hooks/livekit` (alias of `/api/video/livekit-webhook`), signed with the same API key
    (records join/leave). Without it calls work but join/leave audit events are missing.
 
 ## WhatsApp delivery receipts
