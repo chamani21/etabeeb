@@ -112,6 +112,7 @@ export type IntakeOutcome =
   | 'asked_phone_again'
   | 'phone_saved_admin_intake'
   | 'case_in_progress'
+  | 'already_acknowledged'
 
 export interface InboundResult {
   wamid: string
@@ -183,8 +184,12 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
         }),
       )
       outcome = 'asked_name'
+    } else if (current.status === 'ADMIN_INTAKE') {
+      // The registration acknowledgement was just sent and the admin takes over:
+      // no second "waiting" message (one acknowledgement after the phone number).
+      outcome = 'already_acknowledged'
     } else if (current.status !== 'NEW') {
-      // ADMIN_INTAKE or beyond: never restart onboarding, never ask clinical
+      // Later stages: never restart onboarding, never ask clinical
       // questions. Acknowledge at most once per stage.
       jobs.push(
         await enqueueOutboundJob(tx, {

@@ -20,9 +20,9 @@ import type { ConsultationCase } from '@etabeeb/db'
 import { and, eq, asc, lt, sql } from 'drizzle-orm'
 import { ETABIB_KEY_HEADER, getAdminWhatsapp, getDoctorWhatsapp, getOutboundConfig } from './config'
 import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatConsultationTimePs, formatPrescriptionTextPs } from './messages.ps'
-import { STAFF_MESSAGES, clinicTime } from './messages.staff'
+import { STAFF_MESSAGES, clinicClock, clinicTime } from './messages.staff'
 import { cancellationReasonLabel } from './cancellation'
-import { ADMIN_TO_PATIENT_PREFILL, adminCaseUrl, doctorCaseUrl, representativeLink, waMeLink } from './links'
+import { adminCaseUrl, doctorCaseUrl, patientWhatsAppUrl, representativeHelpUrl } from './links'
 import { JOB_INTENT, buildTemplatePayload, getApprovedTemplates, type TemplatePayload } from './templates'
 import type { Tx } from './transitions'
 import { mintPatientJoinLink } from './video'
@@ -188,7 +188,6 @@ interface BuiltText {
   templateValues: unknown[] | null
 }
 
-const caseRef = (id: string) => id.slice(0, 8)
 
 /** Thrown when a configured template cannot be built; the job fails permanently. */
 export class InvalidTemplateError extends Error {
@@ -262,19 +261,19 @@ async function buildTextPayload(
         },
       }
     case 'PATIENT_ACKNOWLEDGED':
-      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.acknowledged(representativeLink()) } }
+      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.acknowledged(c.patientName, representativeHelpUrl()) } }
     case 'PATIENT_CASE_IN_PROGRESS':
-      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.caseInProgress(representativeLink()) } }
+      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.caseInProgress(representativeHelpUrl()) } }
     case 'ADMIN_NEW_CASE': {
       // Action links: chat with the patient's WhatsApp number, open the case (login returns there)
       const caseUrl = adminCaseUrl(c.id)
-      const chatUrl = waMeLink(c.whatsappPhone ?? c.patientPhone, ADMIN_TO_PATIENT_PREFILL)
+      const chatUrl = patientWhatsAppUrl(c)
       return {
-        templateValues: [c.patientName, c.patientPhone, chatUrl, caseUrl, caseRef(c.id)],
+        templateValues: [c.patientName, c.patientPhone, clinicClock(iso(c.createdAt)), chatUrl, caseUrl],
         payload: {
           ...base,
           ...(to ? { to } : {}),
-          text: STAFF_MESSAGES.adminNewCase({ consultationId: c.id, patientName: c.patientName, patientPhone: c.patientPhone, chatUrl, caseUrl }),
+          text: STAFF_MESSAGES.adminNewCase({ patientName: c.patientName, patientPhone: c.patientPhone, receivedAt: iso(c.createdAt), chatUrl, caseUrl }),
           data: { consultationId: c.id, patientName: c.patientName, patientPhone: c.patientPhone, createdAt: iso(c.createdAt) },
         },
       }
@@ -300,7 +299,7 @@ async function buildTextPayload(
       // falls back to a doctor-supplied external link when there is no session.
       const video = await mintPatientJoinLink(c.id)
       const link = video?.url ?? c.consultationLink
-      const helpUrl = representativeLink()
+      const helpUrl = representativeHelpUrl()
       return {
         templateValues: [
           c.doctorApprovedTime ? formatConsultationTimePs(c.doctorApprovedTime) : '',
@@ -329,7 +328,7 @@ async function buildTextPayload(
     case 'CONSULTATION_CANCELLED_PATIENT': {
       if (c.status !== 'CANCELLED') return null
       const reason = CANCELLATION_REASON_PS[c.cancellationReason ?? 'OTHER'] ?? 'اداري لامل'
-      const helpUrl = representativeLink()
+      const helpUrl = representativeHelpUrl()
       return {
         templateValues: [c.patientName ?? '-', reason, helpUrl],
         payload: {
@@ -353,7 +352,7 @@ async function buildTextPayload(
           payload: {
             ...base,
             ...(to ? { to } : {}),
-            text: STAFF_MESSAGES.adminCancelledByDoctor({ consultationId: c.id, patientName: c.patientName, scheduledTime: scheduled, reason, caseUrl }),
+            text: STAFF_MESSAGES.adminCancelledByDoctor({ patientName: c.patientName, scheduledTime: scheduled, reason, caseUrl }),
             data: { reason: c.cancellationReason },
           },
         }
@@ -364,7 +363,7 @@ async function buildTextPayload(
         payload: {
           ...base,
           ...(to ? { to } : {}),
-          text: STAFF_MESSAGES.doctorCancelled({ consultationId: c.id, patientName: c.patientName, scheduledTime: scheduled, caseUrl }),
+          text: STAFF_MESSAGES.doctorCancelled({ patientName: c.patientName, scheduledTime: scheduled, caseUrl }),
           data: { reason: c.cancellationReason },
         },
       }

@@ -66,20 +66,20 @@ export interface TemplateDefinition {
 export const TEMPLATE_DEFINITIONS: Readonly<Record<MessageIntent, TemplateDefinition>> = {
   ADMIN_NEW_CASE: {
     intent: 'ADMIN_NEW_CASE', proposedName: 'etabib_admin_new_case_v2', language: 'en', audience: 'ADMIN', category: 'UTILITY',
-    params: ['patientName', 'patientPhone', 'chatUrl', 'caseUrl', 'caseRef'],
-    body: 'eTabeeb — New consultation request. Patient: {{1}}. Phone: {{2}}. Chat with patient: {{3}} Open intake form: {{4}} Ref: {{5}}',
+    params: ['patientName', 'patientPhone', 'receivedAt', 'chatUrl', 'caseUrl'],
+    body: 'eTabeeb — New consultation. Patient: {{1}}. Phone: {{2}}. Received: {{3}}. Chat with patient: {{4}} Open intake: {{5}}',
     wired: true,
   },
   DOCTOR_APPROVAL_REQUEST: {
     intent: 'DOCTOR_APPROVAL_REQUEST', proposedName: 'etabib_doctor_approval_v2', language: 'en', audience: 'DOCTOR', category: 'UTILITY',
     params: ['patientName', 'ageSex', 'location', 'proposedTime', 'caseUrl'],
-    body: 'eTabeeb — Consultation approval required. Patient: {{1}}. Age/Sex: {{2}}. Location: {{3}}. Proposed time: {{4}}. Review & approve: {{5}} Clinical details are available securely in the doctor dashboard.',
+    body: 'eTabeeb — Approval needed. Patient: {{1}}. Age/Sex: {{2}}. Location: {{3}}. Time: {{4}}. Review & approve: {{5}} Clinical details are available in the secure dashboard.',
     wired: true,
   },
   CONSULTATION_CONFIRMED: {
     intent: 'CONSULTATION_CONFIRMED', proposedName: 'etabib_consultation_confirmed_ps_v2', language: 'ps_AF', audience: 'PATIENT', category: 'UTILITY',
     params: ['time', 'link', 'helpUrl'],
-    body: 'ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه. وخت: {{1}}. د آنلاین مشورې لپاره دا خوندي لینک خلاص کړئ: {{2}} که کومه پوښتنه لرئ، زموږ له استازي سره دلته خبرې وکړئ: {{3}}',
+    body: 'ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه. وخت: {{1}}. د مشورې لینک: {{2}} مرستې لپاره: {{3}}',
     wired: true,
   },
   CONSULTATION_CONFIRMED_DOCTOR: {
@@ -109,7 +109,7 @@ export const TEMPLATE_DEFINITIONS: Readonly<Record<MessageIntent, TemplateDefini
   CONSULTATION_CANCELLED: {
     intent: 'CONSULTATION_CANCELLED', proposedName: 'etabib_consultation_cancelled_ps', language: 'ps_AF', audience: 'PATIENT', category: 'UTILITY',
     params: ['name', 'reason', 'helpUrl'],
-    body: 'محترم/محترمه {{1}}، ستاسو د eTabeeb آنلاین مشوره لغوه شوه. د لغوه کېدو لامل: {{2}}. که غواړئ بله مشوره وټاکئ یا کومه پوښتنه لرئ، زموږ له استازي سره دلته خبرې وکړئ: {{3}}',
+    body: 'محترم/محترمه {{1}}، ستاسو د eTabeeb آنلاین مشوره لغوه شوه. د لغوه کېدو لامل: {{2}}. که غواړئ بله مشوره وټاکئ یا کومه پوښتنه لرئ: {{3}}',
     wired: true,
   },
   ADMIN_CONSULTATION_CANCELLED: {

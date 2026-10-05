@@ -28,19 +28,25 @@ const val = (v: unknown): string => (v === null || v === undefined || v === '' ?
 
 export { CANCELLATION_REASON_LABELS } from './cancellation'
 
-const ref = (id: string) => `Ref: ${id.slice(0, 8)}`
+/** "1:06 AM" in clinic time (staff notices). */
+export function clinicClock(iso: string | null | undefined): string {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '-'
+  return new Intl.DateTimeFormat('en-US', { timeZone: CLINIC_TIMEZONE, hour: 'numeric', minute: '2-digit', hour12: true }).format(d)
+}
 
 /**
  * Lock-screen safe: names, demographics and times only. Complaint, history,
- * documents, notes and prescriptions stay in the authenticated app.
+ * documents, notes and prescriptions stay in the authenticated app. Each action
+ * link sits on its own line under an emoji label.
  */
 export const STAFF_MESSAGES = {
-  adminNewCase: (d: { consultationId: string; patientName: string | null; patientPhone: string | null; chatUrl: string | null; caseUrl: string }) =>
-    `eTabeeb — New consultation request\n\nPatient: ${val(d.patientName)}\nPhone: ${val(d.patientPhone)}\n` +
+  adminNewCase: (d: { patientName: string | null; patientPhone: string | null; receivedAt: string | null; chatUrl: string | null; caseUrl: string }) =>
+    `eTabeeb — New consultation\n\nPatient: ${val(d.patientName)}\nPhone: ${val(d.patientPhone)}\nReceived: ${clinicClock(d.receivedAt)}\n` +
     (d.chatUrl ? `\n💬 Chat with patient\n${d.chatUrl}\n` : '') +
-    `\n📋 Open intake form\n${d.caseUrl}\n\n${ref(d.consultationId)}`,
+    `\n📋 Open intake\n${d.caseUrl}`,
   doctorApprovalRequest: (d: {
-    consultationId: string
     patientName: string | null
     age: number | null
     sex: string | null
@@ -48,16 +54,14 @@ export const STAFF_MESSAGES = {
     proposedConsultationTime: string | null
     caseUrl: string
   }) =>
-    `eTabeeb — Consultation approval required\n\nPatient: ${val(d.patientName)}\nAge/Sex: ${val(d.age)} / ${val(d.sex)}\n` +
-    `Location: ${val(d.location)}\nProposed time: ${clinicTime(d.proposedConsultationTime)}\n\n🩺 Review & approve\n${d.caseUrl}\n\n` +
-    `Clinical details are available securely in the doctor dashboard.\n${ref(d.consultationId)}`,
-  doctorConfirmed: (d: { consultationId: string; patientName: string | null; approvedTime: string | null; caseUrl: string }) =>
-    `eTabeeb — Consultation confirmed\n\nPatient: ${val(d.patientName)}\nTime: ${clinicTime(d.approvedTime)}\n\n` +
-    `🎥 Open case & join video\n${d.caseUrl}\n\n${ref(d.consultationId)}`,
-  adminCancelledByDoctor: (d: { consultationId: string; patientName: string | null; scheduledTime: string | null; reason: string; caseUrl: string }) =>
+    `eTabeeb — Approval needed\n\nPatient: ${val(d.patientName)}\nAge/Sex: ${val(d.age)} / ${val(d.sex)}\n` +
+    `Location: ${val(d.location)}\nTime: ${clinicTime(d.proposedConsultationTime)}\n\n🩺 Review & approve\n${d.caseUrl}\n\n` +
+    'Clinical details are available in the secure dashboard.',
+  doctorConfirmed: (d: { patientName: string | null; approvedTime: string | null; caseUrl: string }) =>
+    `eTabeeb — Consultation confirmed\n\nPatient: ${val(d.patientName)}\nTime: ${clinicTime(d.approvedTime)}\n\n🎥 Open case & join video\n${d.caseUrl}`,
+  adminCancelledByDoctor: (d: { patientName: string | null; scheduledTime: string | null; reason: string; caseUrl: string }) =>
     `eTabeeb — Consultation cancelled by doctor\n\nPatient: ${val(d.patientName)}\nScheduled time: ${clinicTime(d.scheduledTime)}\n` +
-    `Reason: ${d.reason}\n\n📋 Open case\n${d.caseUrl}\n\n${ref(d.consultationId)}`,
-  doctorCancelled: (d: { consultationId: string; patientName: string | null; scheduledTime: string | null; caseUrl: string }) =>
-    `eTabeeb — Consultation cancelled\n\nPatient: ${val(d.patientName)}\nScheduled time: ${clinicTime(d.scheduledTime)}\n\n` +
-    `View case\n${d.caseUrl}\n\n${ref(d.consultationId)}`,
+    `Reason: ${d.reason}\n\n📋 Open case\n${d.caseUrl}`,
+  doctorCancelled: (d: { patientName: string | null; scheduledTime: string | null; caseUrl: string }) =>
+    `eTabeeb — Consultation cancelled\n\nPatient: ${val(d.patientName)}\nScheduled time: ${clinicTime(d.scheduledTime)}\n\nView case\n${d.caseUrl}`,
 } as const

@@ -7,50 +7,40 @@
 import { CLINIC_TIMEZONE } from './config'
 
 export const PATIENT_MESSAGES_PS = {
-  /** First contact: welcome + ask for the patient's name. */
-  askName:
-    'السلام علیکم! ای طبیب ته ښه راغلاست.\n' +
-    'د ډاکټر جلال الدین سره د آنلاین مشورې لپاره، مهرباني وکړئ د ناروغ بشپړ نوم ولیکئ.',
+  /** MESSAGE 1 — first contact: welcome + ask for the patient's name only. */
+  askName: 'السلام علیکم، eTabeeb ته ښه راغلاست.\n\nد آنلاین مشورې لپاره مهرباني وکړئ د ناروغ نوم ولیکئ.',
   /** Name was not usable (empty, digits only, media, …). */
-  invalidName: 'بښنه غواړو، نوم مو سم ترلاسه نه شو. مهرباني وکړئ یوازې د ناروغ نوم په لیکلو سره راولیږئ.',
-  /** After the name: ask for a contact phone number. */
+  invalidName: 'بښنه غواړو، نوم مو سم ترلاسه نه شو. مهرباني وکړئ یوازې د ناروغ نوم ولیکئ.',
+  /** MESSAGE 2 — ask for the contact phone only. */
   askPhone: (name: string) =>
-    `مننه ${name}.\nاوس مهرباني وکړئ د اړیکې د تلیفون شمېره ولیکئ (لکه 03001234567 یا 0701234567).`,
+    `مننه ${name}.\n\nاوس مهرباني وکړئ د اړیکې لپاره د ناروغ د موبایل شمېره ولیکئ.\nلکه: 0300XXXXXXX`,
   /** Phone was not a valid number. */
-  invalidPhone:
-    'بښنه غواړو، دا شمېره سمه نه ده. مهرباني وکړئ سمه د تلیفون شمېره ولیکئ، لکه 03001234567 یا 0701234567.',
-  /** Name + phone received: automated questions stop here. */
-  acknowledged: (helpUrl: string | null) =>
-    'مننه! ستاسو د آنلاین مشورې غوښتنه ثبت شوه.\n\n' +
-    'زموږ استازی به ستاسو معلومات وګوري او د راتلونکو مرحلو په اړه به له تاسو سره اړیکه ونیسي.' +
-    helpLine(helpUrl, 'کولی شئ'),
-  /** Patient writes again while the team handles the case. */
+  invalidPhone: 'بښنه غواړو، دا شمېره سمه نه ده. مهرباني وکړئ د موبایل سمه شمېره ولیکئ، لکه: 0300XXXXXXX',
+  /** MESSAGE 3 — name + phone received: registered, a representative takes over. Automated questions stop. */
+  acknowledged: (name: string | null, helpUrl: string | null) =>
+    `مننه${name ? ` ${name}` : ''}.\n\nستاسو د آنلاین مشورې غوښتنه ثبت شوه.\n\nزموږ استازی به ډېر ژر له تاسو سره اړیکه ونیسي.` +
+    helpBlock('که کومه پوښتنه لرئ:', helpUrl),
+  /** Patient writes again at a later stage (sent at most once per stage). */
   caseInProgress: (helpUrl: string | null) =>
-    'ستاسو غوښتنه زموږ له ټیم سره ده. مهرباني وکړئ لږ صبر وکړئ، موږ به ژر له تاسو سره اړیکه ونیسو.' +
-    helpLine(helpUrl, 'کولی شئ'),
-  /** Consultation confirmed by Dr. Jalaluddin (secure eTabeeb link; never a raw video token). */
+    'ستاسو غوښتنه زموږ له ټیم سره ده. زموږ استازی به ډېر ژر له تاسو سره اړیکه ونیسي.' + helpBlock('که کومه پوښتنه لرئ:', helpUrl),
+  /** MESSAGE 4 — confirmed by Dr. Jalaluddin: time, secure eTabeeb link (never a raw video token), help. */
   consultationConfirmed: (time: string, link: string | null, helpUrl: string | null = null) =>
-    `ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه.\n\nوخت: ${time}\n\n` +
-    (link
-      ? `د آنلاین مشورې لپاره لاندې خوندي لینک خلاص کړئ:\n${link}`
-      : 'د مشورې لینک به وروسته درته ولیږل شي.') +
-    helpLine(helpUrl, 'وکړئ'),
+    `ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه.\n\nوخت:\n${time}\n\n` +
+    (link ? `د مشورې لینک:\n${link}` : 'د مشورې لینک به وروسته درته ولیږل شي.') +
+    helpBlock('مرستې لپاره:', helpUrl),
   /** Consultation cancelled (reason is a fixed Pashto label — never staff notes). */
   consultationCancelled: (d: { name: string | null; sex: 'MALE' | 'FEMALE' | null; reason: string; helpUrl: string | null }) =>
-    `${d.sex === 'MALE' ? 'محترم' : d.sex === 'FEMALE' ? 'محترمه' : 'محترم/محترمه'} ${d.name ?? ''}،`.replace(' ،', '،') +
+    `${d.sex === 'MALE' ? 'محترم' : d.sex === 'FEMALE' ? 'محترمه' : 'محترم/محترمه'}${d.name ? ` ${d.name}` : ''}،` +
     '\n\nستاسو د eTabeeb آنلاین مشوره لغوه شوه.\n\n' +
     `د لغوه کېدو لامل: ${d.reason}` +
-    (d.helpUrl
-      ? `\n\nکه غواړئ بله مشوره وټاکئ یا کومه پوښتنه لرئ، زموږ له استازي سره دلته خبرې وکړئ:\n${d.helpUrl}`
-      : ''),
-  /** Prescription delivery (the document itself is attached by the sender). */
+    helpBlock('که غواړئ بله مشوره وټاکئ یا کومه پوښتنه لرئ:', d.helpUrl),
+  /** MESSAGE 5 — prescription delivery (the document itself is attached by the sender). */
   prescriptionReady: 'ستاسو نسخه چمتو ده او له دې پیغام سره درلېږل کېږي. د ښه روغتیا هیله لرو.',
 } as const
 
-/** "Talk to our representative" footer; omitted when no representative number is configured. */
-function helpLine(helpUrl: string | null, verb: 'کولی شئ' | 'وکړئ'): string {
-  if (!helpUrl) return ''
-  return `\n\nکه کومه پوښتنه لرئ یا مرستې ته اړتیا لرئ، زموږ له استازي سره دلته خبرې ${verb}:\n${helpUrl}`
+/** Short help line + clean help link on its own line; omitted when no representative is configured. */
+function helpBlock(label: string, helpUrl: string | null): string {
+  return helpUrl ? `\n\n${label}\n${helpUrl}` : ''
 }
 
 /** Patient-safe Pashto label for each cancellation reason code. */

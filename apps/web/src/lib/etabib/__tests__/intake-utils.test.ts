@@ -89,8 +89,8 @@ describe('Pashto patient messages', () => {
     PATIENT_MESSAGES_PS.invalidName,
     PATIENT_MESSAGES_PS.askPhone('احمد'),
     PATIENT_MESSAGES_PS.invalidPhone,
-    PATIENT_MESSAGES_PS.acknowledged('https://wa.me/920000000000'),
-    PATIENT_MESSAGES_PS.caseInProgress('https://wa.me/920000000000'),
+    PATIENT_MESSAGES_PS.acknowledged('احمد', 'https://etabeeb.example/help'),
+    PATIENT_MESSAGES_PS.caseInProgress('https://etabeeb.example/help'),
     PATIENT_MESSAGES_PS.consultationConfirmed('2026-10-05 14:30', 'https://example.test/x', 'https://wa.me/920000000000'),
     PATIENT_MESSAGES_PS.consultationCancelled({ name: 'احمد', sex: 'MALE', reason: CANCELLATION_REASON_PS.DOCTOR_UNAVAILABLE!, helpUrl: 'https://wa.me/920000000000' }),
     ...Object.values(CANCELLATION_REASON_PS),
@@ -104,8 +104,8 @@ describe('Pashto patient messages', () => {
   })
   it('do not ask clinical questions in the acknowledgement', () => {
     // (the representative link's own query string is not a question)
-    expect(PATIENT_MESSAGES_PS.acknowledged('https://wa.me/920000000000?text=x').replace(/https:\/\/\S+/g, '')).not.toMatch(/\?|؟/)
-    expect(PATIENT_MESSAGES_PS.acknowledged(null)).not.toMatch(/\?|؟|wa\.me/)
+    expect(PATIENT_MESSAGES_PS.acknowledged('احمد', 'https://etabeeb.example/help')).not.toMatch(/\?|؟/)
+    expect(PATIENT_MESSAGES_PS.acknowledged(null, null)).not.toMatch(/\?|؟|https?:/)
   })
   it('formats times in clinic time', () => {
     expect(formatConsultationTimePs(new Date('2026-10-05T09:30:00Z'))).toBe('2026-10-05 14:30 (د پاکستان وخت)')

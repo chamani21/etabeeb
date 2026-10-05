@@ -15,7 +15,7 @@ import { dispatchOutboundJobs } from '@/lib/etabib/outbound'
 import { mintPatientJoinLink } from '@/lib/etabib/video'
 import { processInboundMessage } from '@/lib/etabib/whatsapp'
 import { listCasesForAdmin, listCasesForDoctor, getCaseDetailForDoctor } from '@/lib/etabib/queries'
-import { waMeLink, representativeLink, REPRESENTATIVE_PREFILL_PS } from '@/lib/etabib/links'
+import { waMeLink, representativeChatTarget, representativeHelpUrl, REPRESENTATIVE_PREFILL_PS } from '@/lib/etabib/links'
 import { POST as adminCancelRoute } from '@/app/api/admin/cases/[id]/cancel/route'
 import { POST as doctorCancelRoute } from '@/app/api/doctor/cases/[id]/cancel/route'
 import { POST as patientAccessRoute } from '@/app/api/video/patient/access/route'
@@ -177,7 +177,7 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
       expect(JSON.stringify(body)).not.toMatch(/etb-[0-9a-f]{32}|videoRoomToClose/)
 
       // friendly cancelled state + representative link, never "invalid"
-      expect(await access(token)).toEqual({ status: 'cancelled', helpUrl: `https://wa.me/${REP.slice(1)}?text=${encodeURIComponent(REPRESENTATIVE_PREFILL_PS)}` })
+      expect(await access(token)).toEqual({ status: 'cancelled', helpUrl: 'https://staging.example.test/help' })
       const t = await patientTokenRoute(jsonRequest('/x', { token }))
       expect(t.status).toBe(410)
       expect((await t.json()).code).toBe('video_cancelled')
@@ -240,7 +240,8 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
       expect(patient.to).toBe((await getCase(id)).whatsappPhone)
       expect(patient.text).toContain('ستاسو د eTabeeb آنلاین مشوره لغوه شوه')
       expect(patient.text).toContain('د لغوه کېدو لامل: ډاکټر په دې وخت کې شتون نه لري')
-      expect(patient.text).toContain(`https://wa.me/${REP.slice(1)}?text=`)
+      expect(patient.text).toContain('\nhttps://staging.example.test/help')
+      expect(patient.text).not.toContain('wa.me')
       expect(admin.to).toBe('+923009990001')
       expect(admin.text).toContain('eTabeeb — Consultation cancelled by doctor')
       expect(admin.text).toContain('Reason: Doctor unavailable')
@@ -259,7 +260,7 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
       const [m] = sentOfType('CONSULTATION_CANCELLED_PATIENT')
       expect(m.messageKind).toBe('template')
       expect(m.template.name).toBe('etabib_consultation_cancelled_ps')
-      expect(m.template.components[0].parameters.map((x: any) => x.text)).toEqual(['Synthetic Patient', 'د فیس د ورکړې ستونزه', expect.stringMatching(/^https:\/\/wa\.me\/923009990009\?text=/)])
+      expect(m.template.components[0].parameters.map((x: any) => x.text)).toEqual(['Synthetic Patient', 'د فیس د ورکړې ستونزه', 'https://staging.example.test/help'])
     })
   })
 
@@ -329,9 +330,10 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
       expect(waMeLink('+92 300-1234567', 'سلام، x')).toBe(`https://wa.me/923001234567?text=${encodeURIComponent('سلام، x')}`)
       expect(waMeLink('123')).toBeNull()
       expect(waMeLink(null)).toBeNull()
-      expect(representativeLink()).toBe(`https://wa.me/923009990009?text=${encodeURIComponent(REPRESENTATIVE_PREFILL_PS)}`)
+      expect(representativeChatTarget()).toBe(`https://wa.me/923009990009?text=${encodeURIComponent(REPRESENTATIVE_PREFILL_PS)}`)
+      expect(representativeHelpUrl()).toBe('https://staging.example.test/help')
       delete process.env.ETABIB_REPRESENTATIVE_WHATSAPP
-      expect(representativeLink()).toMatch(/^https:\/\/wa\.me\/923009990001\?text=/)
+      expect(representativeChatTarget()).toMatch(/^https:\/\/wa\.me\/923009990001\?text=/)
     })
 
     it('patient acknowledgement carries the representative link', async () => {
@@ -339,8 +341,9 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
       const [ack] = await jobsOfType('PATIENT_ACKNOWLEDGED')
       await dispatchOutboundJobs([ack!.id])
       const [m] = sentOfType('PATIENT_ACKNOWLEDGED')
-      expect(m.text).toContain('مننه! ستاسو د آنلاین مشورې غوښتنه ثبت شوه.')
-      expect(m.text).toContain(`https://wa.me/923009990009?text=${encodeURIComponent(REPRESENTATIVE_PREFILL_PS)}`)
+      expect(m.text).toContain('ستاسو د آنلاین مشورې غوښتنه ثبت شوه.')
+      expect(m.text).toContain('\nhttps://staging.example.test/help')
+      expect(m.text).not.toContain('wa.me')
     })
 
     it('doctor approval request: lock-screen safe summary + direct review link, no complaint/history', async () => {
@@ -348,10 +351,10 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
       const [job] = await jobsOfType('DOCTOR_APPROVAL_REQUEST')
       await dispatchOutboundJobs([job!.id])
       const [m] = sentOfType('DOCTOR_APPROVAL_REQUEST')
-      expect(m.text).toContain('eTabeeb — Consultation approval required')
+      expect(m.text).toContain('eTabeeb — Approval needed')
       expect(m.text).toContain('Age/Sex: 34 / FEMALE')
       expect(m.text).toContain(`🩺 Review & approve\nhttps://staging.example.test/doctor/cases/${id}`)
-      expect(m.text).toContain('Clinical details are available securely in the doctor dashboard.')
+      expect(m.text).toContain('Clinical details are available in the secure dashboard.')
       expect(JSON.stringify(m)).not.toMatch(/Synthetic complaint|None \(synthetic\)|shortComplaint|mainComplaint|medicalHistory/)
     })
 
@@ -361,8 +364,7 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
       await dispatchOutboundJobs([job!.id])
       const [m] = sentOfType('CONSULTATION_CONFIRMED_PATIENT')
       expect(m.text).toContain('ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه.')
-      expect(m.text).toMatch(/د آنلاین مشورې لپاره لاندې خوندي لینک خلاص کړئ:\nhttps:\/\/staging\.example\.test\/consult\/[A-Za-z0-9_-]{43}/)
-      expect(m.text).toContain('https://wa.me/923009990009?text=')
+      expect(m.text).toMatch(/د مشورې لینک:\nhttps:\/\/staging\.example\.test\/consult\/[A-Za-z0-9_-]{43}\n\nمرستې لپاره:\nhttps:\/\/staging\.example\.test\/help$/)
       const [s] = await db.select().from(consultationVideoSessions).where(eq(consultationVideoSessions.consultationId, id))
       expect(JSON.stringify(m)).not.toContain(s!.roomName)
       expect(JSON.stringify(m)).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}|livekit|APItestkey/i)

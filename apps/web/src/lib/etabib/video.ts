@@ -26,9 +26,9 @@ import { db } from '@etabeeb/db'
 import { consultationCases, consultationJoinTokens, consultationVideoSessions, practitioners } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
 import { and, eq, gt, isNull, sql } from 'drizzle-orm'
-import { getAppUrl, getLiveKitConfig, getV1DoctorUserId, getVideoWindows } from './config'
+import { getLiveKitConfig, getV1DoctorUserId, getVideoWindows } from './config'
 import { EtabibError } from './errors'
-import { representativeLink } from './links'
+import { consultationUrl, representativeHelpUrl } from './links'
 import { recordCaseEvent, type Actor, type Tx } from './transitions'
 
 export type VideoSession = typeof consultationVideoSessions.$inferSelect
@@ -47,7 +47,7 @@ export function newRoomName(): string {
 }
 
 export function patientJoinUrl(token: string): string {
-  return `${getAppUrl() ?? ''}/consult/${token}`
+  return consultationUrl(token)
 }
 
 // ------------------------------------------------------------------
@@ -247,7 +247,7 @@ async function doctorDisplayName(): Promise<string> {
 
 export async function getPatientAccess(rawToken: string): Promise<PatientAccess> {
   const { status, link } = await resolveLink(rawToken)
-  if (status === 'cancelled') return { status, helpUrl: representativeLink() }
+  if (status === 'cancelled') return { status, helpUrl: representativeHelpUrl() }
   if (!link || status === 'invalid' || status === 'revoked') return { status }
   const w = getVideoWindows()
   const info = {

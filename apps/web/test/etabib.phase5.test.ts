@@ -145,7 +145,7 @@ describe.skipIf(!hasTestDb)('Phase 5 — DB-backed', () => {
     await dispatchOutboundJobs([admin!.id])
     const payload = JSON.parse(fetchMock.mock.calls[0]![1].body)
     expect(payload.to).toBe('+923009990001')
-    expect(payload.text).toContain('New consultation request')
+    expect(payload.text).toContain('eTabeeb — New consultation')
     expect(payload.idempotencyKey).toMatch(/^etabib:ADMIN_NEW_CASE:/)
   })
 

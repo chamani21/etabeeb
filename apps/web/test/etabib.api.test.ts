@@ -176,11 +176,12 @@ describe.skipIf(!hasTestDb)('eTabib V1 — API', () => {
       // 30. further messages: no more questions, no onboarding restart
       const later1 = await sendWhatsApp(sender, 'زما سر درد کوي')
       const later2 = await sendWhatsApp(sender, 'Hello?')
-      expect(later1.body.results[0].outcome).toBe('case_in_progress')
-      expect(later2.body.results[0].outcome).toBe('case_in_progress')
+      expect(later1.body.results[0].outcome).toBe('already_acknowledged')
+      expect(later2.body.results[0].outcome).toBe('already_acknowledged')
       expect(await jobsOfType('ASK_PATIENT_NAME')).toHaveLength(1)
       expect(await jobsOfType('ASK_PATIENT_PHONE')).toHaveLength(2) // ask + one invalid re-ask, nothing after
-      expect(await jobsOfType('PATIENT_CASE_IN_PROGRESS')).toHaveLength(1) // once per stage
+      expect(await jobsOfType('PATIENT_ACKNOWLEDGED')).toHaveLength(1) // exactly one waiting message
+      expect(await jobsOfType('PATIENT_CASE_IN_PROGRESS')).toHaveLength(0) // none while the admin does intake
       expect((await getCase(caseId)).status).toBe('ADMIN_INTAKE')
       const eventTypes = (await eventsFor(caseId)).map((e) => e.eventType)
       expect(eventTypes).toEqual(['CASE_CREATED', 'PATIENT_NAME_RECEIVED', 'PATIENT_PHONE_RECEIVED', 'ADMIN_INTAKE_REQUESTED'])

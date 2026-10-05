@@ -129,8 +129,8 @@ export default function ConsultPage({ params }: { params: { token: string } }) {
           <Box kind="warning">
             <p className="font-semibold">{T.cancelled}</p>
             <p className="mt-2">{T.cancelledHelp}</p>
-            {access.helpUrl?.startsWith('https://wa.me/') && (
-              <a href={access.helpUrl} target="_blank" rel="noopener noreferrer" className="mt-3 flex min-h-[48px] items-center justify-center rounded-xl bg-[#25D366] px-4 text-base font-semibold text-white" data-testid="representative-link">
+            {access.helpUrl && /^https:\/\//.test(access.helpUrl) && (
+              <a href={access.helpUrl} rel="noopener noreferrer" className="mt-3 flex min-h-[48px] items-center justify-center rounded-xl bg-[#25D366] px-4 text-base font-semibold text-white" data-testid="representative-link">
                 {T.talkToRepresentative}
               </a>
             )}
