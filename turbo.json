@@ -19,7 +19,8 @@
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"],
-      "env": ["ETABIB_TEST_DATABASE_URL"]
+      "env": ["ETABIB_TEST_DATABASE_URL"],
+      "passThroughEnv": ["CHROMIUM_PATH", "FFMPEG_PATH", "FFPROBE_PATH", "PATH"]
     },
     "db:push": {
       "cache": false

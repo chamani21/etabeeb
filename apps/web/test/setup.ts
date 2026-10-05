@@ -14,6 +14,8 @@ delete process.env.ETABIB_N8N_OUTBOUND_KEY
 process.env.ETABIB_WHATSAPP_INBOUND_ENABLED = 'true'
 process.env.ETABIB_INBOUND_MODE = 'public'
 delete process.env.ETABIB_WA_TEMPLATES
+// Synthetic signing secret (session JWTs, signed media links)
+process.env.NEXTAUTH_SECRET ??= 'synthetic-nextauth-secret-not-a-real-secret'
 
 // Prescription rendering needs a Chromium binary and takes seconds; general suites
 // use a tiny deterministic stand-in. test/p3.prescription.render.test.ts uses the

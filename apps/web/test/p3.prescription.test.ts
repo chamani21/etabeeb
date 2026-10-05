@@ -195,6 +195,8 @@ describe.skipIf(!hasTestDb)('prescription stage', () => {
     it('copy medicines from a previous prescription of the same patient into a NEW draft (old one untouched)', async () => {
       const first = await caseAt('COMPLETED', { adminId, doctorId })
       const [old] = await rxOf(first.id)
+      // the old prescription was delivered long ago
+      await db.update(notificationOutbox).set({ status: 'read' }).where(eq(notificationOutbox.templateKey, 'PRESCRIPTION_IMAGE'))
       // same patient returns (new case from the same WhatsApp number)
       const next = await processInboundMessage(inbound(first.sender, 'Salam again'))
       const caseId = next.consultationId!
