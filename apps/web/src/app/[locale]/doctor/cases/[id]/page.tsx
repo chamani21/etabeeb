@@ -8,6 +8,7 @@ import { Button, Card, Dl, Field, Notice, StatusBadge, inputCls, useAction } fro
 import { CancelConsultation, CancellationSummary } from '@/components/staff/CancelConsultation'
 import { cancellationReasonLabel } from '@/lib/etabib/cancellation'
 import dynamic from 'next/dynamic'
+import { DoctorPrescription } from '@/components/staff/rx/DoctorPrescription'
 
 const VideoRoom = dynamic(() => import('@/components/video/VideoRoom').then((m) => m.VideoRoom), { ssr: false })
 
@@ -59,9 +60,8 @@ export default function DoctorCaseDetailPage({ params }: { params: { id: string 
       {(c.status === 'CONFIRMED' || c.status === 'IN_CONSULTATION') && data.video && <DoctorVideoCard caseId={c.id} video={data.video} />}
       {c.status === 'AWAITING_DOCTOR_APPROVAL' && <DecisionForm c={c} onDone={load} />}
       {c.status === 'CONFIRMED' && <StartCard caseId={c.id} approvedTime={c.doctorApprovedTime} onDone={load} />}
-      {c.status === 'IN_CONSULTATION' && !c.hasPrescription && <PrescriptionEditor caseId={c.id} patientName={c.patientName} onDone={load} />}
+      {['CONFIRMED', 'IN_CONSULTATION', 'PRESCRIPTION_SENT', 'COMPLETED'].includes(c.status) && <DoctorPrescription caseId={c.id} onCaseChange={load} />}
       <CancelConsultation role="DOCTOR" c={c} onDone={load} />
-      {data.prescription && <PrescriptionView rx={data.prescription} delivery={data.prescriptionDelivery} status={c.status} />}
 
       <Card title="Timeline">
         <ol className="space-y-1 text-sm">
@@ -142,146 +142,6 @@ function StartCard({ caseId, approvedTime, onDone }: { caseId: string; approvedT
       <p className="mb-3 text-sm">Scheduled for <b>{fmtTime(approvedTime)}</b>. Start the consultation when you begin; then write the prescription.</p>
       <Button disabled={busy} onClick={() => run(async () => { await api(`/api/doctor/cases/${caseId}/start`, { method: 'POST', body: {} }); await onDone() })}>Start consultation</Button>
       {error && <div className="mt-2"><Notice kind="error">{error}</Notice></div>}
-    </Card>
-  )
-}
-
-type Item = { genericName: string; strength: string; formulation: string; dose: string; frequency: string; timing: string; durationDays: string; patientInstructions: string }
-const emptyItem: Item = { genericName: '', strength: '', formulation: '', dose: '', frequency: '', timing: '', durationDays: '', patientInstructions: '' }
-
-function PrescriptionEditor({ caseId, patientName, onDone }: { caseId: string; patientName: string | null; onDone: () => Promise<void> }) {
-  const [items, setItems] = useState<Item[]>([{ ...emptyItem }])
-  const [sec, setSec] = useState({ diagnosis: '', investigations: '', advice: '', followUp: '', notes: '' })
-  const [preview, setPreview] = useState(false)
-  const [showMissing, setShowMissing] = useState(false)
-  const { busy, error, message, run } = useAction()
-  const setItem = (i: number, k: keyof Item, v: string) => setItems(items.map((it, n) => (n === i ? { ...it, [k]: v } : it)))
-  const missingOf = (i: Item) =>
-    [!i.genericName.trim() && 'medicine name', !i.dose.trim() && 'dose', !i.frequency.trim() && 'frequency'].filter(Boolean) as string[]
-  const missing = items.map((i, n) => ({ n: n + 1, fields: missingOf(i) })).filter((m) => m.fields.length > 0)
-  const valid = items.length > 0 && missing.length === 0
-  const req = (empty: boolean) => (showMissing && empty ? ' border-red-500 ring-1 ring-red-500' : '')
-  const clean = (v: string) => (v.trim() ? v.trim() : null)
-  const body = {
-    items: items.map((i) => ({
-      genericName: i.genericName.trim(),
-      ...(i.strength.trim() ? { strength: i.strength.trim() } : {}),
-      ...(i.formulation.trim() ? { formulation: i.formulation.trim() } : {}),
-      dose: i.dose.trim(),
-      frequency: i.frequency.trim(),
-      ...(i.timing.trim() ? { timing: i.timing.trim() } : {}),
-      ...(i.durationDays ? { durationDays: Number(i.durationDays) } : {}),
-      ...(i.patientInstructions.trim() ? { patientInstructions: i.patientInstructions.trim() } : {}),
-      substitutionAllowed: true,
-      isControlled: false,
-    })),
-    diagnosis: clean(sec.diagnosis),
-    investigations: clean(sec.investigations),
-    advice: clean(sec.advice),
-    followUp: clean(sec.followUp),
-    notes: clean(sec.notes),
-  }
-  return (
-    <Card title="Prescription">
-      <div className="mb-3"><Notice kind="warning">Staging: the prescription is sent to the patient as a <b>WhatsApp text message</b> (Pashto headings + your content). No PDF is generated. Once sent it cannot be edited.</Notice></div>
-      {!preview ? (
-        <>
-          <div className="grid grid-cols-1 gap-3">
-            <Field label="Diagnosis / assessment"><textarea rows={2} className={inputCls} value={sec.diagnosis} onChange={(e) => setSec({ ...sec, diagnosis: e.target.value })} /></Field>
-          </div>
-          <div className="mt-3 space-y-3">
-            <div className="font-semibold text-gray-800">Medicines</div>
-            {items.map((it, i) => (
-              <div key={i} className="grid grid-cols-2 gap-2 rounded border border-gray-200 p-2 md:grid-cols-4">
-                <input className={inputCls + req(!it.genericName.trim())} placeholder="Medicine (generic) *" value={it.genericName} onChange={(e) => setItem(i, 'genericName', e.target.value)} />
-                <input className={inputCls} placeholder="Strength (e.g. 500 mg)" value={it.strength} onChange={(e) => setItem(i, 'strength', e.target.value)} />
-                <input className={inputCls} placeholder="Form (tablet, syrup…)" value={it.formulation} onChange={(e) => setItem(i, 'formulation', e.target.value)} />
-                <input className={inputCls + req(!it.dose.trim())} placeholder="Dose * (e.g. 1 tablet)" value={it.dose} onChange={(e) => setItem(i, 'dose', e.target.value)} />
-                <input className={inputCls + req(!it.frequency.trim())} placeholder="Frequency * (e.g. twice daily)" value={it.frequency} onChange={(e) => setItem(i, 'frequency', e.target.value)} />
-                <input className={inputCls} placeholder="Timing (after meals…)" value={it.timing} onChange={(e) => setItem(i, 'timing', e.target.value)} />
-                <input className={inputCls} type="number" min={1} placeholder="Duration (days)" value={it.durationDays} onChange={(e) => setItem(i, 'durationDays', e.target.value)} />
-                <div className="flex gap-2">
-                  <input className={inputCls} placeholder="Instructions" value={it.patientInstructions} onChange={(e) => setItem(i, 'patientInstructions', e.target.value)} />
-                  {items.length > 1 && <Button variant="secondary" onClick={() => setItems(items.filter((_, n) => n !== i))}>✕</Button>}
-                </div>
-              </div>
-            ))}
-            <Button variant="secondary" onClick={() => setItems([...items, { ...emptyItem }])}>+ Add medicine</Button>
-          </div>
-          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Field label="Investigations"><textarea rows={2} className={inputCls} value={sec.investigations} onChange={(e) => setSec({ ...sec, investigations: e.target.value })} /></Field>
-            <Field label="Advice"><textarea rows={2} className={inputCls} value={sec.advice} onChange={(e) => setSec({ ...sec, advice: e.target.value })} /></Field>
-            <Field label="Follow-up"><textarea rows={2} className={inputCls} value={sec.followUp} onChange={(e) => setSec({ ...sec, followUp: e.target.value })} /></Field>
-            <Field label="Notes"><textarea rows={2} className={inputCls} value={sec.notes} onChange={(e) => setSec({ ...sec, notes: e.target.value })} /></Field>
-          </div>
-          <div className="mt-3 space-y-2">
-            <p className="text-xs text-gray-500">Fields marked * are required for every medicine: medicine name, dose and frequency.</p>
-            {showMissing && !valid && (
-              <Notice kind="error">
-                Please complete: {missing.map((m) => `medicine ${m.n} — ${m.fields.join(', ')}`).join('; ')}.
-              </Notice>
-            )}
-            <Button onClick={() => (valid ? setPreview(true) : setShowMissing(true))} data-testid="rx-review">Review before sending</Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="rounded border border-gray-200 bg-gray-50 p-3 text-sm">
-            <div className="mb-2 font-semibold">For: {patientName ?? 'patient'}</div>
-            {body.diagnosis && <p><b>Diagnosis:</b> {body.diagnosis}</p>}
-            <ol className="my-2 list-decimal pl-5">
-              {body.items.map((i, n) => <li key={n}>{[i.genericName, i.strength, i.formulation].filter(Boolean).join(' ')} — {[i.dose, i.frequency, i.timing].filter(Boolean).join(', ')}{i.durationDays ? `, ${i.durationDays} days` : ''}{i.patientInstructions ? ` (${i.patientInstructions})` : ''}</li>)}
-            </ol>
-            {body.investigations && <p><b>Investigations:</b> {body.investigations}</p>}
-            {body.advice && <p><b>Advice:</b> {body.advice}</p>}
-            {body.followUp && <p><b>Follow-up:</b> {body.followUp}</p>}
-            {body.notes && <p><b>Notes:</b> {body.notes}</p>}
-          </div>
-          <div className="mt-3 flex gap-2">
-            <Button variant="secondary" onClick={() => setPreview(false)}>Back to edit</Button>
-            <Button
-              disabled={busy}
-              onClick={() =>
-                run(async () => {
-                  await api(`/api/doctor/cases/${caseId}/prescription`, { body })
-                  await onDone()
-                  return 'Prescription signed and queued for WhatsApp delivery.'
-                })
-              }
-            >
-              Sign and send to patient
-            </Button>
-          </div>
-        </>
-      )}
-      <div className="mt-3 space-y-2">
-        {error && <Notice kind="error">{error}</Notice>}
-        {message && <Notice kind="success">{message}</Notice>}
-      </div>
-    </Card>
-  )
-}
-
-function PrescriptionView({ rx, delivery, status }: { rx: any; delivery: any; status: string }) {
-  const deliveryText = !delivery
-    ? 'Not queued'
-    : delivery.delivered
-      ? `Delivered to WhatsApp (${delivery.status})`
-      : delivery.status === 'failed'
-        ? `FAILED: ${delivery.lastError ?? 'unknown'} — the admin can retry from the case page`
-        : `Sending… (${delivery.status})`
-  return (
-    <Card title={`Prescription #${rx.number}`}>
-      <div className="mb-2"><Notice kind={delivery?.delivered ? 'success' : delivery?.status === 'failed' ? 'error' : 'info'}>Delivery: {deliveryText}. Case status: {status.replace(/_/g, ' ')}.</Notice></div>
-      <Dl rows={[
-        ['Diagnosis', rx.diagnosis],
-        ['Medicines', <ol key="m" className="list-decimal pl-5">{rx.items.map((i: any, n: number) => <li key={n}>{[i.genericName, i.strength, i.formulation].filter(Boolean).join(' ')} — {[i.dose, i.frequency, i.timing].filter(Boolean).join(', ')}{i.durationDays ? `, ${i.durationDays} days` : ''}</li>)}</ol>],
-        ['Investigations', rx.investigations],
-        ['Advice', rx.advice],
-        ['Follow-up', rx.followUp],
-        ['Notes', rx.notes],
-        ['Signed', fmtTime(rx.signedAt)],
-      ]} />
     </Card>
   )
 }

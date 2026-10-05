@@ -10,7 +10,7 @@ import { getCurrentUser } from '@/lib/auth-helpers'
 import { db } from '@etabeeb/db'
 import { consultationVideoSessions, notificationOutbox } from '@etabeeb/db/schema'
 import { eq, sql } from 'drizzle-orm'
-import { cancelConsultation, applyOutboundResult, createCasePrescription, startConsultation } from '@/lib/etabib/cases'
+import { cancelConsultation, createCasePrescription, startConsultation } from '@/lib/etabib/cases'
 import { dispatchOutboundJobs } from '@/lib/etabib/outbound'
 import { mintPatientJoinLink } from '@/lib/etabib/video'
 import { processInboundMessage } from '@/lib/etabib/whatsapp'
@@ -108,9 +108,7 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
     })
 
     it('cancellation from COMPLETED is rejected', async () => {
-      const { id } = await caseAt('PRESCRIBED', { adminId, doctorId })
-      const [job] = await jobsOfType('PRESCRIPTION_READY')
-      await applyOutboundResult({ jobId: job!.id, success: true, status: 'sent', wamid: 'wamid.SYN.RX.C' })
+      const { id } = await caseAt('COMPLETED', { adminId, doctorId })
       expect((await getCase(id)).status).toBe('COMPLETED')
       await expect(cancelConsultation(id, { reason: 'PATIENT_REQUESTED' }, ADMIN())).rejects.toMatchObject({ code: 'cancel_not_allowed' })
     })

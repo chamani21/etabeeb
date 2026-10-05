@@ -15,14 +15,15 @@
  * No n8n URL or key is referenced anywhere else in the codebase.
  */
 import { db } from '@etabeeb/db'
-import { notificationOutbox, consultationCases, prescriptions, prescriptionItems } from '@etabeeb/db/schema'
+import { notificationOutbox, consultationCases, prescriptions, prescriptionItems, whatsappEvents } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
-import { and, eq, asc, lt, sql } from 'drizzle-orm'
+import { and, eq, asc, inArray, lt, max, sql } from 'drizzle-orm'
 import { ETABIB_KEY_HEADER, getAdminWhatsapp, getDoctorWhatsapp, getOutboundConfig } from './config'
 import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatConsultationTimePs, formatPrescriptionTextPs } from './messages.ps'
 import { STAFF_MESSAGES, clinicClock, clinicTime } from './messages.staff'
 import { cancellationReasonLabel } from './cancellation'
 import { adminCaseUrl, doctorCaseUrl, patientWhatsAppUrl, representativeHelpUrl } from './links'
+import { signedMediaUrl } from './media-links'
 import { JOB_INTENT, buildTemplatePayload, getApprovedTemplates, type TemplatePayload } from './templates'
 import type { Tx } from './transitions'
 import { mintPatientJoinLink } from './video'
@@ -40,6 +41,9 @@ export const OUTBOUND_JOB_TYPES = [
   'CONSULTATION_CANCELLED_PATIENT',
   'CONSULTATION_CANCELLED_ADMIN',
   'CONSULTATION_CANCELLED_DOCTOR',
+  // Prescription stage: rendered image page(s) and the doctor's voice explanation
+  'PRESCRIPTION_IMAGE',
+  'PRESCRIPTION_VOICE',
 ] as const
 export type OutboundJobType = (typeof OUTBOUND_JOB_TYPES)[number]
 
@@ -58,7 +62,14 @@ export const JOB_AUDIENCE: Readonly<Record<OutboundJobType, OutboundAudience>> =
   CONSULTATION_CANCELLED_PATIENT: 'PATIENT',
   CONSULTATION_CANCELLED_ADMIN: 'ADMIN',
   CONSULTATION_CANCELLED_DOCTOR: 'DOCTOR',
+  PRESCRIPTION_IMAGE: 'PATIENT',
+  PRESCRIPTION_VOICE: 'PATIENT',
 }
+
+/** Media jobs WhatsApp can only deliver inside the patient's 24-hour window (no approved media template). */
+const WINDOW_BOUND_TYPES: ReadonlySet<string> = new Set<OutboundJobType>(['PRESCRIPTION_IMAGE', 'PRESCRIPTION_VOICE'])
+/** A media job still waiting for the window after this long is failed (visible + retryable). */
+const WINDOW_WAIT_MAX_MS = 7 * 86_400_000
 
 /** Jobs that still make sense once a case is CANCELLED; every other pending job is withdrawn. */
 export const CANCELLATION_JOB_TYPES: ReadonlySet<string> = new Set<OutboundJobType>([
@@ -75,6 +86,14 @@ export interface OutboundJobRefs {
   consultationId: string
   messageKey?: PatientMessageKey
   prescriptionId?: string
+  /** PRESCRIPTION_IMAGE: 1-based page and page count; whether a voice note follows */
+  page?: number
+  pages?: number
+  withVoice?: boolean
+  /** PRESCRIPTION_VOICE */
+  voiceNoteId?: string
+  /** Job ids that must be handed to WhatsApp first (message order) */
+  dependsOn?: string[]
 }
 
 export interface EnqueuedJob {
@@ -100,6 +119,11 @@ export async function enqueueOutboundJob(
     recipientPhone?: string | null
     messageKey?: PatientMessageKey
     prescriptionId?: string
+    page?: number
+    pages?: number
+    withVoice?: boolean
+    voiceNoteId?: string
+    dependsOn?: string[]
   },
 ): Promise<EnqueuedJob> {
   const idempotencyKey = `${KEY_PREFIX}${input.type}:${input.dedupeKey}`
@@ -107,6 +131,10 @@ export async function enqueueOutboundJob(
     consultationId: input.consultationId,
     ...(input.messageKey ? { messageKey: input.messageKey } : {}),
     ...(input.prescriptionId ? { prescriptionId: input.prescriptionId } : {}),
+    ...(input.page ? { page: input.page, pages: input.pages ?? input.page } : {}),
+    ...(input.withVoice ? { withVoice: true } : {}),
+    ...(input.voiceNoteId ? { voiceNoteId: input.voiceNoteId } : {}),
+    ...(input.dependsOn?.length ? { dependsOn: input.dependsOn } : {}),
   }
   const inserted = await tx
     .insert(notificationOutbox)
@@ -162,8 +190,10 @@ export interface OutboundPayload {
    * or the configured admin / doctor number. Absent only when not configured.
    */
   to?: string
-  /** `text` (free-form, 24-hour window) or `template` (approved Meta template). */
-  messageKind: 'text' | 'template'
+  /** `text` (free-form, 24-hour window), `template` (approved Meta template), or media (24-hour window). */
+  messageKind: 'text' | 'template' | 'image' | 'audio'
+  /** image/audio: short-lived signed HTTPS link WhatsApp fetches; caption (image) / voice flag (audio). */
+  media?: { link: string; caption?: string; voice?: boolean }
   /** Ready-to-send text: Pashto for patients, short English notice for staff (text kind only). */
   text?: string
   /** Strictly validated template (template kind only). Never built from browser input. */
@@ -181,7 +211,7 @@ function patientRecipient(c: ConsultationCase): string | undefined {
   return c.whatsappPhone ?? c.patientPhone ?? undefined
 }
 
-type TextPayload = Omit<OutboundPayload, 'messageKind' | 'template'>
+type TextPayload = Omit<OutboundPayload, 'messageKind' | 'template'> & { messageKind?: 'image' | 'audio' }
 interface BuiltText {
   payload: TextPayload
   /** Body parameters if this job's intent is sent as an approved template. */
@@ -203,6 +233,9 @@ async function buildPayload(
 ): Promise<OutboundPayload | null> {
   const built = await buildTextPayload(job, refs)
   if (!built) return null
+  if (built.payload.messageKind === 'image' || built.payload.messageKind === 'audio') {
+    return { ...built.payload, messageKind: built.payload.messageKind }
+  }
   const intent = JOB_INTENT[built.payload.type]
   const approved = intent ? getApprovedTemplates()[intent] : undefined
   if (!intent || !approved || !built.templateValues) return { ...built.payload, messageKind: 'text' }
@@ -368,6 +401,28 @@ async function buildTextPayload(
         },
       }
     }
+    case 'PRESCRIPTION_IMAGE': {
+      const rxId = refs.prescriptionId
+      const page = refs.page ?? 1
+      if (!rxId) return null
+      const link = signedMediaUrl({ kind: 'rx-image', id: rxId, page })
+      if (!link) return null
+      const pages = refs.pages ?? 1
+      const caption = page === 1 ? PATIENT_MESSAGES_PS.prescriptionImageCaption({ withVoice: Boolean(refs.withVoice), pages, helpUrl: representativeHelpUrl() }) : `(${page}/${pages})`
+      return {
+        templateValues: null,
+        payload: { ...base, ...(to ? { to } : {}), messageKind: 'image', media: { link, caption }, data: { prescriptionId: rxId, page, pages } },
+      }
+    }
+    case 'PRESCRIPTION_VOICE': {
+      if (!refs.voiceNoteId) return null
+      const link = signedMediaUrl({ kind: 'voice', id: refs.voiceNoteId })
+      if (!link) return null
+      return {
+        templateValues: null,
+        payload: { ...base, ...(to ? { to } : {}), messageKind: 'audio', media: { link, voice: true }, data: { voiceNoteId: refs.voiceNoteId } },
+      }
+    }
     case 'PRESCRIPTION_READY': {
       const prescriptionId = refs.prescriptionId ?? c.prescriptionId
       if (!prescriptionId) return null
@@ -386,7 +441,7 @@ async function buildTextPayload(
         advice: rx.advice,
         followUp: rx.followUp,
         notes: rx.notes,
-        items,
+        items: items.map((i) => ({ ...i, dose: i.dose ?? '', frequency: i.frequency ?? '' })),
       })
       const medicines = items
         .map((i) => [i.genericName, i.strength, i.dose, i.frequency].filter(Boolean).join(' '))
@@ -425,6 +480,55 @@ async function releaseJob(jobId: string, reason: string): Promise<void> {
     .update(notificationOutbox)
     .set({ status: 'pending', attempts: (row?.attempts ?? 0) + 1, lastError: reason.slice(0, 200) })
     .where(and(eq(notificationOutbox.id, jobId), eq(notificationOutbox.status, 'processing')))
+}
+
+/** Last time the patient's WhatsApp number wrote to eTabeeb (opens Meta's 24-hour window). */
+export async function lastPatientMessageAt(caseId: string): Promise<Date | null> {
+  const [c] = await db.select({ phone: consultationCases.whatsappPhone }).from(consultationCases).where(eq(consultationCases.id, caseId)).limit(1)
+  if (!c?.phone) return null
+  const [row] = await db.select({ last: max(whatsappEvents.createdAt) }).from(whatsappEvents).where(eq(whatsappEvents.senderPhone, c.phone))
+  return row?.last ? new Date(row.last) : null
+}
+
+const WINDOW_MS = 23.5 * 3600_000
+
+/** Why a media job must wait (null = send now). */
+async function mediaHoldReason(job: { createdAt: Date }, refs: OutboundJobRefs): Promise<string | null> {
+  if (Date.now() - job.createdAt.getTime() > WINDOW_WAIT_MAX_MS) return 'expired'
+  if (refs.dependsOn?.length) {
+    const deps = await db.select({ status: notificationOutbox.status }).from(notificationOutbox).where(inArray(notificationOutbox.id, refs.dependsOn))
+    if (deps.some((d) => d.status === 'pending' || d.status === 'processing')) return 'waiting_for_previous_message: the prescription image is sent first'
+  }
+  const last = await lastPatientMessageAt(refs.consultationId)
+  if (!last || Date.now() - last.getTime() > WINDOW_MS) {
+    return 'waiting_for_patient_reply: WhatsApp 24-hour window is closed; sent automatically when the patient writes to eTabeeb'
+  }
+  return null
+}
+
+/** Pending media jobs of the case that were held (window / ordering) — dispatched when the patient writes. */
+export async function heldMediaJobsForCase(caseId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: notificationOutbox.id })
+    .from(notificationOutbox)
+    .where(
+      and(
+        eq(notificationOutbox.status, 'pending'),
+        inArray(notificationOutbox.templateKey, [...WINDOW_BOUND_TYPES]),
+        sql`(${notificationOutbox.templateVariables}::jsonb ->> 'consultationId') = ${caseId}`,
+      ),
+    )
+    .orderBy(asc(notificationOutbox.createdAt))
+  return rows.map((r) => r.id)
+}
+
+/** Pending jobs that were waiting on `jobId` (message order) — dispatched once it was handed to WhatsApp. */
+export async function dependentJobs(jobId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: notificationOutbox.id })
+    .from(notificationOutbox)
+    .where(and(eq(notificationOutbox.status, 'pending'), sql`(${notificationOutbox.templateVariables}::jsonb -> 'dependsOn') ? ${jobId}`))
+  return rows.map((r) => r.id)
 }
 
 async function isCaseCancelled(caseId: string): Promise<boolean> {
@@ -482,6 +586,20 @@ export async function dispatchOutboundJobs(jobIds: string[]): Promise<DispatchRe
         continue
       }
       const refs = parseJobRefs(claimed.templateVariables)
+      if (refs && WINDOW_BOUND_TYPES.has(claimed.templateKey)) {
+        const hold = await mediaHoldReason(claimed, refs)
+        if (hold === 'expired') {
+          await db.update(notificationOutbox).set({ status: 'failed', lastError: 'window_closed: the patient did not message eTabeeb within 7 days', processedAt: new Date() }).where(eq(notificationOutbox.id, jobId))
+          results.push({ jobId, dispatched: false, reason: 'window_closed_expired' })
+          continue
+        }
+        if (hold) {
+          // Not an attempt: stays pending (the scheduler and the next patient message re-try it)
+          await db.update(notificationOutbox).set({ status: 'pending', lastError: hold }).where(and(eq(notificationOutbox.id, jobId), eq(notificationOutbox.status, 'processing')))
+          results.push({ jobId, dispatched: false, reason: hold.split(':')[0]! })
+          continue
+        }
+      }
       if (refs && !CANCELLATION_JOB_TYPES.has(claimed.templateKey) && (await isCaseCancelled(refs.consultationId))) {
         // Race with cancellation: never send an obsolete message for a cancelled case
         await withdrawJob(jobId)

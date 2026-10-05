@@ -4,7 +4,7 @@ import { errorResponse } from '@/lib/etabib/errors'
 import { parseJsonBody, readRawBody } from '@/lib/etabib/schemas'
 import { checkMetaVerification, requireMetaSignature } from '@/lib/etabib/meta-signature'
 import { extractInboundMessages, processInboundMessage } from '@/lib/etabib/whatsapp'
-import { dispatchOutboundJobs } from '@/lib/etabib/outbound'
+import { dispatchOutboundJobs, heldMediaJobsForCase } from '@/lib/etabib/outbound'
 import { applyDeliveryStatus, extractDeliveryStatuses } from '@/lib/etabib/delivery'
 
 // GET /api/hooks/whatsapp — Meta webhook verification, relayed by n8n (shared-key auth).
@@ -44,6 +44,9 @@ export async function POST(req: NextRequest) {
     }
     // Dispatch only newly created jobs, after the transactions committed
     await dispatchOutboundJobs(results.flatMap((r) => r.jobs.filter((j) => j.created).map((j) => j.id)))
+    // The patient wrote: Meta's 24-hour window is open — release prescription media held for it
+    const patientCases = [...new Set(results.filter((r) => !r.duplicate && r.outcome !== 'ignored' && r.consultationId).map((r) => r.consultationId!))]
+    for (const caseId of patientCases) await dispatchOutboundJobs(await heldMediaJobsForCase(caseId))
 
     return NextResponse.json({
       success: true,

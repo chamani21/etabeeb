@@ -64,7 +64,10 @@ const nextConfig = {
   },
 
   // Experimental — removed typedRoutes because portal layouts use dynamic href arrays
-  experimental: {},
+  experimental: {
+    // Server-only: drives the container's Chromium for prescription rendering
+    serverComponentsExternalPackages: ['puppeteer-core'],
+  },
 }
 
 export default withNextIntl(nextConfig)

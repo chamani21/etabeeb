@@ -231,21 +231,30 @@ describe.skipIf(!hasTestDb)('Phase 6.6 video consultation', () => {
   })
 
   describe('completion closes video access', () => {
-    it('13. after COMPLETED: session ENDED, links revoked, no new tokens; room name not leaked', async () => {
+    it('13. sending the prescription keeps the call open; only explicit completion closes video', async () => {
       const { id } = await confirmedNow()
       const token = tokenOf((await mintPatientJoinLink(id))!.url)
       await db.update(consultationCases).set({ status: 'IN_CONSULTATION' }).where(eq(consultationCases.id, id))
       const { createCasePrescription } = await import('@/lib/etabib/cases')
       await createCasePrescription(id, [{ genericName: 'Synthetic', dose: '1', frequency: 'daily', substitutionAllowed: true, isControlled: false }], { type: 'DOCTOR', id: doctorId })
-      const [job] = await jobsOfType('PRESCRIPTION_READY')
+      const [job] = await jobsOfType('PRESCRIPTION_IMAGE')
       const res = await outboundResultRoute(jsonRequest('/x', { jobId: job!.id, success: true, status: 'sent', wamid: 'wamid.SYN.RX.1' }, { 'x-etabib-key': HOOK_KEY }))
-      const body = await res.json()
-      expect(body.consultationStatus).toBe('COMPLETED')
+      expect((await res.json()).consultationStatus).toBe('IN_CONSULTATION')
+      // prescription sent + delivered: the patient and the doctor can still (re)join the same room
+      expect((await session(id))!.status).not.toBe('ENDED')
+      expect((await patientToken(token)).status).toBe(200)
+      loginAs(doctorId)
+      expect((await doctorTokenRoute(jsonRequest('/x', {}), p(id))).status).toBe(200)
+
+      // the doctor deliberately completes the consultation
+      const { POST: completeRoute } = await import('@/app/api/doctor/cases/[id]/complete/route')
+      const done = await completeRoute(jsonRequest('/x', {}), p(id))
+      const body = await done.json()
+      expect(body).toMatchObject({ success: true, caseStatus: 'COMPLETED' })
       expect(JSON.stringify(body)).not.toMatch(/etb-[0-9a-f]{32}|videoRoomToClose/)
       expect((await session(id))!.status).toBe('ENDED')
       expect((await patientToken(token)).status).toBe(410)
       expect((await access(token)).status).toBe('ended')
-      loginAs(doctorId)
       expect((await doctorTokenRoute(jsonRequest('/x', {}), p(id))).status).toBe(409)
       expect(await mintPatientJoinLink(id)).toBeNull()
       expect((await eventsFor(id)).map((e) => e.eventType)).toContain('VIDEO_SESSION_ENDED')

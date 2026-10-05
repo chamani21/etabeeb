@@ -16,8 +16,7 @@ import {
   templatePayloadSchema,
 } from '@/lib/etabib/templates'
 import { dispatchOutboundJobs } from '@/lib/etabib/outbound'
-import { applyOutboundResult, createCasePrescription } from '@/lib/etabib/cases'
-import { hasTestDb, resetDb, createUser, getCase, jobsOfType, caseAt, rxItems } from './helpers'
+import { hasTestDb, resetDb, createUser, getCase, jobsOfType, caseAt } from './helpers'
 
 describe('template configuration and payloads', () => {
   afterEach(() => delete process.env.ETABIB_WA_TEMPLATES)
@@ -155,40 +154,17 @@ describe.skipIf(!hasTestDb)('template transport', () => {
     expect(sent().every((p) => p.messageKind === 'text')).toBe(true)
   })
 
-  it('prescription text is built by the backend in Pashto with all sections; n8n receives no item list', async () => {
-    const { id } = await caseAt('IN_CONSULTATION', { adminId, doctorId })
-    await createCasePrescription(id, rxItems, { type: 'DOCTOR', id: doctorId }, { diagnosis: 'SYN diagnosis', advice: 'SYN advice', followUp: 'SYN follow-up' })
-    const [job] = await jobsOfType('PRESCRIPTION_READY')
+  it('prescription is delivered as the rendered image with a Pashto caption (no template, no item list)', async () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://staging.example.test'
+    process.env.ETABIB_WA_TEMPLATES = JSON.stringify(Object.fromEntries(MESSAGE_INTENTS.map((i) => [i, { name: TEMPLATE_DEFINITIONS[i].proposedName, language: TEMPLATE_DEFINITIONS[i].language }])))
+    await caseAt('PRESCRIBED', { adminId, doctorId })
+    const [job] = await jobsOfType('PRESCRIPTION_IMAGE')
     await dispatchOutboundJobs([job!.id])
     const [p] = sent()
-    expect(p.messageKind).toBe('text')
-    for (const s of ['نسخه', 'تشخیص: SYN diagnosis', 'درمل:', '1. Paracetamol 500mg - 1 tablet | twice daily', 'مشورې: SYN advice', 'بیا کتنه: SYN follow-up']) {
-      expect(p.text).toContain(s)
-    }
-    expect(p.data).toEqual({ prescription: { number: expect.stringMatching(/^[0-9A-F]{8}$/), textComplete: true } })
-  })
-
-  it('prescription via approved template carries a one-line medicine summary', async () => {
-    process.env.ETABIB_WA_TEMPLATES = JSON.stringify({ PATIENT_PRESCRIPTION_READY: { name: 'etabib_prescription_ready_ps_v1', language: 'ps_AF' } })
-    const { id } = await caseAt('IN_CONSULTATION', { adminId, doctorId })
-    await createCasePrescription(id, rxItems, { type: 'DOCTOR', id: doctorId })
-    const [job] = await jobsOfType('PRESCRIPTION_READY')
-    await dispatchOutboundJobs([job!.id])
-    const [p] = sent()
-    expect(p.template).toMatchObject({ name: 'etabib_prescription_ready_ps_v1', language: 'ps_AF' })
-    expect(p.template.components[0].parameters[1].text).toContain('Paracetamol')
-  })
-
-  it('callback success (with wamid) completes the case; a failure leaves it IN_CONSULTATION', async () => {
-    process.env.ETABIB_WA_TEMPLATES = JSON.stringify({ PATIENT_PRESCRIPTION_READY: { name: 'etabib_prescription_ready_ps_v1', language: 'ps_AF' } })
-    const ok = await caseAt('PRESCRIBED', { adminId, doctorId })
-    const okJob = (await jobsOfType('PRESCRIPTION_READY')).find((j) => JSON.parse(j.templateVariables!).consultationId === ok.id)!
-    const failed = await applyOutboundResult({ jobId: okJob.id, success: false, status: 'failed', error: { code: 131047, message: 'Re-engagement message' } })
-    expect(failed.consultationStatus).toBe('IN_CONSULTATION')
-    const done = await applyOutboundResult({ jobId: okJob.id, success: true, status: 'sent', wamid: 'wamid.SYN.TEMPLATE.1' })
-    expect(done.consultationStatus).toBe('COMPLETED')
-    expect((await getCase(ok.id)).status).toBe('COMPLETED')
-    const [row] = await db.select().from(notificationOutbox).where(eq(notificationOutbox.id, okJob.id))
-    expect(row!.providerMessageId).toBe('wamid.SYN.TEMPLATE.1')
+    expect(p.messageKind).toBe('image')
+    expect(p.media.link).toMatch(/^https:\/\/staging\.example\.test\/api\/media\/w\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\/page-1\.png$/)
+    expect(p.media.caption).toContain('ستاسو د نن ورځې د طبي مشورې نسخه چمتو شوه.')
+    expect(JSON.stringify(p)).not.toMatch(/Paracetamol|genericName/)
+    delete process.env.NEXT_PUBLIC_APP_URL
   })
 })

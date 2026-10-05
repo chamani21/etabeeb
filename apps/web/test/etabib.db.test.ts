@@ -207,7 +207,7 @@ describe.skipIf(!hasTestDb)('eTabib V1 — database model', () => {
     it('15. PRESCRIPTION_SENT → COMPLETED succeeds; COMPLETED → IN_CONSULTATION fails', async () => {
       const doctorId = await createUser('Synthetic Doctor')
       const { id } = await caseAt('PRESCRIBED', { adminId, doctorId })
-      const [job] = await jobsOfType('PRESCRIPTION_READY')
+      const [job] = await jobsOfType('PRESCRIPTION_IMAGE')
       const c1 = await db.transaction((tx) =>
         transitionCase(tx, {
           caseId: id,
@@ -300,40 +300,37 @@ describe.skipIf(!hasTestDb)('eTabib V1 — database model', () => {
       )
     })
 
-    it('19. duplicate outbound result is safe; queued alone never marks prescription sent', async () => {
+    it('19. duplicate outbound results are safe; delivery never completes the case by itself', async () => {
       const doctorId = await createUser('Synthetic Doctor')
       const { id } = await caseAt('PRESCRIBED', { adminId, doctorId })
-      const [job] = await jobsOfType('PRESCRIPTION_READY')
+      const [job] = await jobsOfType('PRESCRIPTION_IMAGE')
       expect(job!.status).toBe('pending') // queued only
-      expect((await getCase(id)).status).toBe('IN_CONSULTATION')
-
-      // Success without a Meta message id is not delivery evidence
-      await applyOutboundResult({ jobId: job!.id, success: true })
       expect((await getCase(id)).status).toBe('IN_CONSULTATION')
 
       const result = { jobId: job!.id, success: true, status: 'sent' as const, wamid: 'wamid.OUT.1' }
       const outcomes = await Promise.all([applyOutboundResult(result), applyOutboundResult(result)])
-      expect(outcomes.every((o) => o.consultationStatus === 'COMPLETED')).toBe(true)
+      // the consultation stays open: the doctor completes it explicitly
+      expect(outcomes.every((o) => o.consultationStatus === 'IN_CONSULTATION')).toBe(true)
       await applyOutboundResult(result)
       await applyOutboundResult({ ...result, status: 'delivered' })
       // A late failure report never regresses a delivered job
       await applyOutboundResult({ jobId: job!.id, success: false, error: { message: 'late' } })
 
       const c = await getCase(id)
-      expect(c.status).toBe('COMPLETED')
+      expect(c.status).toBe('IN_CONSULTATION')
       expect(c.prescriptionSentAt).not.toBeNull()
       const events = await eventsFor(id)
-      expect(events.filter((e) => e.eventType === 'PRESCRIPTION_SENT')).toHaveLength(1)
-      expect(events.filter((e) => e.eventType === 'CASE_COMPLETED')).toHaveLength(1)
+      expect(events.filter((e) => e.eventType === 'PRESCRIPTION_IMAGE_SENT')).toHaveLength(1)
+      expect(events.filter((e) => e.eventType === 'CASE_COMPLETED')).toHaveLength(0)
       const [after] = await db.select().from(notificationOutbox).where(eq(notificationOutbox.id, job!.id))
       expect(after!.status).toBe('delivered')
       expect(after!.providerMessageId).toBe('wamid.OUT.1')
     })
 
-    it('failed prescription delivery is recorded and does not complete the case', async () => {
+    it('failed prescription delivery is recorded; the case stays open; a retry succeeds', async () => {
       const doctorId = await createUser('Synthetic Doctor')
       const { id } = await caseAt('PRESCRIBED', { adminId, doctorId })
-      const [job] = await jobsOfType('PRESCRIPTION_READY')
+      const [job] = await jobsOfType('PRESCRIPTION_IMAGE')
       const out = await applyOutboundResult({
         jobId: job!.id,
         success: false,
@@ -345,9 +342,8 @@ describe.skipIf(!hasTestDb)('eTabib V1 — database model', () => {
       expect(after!.status).toBe('failed')
       expect(after!.lastError).not.toMatch(/1234567|abcdef/)
       expect((await eventsFor(id)).filter((e) => e.eventType === 'PRESCRIPTION_DELIVERY_FAILED')).toHaveLength(1)
-      // A later successful retry completes it
       await applyOutboundResult({ jobId: job!.id, success: true, status: 'sent', wamid: 'wamid.RETRY' })
-      expect((await getCase(id)).status).toBe('COMPLETED')
+      expect((await getCase(id)).status).toBe('IN_CONSULTATION')
     })
   })
 })

@@ -7,6 +7,7 @@ import { clinicLocalToIso, fmtTime, isoToClinicLocal, shortId } from '@/componen
 import { Button, Card, Dl, Field, Notice, StatusBadge, inputCls, useAction } from '@/components/staff/ui'
 import { CancelConsultation, CancellationSummary } from '@/components/staff/CancelConsultation'
 import { cancellationReasonLabel } from '@/lib/etabib/cancellation'
+import { AdminPrescription } from '@/components/staff/rx/AdminPrescription'
 
 const INTAKE_STATUSES = ['ADMIN_INTAKE', 'INTAKE_COMPLETE', 'AWAITING_PAYMENT', 'PAYMENT_RECEIVED', 'AWAITING_DOCTOR_APPROVAL', 'CONFIRMED']
 
@@ -90,25 +91,7 @@ export default function AdminCaseDetailPage({ params }: { params: { id: string }
       <CancelConsultation role="ADMIN" c={c} onDone={load} />
       <NotesForm c={c} onDone={load} />
 
-      {data.prescription && (
-        <Card title={`Prescription #${data.prescription.number}`}>
-          <Dl rows={[
-            ['Diagnosis / assessment', data.prescription.diagnosis],
-            ['Medicines', (
-              <ol key="m" className="list-decimal pl-5">
-                {data.prescription.items.map((i: any, n: number) => (
-                  <li key={n}>{[i.genericName, i.strength, i.formulation].filter(Boolean).join(' ')} — {[i.dose, i.frequency, i.timing].filter(Boolean).join(', ')}{i.durationDays ? `, ${i.durationDays} days` : ''}{i.patientInstructions ? ` (${i.patientInstructions})` : ''}</li>
-                ))}
-              </ol>
-            )],
-            ['Investigations', data.prescription.investigations],
-            ['Advice', data.prescription.advice],
-            ['Follow-up', data.prescription.followUp],
-            ['Notes', data.prescription.notes],
-            ['Signed', fmtTime(data.prescription.signedAt)],
-          ]} />
-        </Card>
-      )}
+      <AdminPrescription caseId={c.id} />
 
       <OutboxCard caseId={c.id} outbox={data.outbox} onDone={load} />
 

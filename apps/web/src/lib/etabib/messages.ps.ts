@@ -34,9 +34,17 @@ export const PATIENT_MESSAGES_PS = {
     '\n\nستاسو د eTabeeb آنلاین مشوره لغوه شوه.\n\n' +
     `د لغوه کېدو لامل: ${d.reason}` +
     helpBlock('که غواړئ بله مشوره وټاکئ یا کومه پوښتنه لرئ:', d.helpUrl),
+  /** Caption of the prescription image (first page): ready + optional voice note + help. */
+  prescriptionImageCaption: (d: { withVoice: boolean; pages: number; helpUrl: string | null }) =>
+    'ستاسو د نن ورځې د طبي مشورې نسخه چمتو شوه.' +
+    (d.pages > 1 ? ` (۱/${toPashtoDigits(d.pages)})` : '') +
+    (d.withVoice ? '\n\nد ډاکټر د لارښوونو غږیز پیغام هم درته استول کېږي.' : '') +
+    helpBlock('که د نسخې یا درملو په اړه کومه پوښتنه لرئ:', d.helpUrl),
   /** MESSAGE 5 — prescription delivery (the document itself is attached by the sender). */
   prescriptionReady: 'ستاسو نسخه چمتو ده او له دې پیغام سره درلېږل کېږي. د ښه روغتیا هیله لرو.',
 } as const
+
+const toPashtoDigits = (n: number) => String(n).replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]!)
 
 /** Short help line + clean help link on its own line; omitted when no representative is configured. */
 function helpBlock(label: string, helpUrl: string | null): string {

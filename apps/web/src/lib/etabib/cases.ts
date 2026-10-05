@@ -8,9 +8,9 @@
  * no new events or jobs.
  */
 import { db } from '@etabeeb/db'
-import { notificationOutbox, prescriptions } from '@etabeeb/db/schema'
+import { consultationCases, notificationOutbox, prescriptions } from '@etabeeb/db/schema'
 import type { ConsultationCase, Prescription } from '@etabeeb/db'
-import { eq, sql } from 'drizzle-orm'
+import { desc, eq, sql } from 'drizzle-orm'
 import { EtabibError, TransitionError } from './errors'
 import {
   cancelCase,
@@ -27,7 +27,7 @@ import {
 import { enqueueOutboundJob, isOutboundJobType, parseJobRefs, withdrawPendingJobsTx, type EnqueuedJob } from './outbound'
 import { sanitizeErrorText } from './sanitize'
 import { createVideoSessionTx, endVideoSessionTx, revokePatientLinksTx } from './video'
-import { insertPrescription, type PrescriptionItemInput } from '@/lib/prescriptions'
+import type { PrescriptionItemInput } from '@/lib/prescriptions'
 
 export interface CaseActionResult {
   case: ConsultationCase
@@ -355,54 +355,46 @@ export interface PrescriptionDetails {
   notes?: string | null
 }
 
+/**
+ * One-step convenience (used by older callers/tests): save a draft, finalize
+ * (lock + render) and queue WhatsApp delivery. Never completes the case — the
+ * doctor completes the consultation explicitly (rx/service completeConsultation).
+ */
 export async function createCasePrescription(
   caseId: string,
   items: PrescriptionItemInput[],
   doctor: Actor & { id: string },
   details: PrescriptionDetails = {},
 ): Promise<CaseActionResult & { prescription: Prescription }> {
-  return db.transaction(async (tx) => {
-    const current = await lockCase(tx, caseId)
-    if (current.prescriptionId) {
-      throw new EtabibError('prescription_exists', 'A prescription already exists for this case', 409)
-    }
-    if (current.status !== 'IN_CONSULTATION') {
-      throw new TransitionError('invalid_status', `Prescription cannot be created while case is ${current.status}`)
-    }
-    const prescription = await insertPrescription(tx, {
-      encounterId: null,
-      appointmentId: null,
-      prescribedBy: doctor.id,
-      prescribedForUserId: null,
-      items,
-      finalize: true, // V1: saved by the doctor = signed
-    })
-    const sections = {
+  const { saveDraft, finalizePrescription, sendPrescription } = await import('./rx/service')
+  const d = { type: 'DOCTOR' as const, id: doctor.id }
+  const current = await db.select({ status: consultationCases.status }).from(consultationCases).where(eq(consultationCases.id, caseId)).limit(1)
+  if (current[0] && current[0].status !== 'IN_CONSULTATION') {
+    throw new TransitionError('invalid_status', `Prescription cannot be created while case is ${current[0].status}`)
+  }
+  const existing = await db.select({ id: prescriptions.id, status: prescriptions.workflowStatus }).from(prescriptions).where(eq(prescriptions.consultationId, caseId)).limit(1)
+  if (existing[0] && existing[0].status !== 'DRAFT') throw new EtabibError('prescription_exists', 'A prescription already exists for this case', 409)
+  await saveDraft(
+    caseId,
+    {
       diagnosis: details.diagnosis ?? null,
       investigations: details.investigations ?? null,
       advice: details.advice ?? null,
       followUp: details.followUp ?? null,
-      notes: details.notes ?? null,
-    }
-    if (Object.values(sections).some((v) => v !== null)) {
-      await tx.update(prescriptions).set(sections).where(eq(prescriptions.id, prescription.id))
-    }
-    const updated = await updateCaseFields(tx, {
-      caseId,
-      patch: { prescriptionId: prescription.id },
-      eventType: 'PRESCRIPTION_CREATED',
-      actor: doctor,
-      metadata: { prescriptionId: prescription.id, itemCount: items.length },
-    })
-    const job = await enqueueOutboundJob(tx, {
-      type: 'PRESCRIPTION_READY',
-      consultationId: caseId,
-      dedupeKey: prescription.id,
-      recipientPhone: patientRecipient(updated),
-      prescriptionId: prescription.id,
-    })
-    return { case: updated, changed: true, jobs: [job], prescription }
+      freeText: details.notes ?? null,
+      medicines: items.map((i) => ({ name: i.genericName, strength: i.strength ?? null, formulation: i.formulation ?? null, route: i.route ?? null, dose: i.dose ?? null, frequency: i.frequency ?? null, timing: i.timing ?? null, duration: i.durationDays ? `${i.durationDays} days` : null, instructions: i.patientInstructions ?? null })),
+    },
+    d,
+  )
+  await finalizePrescription(caseId, d)
+  const sent = await sendPrescription(caseId, d).catch(async (error) => {
+    // Rendering unavailable: the finalized prescription stays valid; delivery can be retried
+    if (error instanceof EtabibError && error.code === 'render_failed') return null
+    throw error
   })
+  const [rx] = await db.select().from(prescriptions).where(eq(prescriptions.consultationId, caseId)).orderBy(desc(prescriptions.revision)).limit(1)
+  const [c] = await db.select().from(consultationCases).where(eq(consultationCases.id, caseId)).limit(1)
+  return { case: c!, changed: true, jobs: sent?.jobs ?? [], prescription: rx! }
 }
 
 // ------------------------------------------------------------------
@@ -499,38 +491,34 @@ export async function applyOutboundResult(input: OutboundResultInput): Promise<O
       }
     }
 
-    let consultationStatus: ConsultationStatus | null = null
-    let videoRoomToClose: string | undefined
-    if (job.templateKey === 'PRESCRIPTION_READY') {
-      let c = await lockCase(tx, refs.consultationId)
-      // Strongest available signal: n8n reports success AND Meta returned a
-      // message id (wamid). A queued/accepted-by-n8n job never counts.
-      const deliveredWamid = input.wamid ?? job.providerMessageId
-      const deliveryConfirmed = (success || prevRank > 0) && Boolean(deliveredWamid)
-      const forThisPrescription = refs.prescriptionId !== undefined && c.prescriptionId === refs.prescriptionId
-      if (deliveryConfirmed && forThisPrescription) {
-        if (c.status === 'IN_CONSULTATION') {
-          c = await transitionCase(tx, {
-            caseId: c.id,
-            to: 'PRESCRIPTION_SENT',
-            expectedFrom: 'IN_CONSULTATION',
-            actor: N8N,
-            patch: { prescriptionSentAt: new Date() },
-            evidence: { prescriptionDeliveryJobId: job.id },
-            metadata: { outboundJobId: job.id, prescriptionId: c.prescriptionId },
-          })
-          changed = true
-        }
-        if (c.status === 'PRESCRIPTION_SENT') {
-          c = await transitionCase(tx, { caseId: c.id, to: 'COMPLETED', expectedFrom: 'PRESCRIPTION_SENT', actor: N8N })
-          changed = true
-          // Close video access: no further tokens, all patient links revoked
-          const ended = await endVideoSessionTx(tx, c, N8N)
-          if (ended) videoRoomToClose = ended.roomName
-        }
+    // Prescription delivery is tracked per message; it never changes the case
+    // status (the doctor completes the consultation explicitly).
+    if (changed && (job.templateKey === 'PRESCRIPTION_IMAGE' || job.templateKey === 'PRESCRIPTION_VOICE')) {
+      const c = await lockCase(tx, refs.consultationId)
+      const ok = success && previous !== 'failed'
+      if (ok && prevRank === 0) {
+        await recordCaseEvent(tx, {
+          caseId: c.id,
+          eventType: job.templateKey === 'PRESCRIPTION_IMAGE' ? 'PRESCRIPTION_IMAGE_SENT' : 'PRESCRIPTION_VOICE_SENT',
+          oldStatus: c.status,
+          newStatus: c.status,
+          actor: N8N,
+          metadata: { outboundJobId: job.id, prescriptionId: refs.prescriptionId ?? null, ...(refs.page ? { page: refs.page } : {}) },
+        })
+      } else if (!ok) {
+        await recordCaseEvent(tx, {
+          caseId: c.id,
+          eventType: 'PRESCRIPTION_DELIVERY_FAILED',
+          oldStatus: c.status,
+          newStatus: c.status,
+          actor: N8N,
+          metadata: { outboundJobId: job.id, kind: job.templateKey === 'PRESCRIPTION_IMAGE' ? 'image' : 'voice' },
+        })
       }
-      consultationStatus = c.status
     }
+    const [current] = await tx.select({ status: consultationCases.status }).from(consultationCases).where(eq(consultationCases.id, refs.consultationId)).limit(1)
+    const consultationStatus: ConsultationStatus | null = current?.status ?? null
+    const videoRoomToClose: string | undefined = undefined
 
     const [after] = await tx
       .select({ status: notificationOutbox.status })
@@ -574,13 +562,14 @@ export async function updateAdminNotes(caseId: string, notes: string | null, adm
  * the callback still treat it as the same message. The caller dispatches the
  * returned job after commit.
  */
-export async function retryOutboundJob(caseId: string, jobId: string, admin: Actor): Promise<CaseActionResult> {
+export async function retryOutboundJob(caseId: string, jobId: string, admin: Actor, onlyTypes?: readonly string[]): Promise<CaseActionResult> {
   return db.transaction(async (tx) => {
     const [job] = await tx.select().from(notificationOutbox).where(eq(notificationOutbox.id, jobId)).limit(1).for('update')
     const refs = job ? parseJobRefs(job.templateVariables) : null
     if (!job || !refs || refs.consultationId !== caseId || !job.idempotencyKey.startsWith('etabib:')) {
       throw new EtabibError('not_found', 'Outbound job not found for this case', 404)
     }
+    if (onlyTypes && !onlyTypes.includes(job.templateKey)) throw new EtabibError('not_found', 'Outbound job not found for this case', 404)
     const exhaustedPending = job.status === 'pending' && job.attempts >= job.maxAttempts
     if (job.status !== 'failed' && !exhaustedPending) {
       throw new EtabibError('retry_not_allowed', `A ${job.status} message cannot be retried`, 409)

@@ -95,6 +95,20 @@ export const CASE_EVENT_TYPES = [
   'VIDEO_SESSION_ENDED',
   // Explicit terminal cancellation (cancelCase only)
   'CONSULTATION_CANCELLED',
+  // Prescription stage (rx/service): drafting, locking, rendering, delivery — never change status by themselves
+  'PRESCRIPTION_DRAFT_CREATED',
+  'PRESCRIPTION_UPDATED',
+  'PRESCRIPTION_PREVIEWED',
+  'PRESCRIPTION_FINALIZED',
+  'PRESCRIPTION_RENDERED',
+  'PRESCRIPTION_RENDER_FAILED',
+  'PRESCRIPTION_AMENDMENT_CREATED',
+  'PRESCRIPTION_VOICE_RECORDED',
+  'PRESCRIPTION_VOICE_DELETED',
+  'PRESCRIPTION_DELIVERY_REQUESTED',
+  'PRESCRIPTION_RESEND_REQUESTED',
+  'PRESCRIPTION_IMAGE_SENT',
+  'PRESCRIPTION_VOICE_SENT',
 ] as const
 export type CaseEventType = (typeof CASE_EVENT_TYPES)[number]
 
@@ -204,6 +218,8 @@ export function assertTransitionAllowed(
     case 'PRESCRIPTION_SENT':
       guard(next.prescriptionId, 'guard_prescription', 'No prescription exists for this case')
       guard(next.prescriptionSentAt, 'guard_prescription_delivery', 'Prescription delivery not confirmed')
+      // evidence = the queued WhatsApp delivery job of the finalized prescription
+      // (delivery is tracked per message; completion is the doctor's explicit action)
       guard(
         evidence.prescriptionDeliveryJobId,
         'guard_prescription_delivery',

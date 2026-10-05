@@ -19,6 +19,9 @@ import { POST as approvalRoute } from '@/app/api/admin/cases/[id]/request-doctor
 import { POST as decisionRoute } from '@/app/api/doctor/cases/[id]/decision/route'
 import { POST as startRoute } from '@/app/api/doctor/cases/[id]/start/route'
 import { POST as prescriptionRoute } from '@/app/api/doctor/cases/[id]/prescription/route'
+import { POST as finalizeRoute } from '@/app/api/doctor/cases/[id]/prescription/finalize/route'
+import { POST as sendRoute } from '@/app/api/doctor/cases/[id]/prescription/send/route'
+import { POST as completeRoute } from '@/app/api/doctor/cases/[id]/complete/route'
 import { dispatchOutboundJobs } from '@/lib/etabib/outbound'
 import {
   hasTestDb,
@@ -276,36 +279,44 @@ describe.skipIf(!hasTestDb)('eTabib V1 — API', () => {
       expect(await jobsOfType('CONSULTATION_CONFIRMED_PATIENT')).toHaveLength(1)
       expect(await jobsOfType('CONSULTATION_CONFIRMED_DOCTOR')).toHaveLength(1)
 
-      // Prescription before start is rejected; start is idempotent
-      expect((await prescriptionRoute(jsonRequest(`/api/doctor/cases/${id}/prescription`, { items: rxItems }), params(id))).status).toBe(409)
+      // A draft may be written before the consultation starts; it cannot be sent yet
+      const draft = { medicines: [{ name: 'Paracetamol', strength: '500mg', dose: '1 tablet', frequency: 'twice daily' }], advice: 'SYN advice' }
+      expect((await prescriptionRoute(jsonRequest(`/api/doctor/cases/${id}/prescription`, draft), params(id))).status).toBe(200)
+      expect((await finalizeRoute(jsonRequest('/x', {}), params(id))).status).toBe(200)
+      expect((await sendRoute(jsonRequest('/x', {}), params(id))).status).toBe(409)
       res = await startRoute(jsonRequest(`/api/doctor/cases/${id}/start`, {}), params(id))
       expect((await res.json()).changed).toBe(true)
       res = await startRoute(jsonRequest(`/api/doctor/cases/${id}/start`, {}), params(id))
       expect((await res.json()).changed).toBe(false)
       expect((await getCase(id)).status).toBe('IN_CONSULTATION')
 
-      // Prescription reuses the existing module; a second one is refused
-      res = await prescriptionRoute(jsonRequest(`/api/doctor/cases/${id}/prescription`, { items: rxItems }), params(id))
-      expect(res.status).toBe(201)
-      expect((await prescriptionRoute(jsonRequest(`/api/doctor/cases/${id}/prescription`, { items: rxItems }), params(id))).status).toBe(409)
+      // Finalized = locked: the draft route refuses edits (amend instead)
+      expect((await prescriptionRoute(jsonRequest(`/api/doctor/cases/${id}/prescription`, draft), params(id))).status).toBe(409)
+      res = await sendRoute(jsonRequest('/x', {}), params(id))
+      expect(res.status).toBe(200)
       c = await getCase(id)
       expect(c.prescriptionId).not.toBeNull()
-      expect(c.status).toBe('IN_CONSULTATION') // queued ≠ sent
+      expect(c.status).toBe('IN_CONSULTATION') // sending never ends the consultation
 
-      // n8n delivery callback → PRESCRIPTION_SENT → COMPLETED (twice: idempotent)
-      const [job] = await jobsOfType('PRESCRIPTION_READY')
-      const result = { jobId: job!.id, consultationId: id, type: 'PRESCRIPTION_READY', success: true, status: 'sent', wamid: 'wamid.RX.1', accessToken: 'never-stored' }
+      // n8n delivery callback (twice: idempotent) — still IN_CONSULTATION
+      const [job] = await jobsOfType('PRESCRIPTION_IMAGE')
+      const result = { jobId: job!.id, consultationId: id, type: 'PRESCRIPTION_IMAGE', success: true, status: 'sent', wamid: 'wamid.RX.1', accessToken: 'never-stored' }
       for (let i = 0; i < 2; i++) {
         res = await outboundResultHook(jsonRequest('/api/hooks/outbound-result', result, hookHeaders))
         expect(res.status).toBe(200)
-        expect((await res.json()).consultationStatus).toBe('COMPLETED')
+        expect((await res.json()).consultationStatus).toBe('IN_CONSULTATION')
       }
+      // The doctor completes explicitly (twice: idempotent)
+      for (let i = 0; i < 2; i++) expect((await completeRoute(jsonRequest('/x', {}), params(id))).status).toBe(200)
+      expect((await getCase(id)).status).toBe('COMPLETED')
       const allEvents = (await eventsFor(id)).map((e) => e.eventType)
-      // Video events share their transaction's timestamp with the clinical event
-      // that caused them; check them separately (exactly once each)
+      // Video and prescription-stage events share timestamps with clinical events; check them separately
       expect(allEvents.filter((e) => e === 'VIDEO_SESSION_CREATED')).toHaveLength(1)
       expect(allEvents.filter((e) => e === 'VIDEO_SESSION_ENDED')).toHaveLength(1)
-      const events = allEvents.filter((e) => !e.startsWith('VIDEO_'))
+      for (const e of ['PRESCRIPTION_DRAFT_CREATED', 'PRESCRIPTION_FINALIZED', 'PRESCRIPTION_RENDERED', 'PRESCRIPTION_DELIVERY_REQUESTED', 'PRESCRIPTION_IMAGE_SENT']) {
+        expect(allEvents.filter((x) => x === e)).toHaveLength(1)
+      }
+      const events = allEvents.filter((e) => !e.startsWith('VIDEO_') && !e.startsWith('PRESCRIPTION_') )
       expect(events).toEqual([
         'CASE_CREATED',
         'PATIENT_NAME_RECEIVED',
@@ -320,10 +331,9 @@ describe.skipIf(!hasTestDb)('eTabib V1 — API', () => {
         'DOCTOR_APPROVED',
         'CONSULTATION_CONFIRMED',
         'CONSULTATION_STARTED',
-        'PRESCRIPTION_CREATED',
-        'PRESCRIPTION_SENT',
         'CASE_COMPLETED',
       ])
+      expect(allEvents.filter((e) => e === 'PRESCRIPTION_SENT')).toHaveLength(1) // the status transition
       const [outbox] = await db.select().from(notificationOutbox).where(eq(notificationOutbox.id, job!.id))
       expect(JSON.stringify(outbox)).not.toContain('never-stored')
 

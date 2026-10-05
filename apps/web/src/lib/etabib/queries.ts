@@ -301,7 +301,7 @@ export async function getCaseDetailForDoctor(id: string) {
     .where(eq(caseEvents.consultationId, id))
     .orderBy(asc(caseEvents.createdAt), asc(caseEvents.id))
   const delivery = (await outboxForCase(id))
-    .filter((j) => j.type === 'PRESCRIPTION_READY')
+    .filter((j) => j.type === 'PRESCRIPTION_READY' || j.type === 'PRESCRIPTION_IMAGE')
     .map((j) => ({ status: j.status, delivered: Boolean(j.providerMessageId), lastError: j.lastError, processedAt: j.processedAt }))
   return {
     case: clinicalView(c),

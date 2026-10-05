@@ -15,6 +15,8 @@ import { GET as detailRoute } from '@/app/api/doctor/cases/[id]/route'
 import { POST as decisionRoute } from '@/app/api/doctor/cases/[id]/decision/route'
 import { POST as startRoute } from '@/app/api/doctor/cases/[id]/start/route'
 import { POST as prescriptionRoute } from '@/app/api/doctor/cases/[id]/prescription/route'
+import { POST as finalizeRoute } from '@/app/api/doctor/cases/[id]/prescription/finalize/route'
+import { POST as sendRoute } from '@/app/api/doctor/cases/[id]/prescription/send/route'
 import { POST as paymentRoute } from '@/app/api/admin/cases/[id]/payment/route'
 import { hasTestDb, resetDb, createUser, jsonRequest, getCase, eventsFor, caseAt, future, rxItems } from './helpers'
 
@@ -95,7 +97,7 @@ describe.skipIf(!hasTestDb)('P1 doctor', () => {
 
     // start/prescription are refused before confirmation
     expect((await startRoute(jsonRequest('/x', {}), p(id))).status).toBe(409)
-    expect((await post(prescriptionRoute, { items: rxItems })).status).toBe(409)
+    expect((await post(prescriptionRoute, { medicines: [{ name: 'Paracetamol' }] })).status).toBe(409)
 
     expect((await post(decisionRoute, { decision: 'APPROVED', approvedTime: newTime.toISOString(), consultationLink: 'https://meet.example.test/syn' })).status).toBe(200)
     expect((await getCase(id)).status).toBe('CONFIRMED')
@@ -103,29 +105,31 @@ describe.skipIf(!hasTestDb)('P1 doctor', () => {
     expect((await getCase(id)).status).toBe('IN_CONSULTATION')
 
     const res = await post(prescriptionRoute, {
-      items: [...rxItems, { genericName: 'ORS', dose: '1 sachet', frequency: 'after each loose stool', durationDays: 3, substitutionAllowed: true, isControlled: false }],
+      medicines: [{ name: 'Paracetamol', strength: '500mg', dose: '1 tablet', frequency: 'twice daily' }, { name: 'ORS', dose: '1 sachet', frequency: 'after each loose stool', duration: '3 days' }],
       diagnosis: 'SYNTHETIC acute gastroenteritis',
       investigations: 'SYNTHETIC CBC',
       advice: 'SYNTHETIC fluids',
       followUp: 'SYNTHETIC 3 days',
-      notes: 'SYNTHETIC note',
+      freeText: 'SYNTHETIC note',
     })
-    expect(res.status).toBe(201)
+    expect(res.status).toBe(200)
+    expect((await finalizeRoute(jsonRequest('/x', {}), p(id))).status).toBe(200)
+    expect((await sendRoute(jsonRequest('/x', {}), p(id))).status).toBe(200)
     c = await getCase(id)
-    expect(c.status).toBe('IN_CONSULTATION') // only n8n delivery confirmation completes the case
+    expect(c.status).toBe('IN_CONSULTATION') // only the doctor's explicit completion ends the case
     const [rx] = await db.select().from(prescriptions).where(eq(prescriptions.id, c.prescriptionId!))
-    expect(rx).toMatchObject({ diagnosis: 'SYNTHETIC acute gastroenteritis', investigations: 'SYNTHETIC CBC', advice: 'SYNTHETIC fluids', followUp: 'SYNTHETIC 3 days', notes: 'SYNTHETIC note' })
+    expect(rx).toMatchObject({ diagnosis: 'SYNTHETIC acute gastroenteritis', investigations: 'SYNTHETIC CBC', advice: 'SYNTHETIC fluids', followUp: 'SYNTHETIC 3 days', freeText: 'SYNTHETIC note', workflowStatus: 'FINALIZED' })
     const detail = await (await detailRoute(req('/x'), p(id))).json()
     expect(detail.prescription.items).toHaveLength(2)
     expect(detail.prescriptionDelivery).toMatchObject({ status: 'pending', delivered: false })
     const types = (await eventsFor(id)).map((e) => e.eventType)
-    for (const t of ['DOCTOR_POSTPONED', 'DOCTOR_PROPOSED_NEW_TIME', 'DOCTOR_APPROVED', 'CONSULTATION_CONFIRMED', 'CONSULTATION_STARTED', 'PRESCRIPTION_CREATED']) expect(types).toContain(t)
+    for (const t of ['DOCTOR_POSTPONED', 'DOCTOR_PROPOSED_NEW_TIME', 'DOCTOR_APPROVED', 'CONSULTATION_CONFIRMED', 'CONSULTATION_STARTED', 'PRESCRIPTION_FINALIZED']) expect(types).toContain(t)
   })
 
   it('rejects malformed prescriptions (unknown fields, oversize sections, no items)', async () => {
     const { id } = await caseAt('IN_CONSULTATION', { adminId, doctorId })
     loginAs(doctorId)
-    for (const body of [{ items: [] }, { items: rxItems, extra: 1 }, { items: rxItems, diagnosis: 'x'.repeat(2001) }]) {
+    for (const body of [{ medicines: 'x' }, { medicines: [], extra: 1 }, { medicines: [], diagnosis: 'x'.repeat(501) }, { medicines: [{ name: 'x'.repeat(161) }] }]) {
       expect((await prescriptionRoute(jsonRequest('/x', body), p(id))).status).toBe(400)
     }
   })

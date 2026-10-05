@@ -129,6 +129,45 @@ export const cancelCaseSchema = z
     if (v.reason === 'OTHER' && !v.note) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['note'], message: 'A short note is required for "Other"' })
   })
 
+const rxText = (max: number) => z.string().trim().max(max).nullable().optional()
+const rxMedicineSchema = z
+  .object({
+    name: z.string().trim().max(160),
+    strength: rxText(60),
+    formulation: rxText(60),
+    route: rxText(60),
+    dose: rxText(120),
+    frequency: rxText(120),
+    timing: rxText(120),
+    duration: rxText(60),
+    instructions: rxText(500),
+  })
+  .strict()
+
+/** Prescription draft (doctor). Nothing is mandatory except a name per medicine row actually used. */
+export const rxDraftSchema = z
+  .object({
+    diagnosis: rxText(500),
+    vitals: z
+      .object({ weight: rxText(30), bp: rxText(30), pulse: rxText(30), temperature: rxText(30), respiratoryRate: rxText(30) })
+      .strict()
+      .nullable()
+      .optional(),
+    medicines: z.array(rxMedicineSchema).max(40),
+    freeText: rxText(4000),
+    investigations: rxText(2000),
+    advice: rxText(3000),
+    followUp: rxText(1000),
+    followUpInterval: rxText(60),
+    redFlags: rxText(1500),
+  })
+  .strict()
+
+export const rxSendSchema = z.object({ complete: z.boolean().optional() }).strict()
+export const rxCopySchema = z.object({ fromPrescriptionId: z.string().uuid() }).strict()
+export const rxVoicePatchSchema = z.object({ includeInDelivery: z.boolean() }).strict()
+export const rxRetrySchema = z.object({ jobId: z.string().uuid() }).strict()
+
 export const casePrescriptionSchema = z
   .object({
     items: z.array(prescriptionItemSchema).min(1).max(30),

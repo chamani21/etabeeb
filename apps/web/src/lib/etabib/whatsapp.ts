@@ -8,9 +8,9 @@
  */
 import { z } from 'zod'
 import { db } from '@etabeeb/db'
-import { consultationCases, whatsappEvents } from '@etabeeb/db/schema'
+import { consultationCases, notificationOutbox, whatsappEvents } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
-import { and, eq, notInArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, notInArray, sql } from 'drizzle-orm'
 import { normalizePhone, toAsciiDigits, waIdToE164 } from './phone'
 import { CLOSED_STATUSES, createCase, transitionCase, updateCaseFields, type Actor, type ConsultationStatus } from './transitions'
 import { enqueueOutboundJob, type EnqueuedJob } from './outbound'
@@ -113,6 +113,7 @@ export type IntakeOutcome =
   | 'phone_saved_admin_intake'
   | 'case_in_progress'
   | 'already_acknowledged'
+  | 'released_held_media'
 
 export interface InboundResult {
   wamid: string
@@ -172,6 +173,28 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
       .limit(1)
       .for('update')
     let current: ConsultationCase | undefined = existing[0]
+
+    if (!current) {
+      // A reply to a prescription sent outside the 24-hour window (e.g. "send me the
+      // voice advice") must not restart onboarding: it only releases the held media.
+      const [held] = await tx
+        .select({ caseId: consultationCases.id, status: consultationCases.status })
+        .from(consultationCases)
+        .innerJoin(notificationOutbox, sql`(${notificationOutbox.templateVariables}::jsonb ->> 'consultationId') = ${consultationCases.id}::text`)
+        .where(
+          and(
+            eq(consultationCases.whatsappPhone, msg.from),
+            eq(notificationOutbox.status, 'pending'),
+            inArray(notificationOutbox.templateKey, ['PRESCRIPTION_IMAGE', 'PRESCRIPTION_VOICE']),
+            sql`${notificationOutbox.createdAt} > now() - interval '7 days'`,
+          ),
+        )
+        .limit(1)
+      if (held) {
+        await tx.update(whatsappEvents).set({ consultationId: held.caseId, processedAt: new Date(), disposition }).where(eq(whatsappEvents.id, ledgerId))
+        return { wamid: msg.wamid, duplicate: false, outcome: 'released_held_media', consultationId: held.caseId, status: held.status, jobs: [], disposition }
+      }
+    }
 
     if (!current) {
       current = await createCase(tx, { whatsappPhone: msg.from }, PATIENT, { ...meta, source: 'whatsapp' })

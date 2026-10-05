@@ -25,7 +25,9 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/api/hooks/') ||
       pathname === '/api/health' ||
       pathname.startsWith('/api/video/patient/') ||
-      pathname === '/api/video/livekit-webhook'
+      pathname === '/api/video/livekit-webhook' ||
+      // signed, expiring prescription media links fetched by WhatsApp (HMAC verified in the route)
+      pathname.startsWith('/api/media/w/')
     if (!publicApi) {
       const origin = request.headers.get('origin')
       const host = request.headers.get('host')

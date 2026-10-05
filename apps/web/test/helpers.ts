@@ -23,7 +23,7 @@ export async function resetDb(): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.execute(sql`SET LOCAL client_min_messages = warning`)
     await tx.execute(sql`TRUNCATE case_events, whatsapp_events, consultation_cases, integration_errors,
-      notification_outbox, prescription_items, prescriptions, whatsapp_allowed_senders, staff_audit_events,
+      notification_outbox, prescription_voice_notes, prescription_items, prescriptions, whatsapp_allowed_senders, staff_audit_events,
       consultation_join_tokens, consultation_video_sessions,
       password_reset_tokens, etabib_runtime_status, user_roles, roles, users CASCADE`)
   })
@@ -112,7 +112,8 @@ export async function caseAt(
     | 'AWAITING_DOCTOR_APPROVAL'
     | 'CONFIRMED'
     | 'IN_CONSULTATION'
-    | 'PRESCRIBED',
+    | 'PRESCRIBED'
+    | 'COMPLETED',
   ctx: { adminId: string; doctorId: string },
 ) {
   const sender = fakePhone()
@@ -130,6 +131,7 @@ export async function caseAt(
     ['CONFIRMED', () => applyDoctorDecision(id, { decision: 'APPROVED', approvedTime }, doctor)],
     ['IN_CONSULTATION', () => startConsultation(id, doctor)],
     ['PRESCRIBED', () => createCasePrescription(id, rxItems, doctor)],
+    ['COMPLETED', async () => (await import('@/lib/etabib/rx/service')).completeConsultation(id, doctor)],
   ]
   if (target !== 'ADMIN_INTAKE') {
     for (const [name, run] of steps) {
