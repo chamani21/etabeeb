@@ -153,9 +153,14 @@ function PrescriptionEditor({ caseId, patientName, onDone }: { caseId: string; p
   const [items, setItems] = useState<Item[]>([{ ...emptyItem }])
   const [sec, setSec] = useState({ diagnosis: '', investigations: '', advice: '', followUp: '', notes: '' })
   const [preview, setPreview] = useState(false)
+  const [showMissing, setShowMissing] = useState(false)
   const { busy, error, message, run } = useAction()
   const setItem = (i: number, k: keyof Item, v: string) => setItems(items.map((it, n) => (n === i ? { ...it, [k]: v } : it)))
-  const valid = items.length > 0 && items.every((i) => i.genericName.trim() && i.dose.trim() && i.frequency.trim())
+  const missingOf = (i: Item) =>
+    [!i.genericName.trim() && 'medicine name', !i.dose.trim() && 'dose', !i.frequency.trim() && 'frequency'].filter(Boolean) as string[]
+  const missing = items.map((i, n) => ({ n: n + 1, fields: missingOf(i) })).filter((m) => m.fields.length > 0)
+  const valid = items.length > 0 && missing.length === 0
+  const req = (empty: boolean) => (showMissing && empty ? ' border-red-500 ring-1 ring-red-500' : '')
   const clean = (v: string) => (v.trim() ? v.trim() : null)
   const body = {
     items: items.map((i) => ({
@@ -188,11 +193,11 @@ function PrescriptionEditor({ caseId, patientName, onDone }: { caseId: string; p
             <div className="font-semibold text-gray-800">Medicines</div>
             {items.map((it, i) => (
               <div key={i} className="grid grid-cols-2 gap-2 rounded border border-gray-200 p-2 md:grid-cols-4">
-                <input className={inputCls} placeholder="Medicine (generic) *" value={it.genericName} onChange={(e) => setItem(i, 'genericName', e.target.value)} />
+                <input className={inputCls + req(!it.genericName.trim())} placeholder="Medicine (generic) *" value={it.genericName} onChange={(e) => setItem(i, 'genericName', e.target.value)} />
                 <input className={inputCls} placeholder="Strength (e.g. 500 mg)" value={it.strength} onChange={(e) => setItem(i, 'strength', e.target.value)} />
                 <input className={inputCls} placeholder="Form (tablet, syrup…)" value={it.formulation} onChange={(e) => setItem(i, 'formulation', e.target.value)} />
-                <input className={inputCls} placeholder="Dose * (e.g. 1 tablet)" value={it.dose} onChange={(e) => setItem(i, 'dose', e.target.value)} />
-                <input className={inputCls} placeholder="Frequency * (e.g. twice daily)" value={it.frequency} onChange={(e) => setItem(i, 'frequency', e.target.value)} />
+                <input className={inputCls + req(!it.dose.trim())} placeholder="Dose * (e.g. 1 tablet)" value={it.dose} onChange={(e) => setItem(i, 'dose', e.target.value)} />
+                <input className={inputCls + req(!it.frequency.trim())} placeholder="Frequency * (e.g. twice daily)" value={it.frequency} onChange={(e) => setItem(i, 'frequency', e.target.value)} />
                 <input className={inputCls} placeholder="Timing (after meals…)" value={it.timing} onChange={(e) => setItem(i, 'timing', e.target.value)} />
                 <input className={inputCls} type="number" min={1} placeholder="Duration (days)" value={it.durationDays} onChange={(e) => setItem(i, 'durationDays', e.target.value)} />
                 <div className="flex gap-2">
@@ -209,7 +214,15 @@ function PrescriptionEditor({ caseId, patientName, onDone }: { caseId: string; p
             <Field label="Follow-up"><textarea rows={2} className={inputCls} value={sec.followUp} onChange={(e) => setSec({ ...sec, followUp: e.target.value })} /></Field>
             <Field label="Notes"><textarea rows={2} className={inputCls} value={sec.notes} onChange={(e) => setSec({ ...sec, notes: e.target.value })} /></Field>
           </div>
-          <div className="mt-3"><Button disabled={!valid} onClick={() => setPreview(true)}>Review before sending</Button></div>
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-gray-500">Fields marked * are required for every medicine: medicine name, dose and frequency.</p>
+            {showMissing && !valid && (
+              <Notice kind="error">
+                Please complete: {missing.map((m) => `medicine ${m.n} — ${m.fields.join(', ')}`).join('; ')}.
+              </Notice>
+            )}
+            <Button onClick={() => (valid ? setPreview(true) : setShowMissing(true))} data-testid="rx-review">Review before sending</Button>
+          </div>
         </>
       ) : (
         <>
