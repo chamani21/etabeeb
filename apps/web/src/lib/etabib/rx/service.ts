@@ -24,7 +24,7 @@ import {
   whatsappEvents,
 } from '@etabeeb/db/schema'
 import type { ConsultationCase, Prescription } from '@etabeeb/db'
-import { and, asc, desc, eq, inArray, isNull, max, ne, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, max, ne, sql } from 'drizzle-orm'
 import { getAppUrl, getV1DoctorUserId } from '../config'
 import { EtabibError, TransitionError } from '../errors'
 import { enqueueOutboundJob, type EnqueuedJob } from '../outbound'
@@ -607,10 +607,12 @@ async function loadCase(caseId: string): Promise<ConsultationCase> {
   return c
 }
 
-/** Finalized prescriptions from the same patient's OTHER consultations (by WhatsApp / phone). */
+/**
+ * Finalized prescriptions from the same patient's OTHER consultations, matched on
+ * the patient's own WhatsApp number only (a contact phone can be shared by family).
+ */
 export async function previousPrescriptions(c: ConsultationCase) {
-  const phones = [c.whatsappPhone, c.patientPhone].filter((p): p is string => Boolean(p))
-  if (phones.length === 0) return []
+  if (!c.whatsappPhone) return []
   return db
     .select({ id: prescriptions.id, rxNumber: prescriptions.rxNumber, revision: prescriptions.revision, finalizedAt: prescriptions.finalizedAt, caseId: consultationCases.id, status: prescriptions.workflowStatus })
     .from(prescriptions)
@@ -619,7 +621,7 @@ export async function previousPrescriptions(c: ConsultationCase) {
       and(
         ne(consultationCases.id, c.id),
         inArray(prescriptions.workflowStatus, ['FINALIZED', 'SUPERSEDED']),
-        or(inArray(consultationCases.whatsappPhone, phones), inArray(consultationCases.patientPhone, phones)),
+        eq(consultationCases.whatsappPhone, c.whatsappPhone),
       ),
     )
     .orderBy(desc(prescriptions.finalizedAt))
