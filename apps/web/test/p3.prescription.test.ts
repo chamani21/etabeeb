@@ -319,6 +319,25 @@ describe.skipIf(!hasTestDb)('prescription stage', () => {
       expect(job!.status).toBe('failed')
     })
 
+    it('outside the window with the approved image template: page 1 goes as template (image header); voice waits for the reply', async () => {
+      process.env.ETABIB_WA_TEMPLATES = JSON.stringify({ PATIENT_PRESCRIPTION_IMAGE: { name: 'etabib_prescription_ready_ps_v2', language: 'ps_AF' } })
+      try {
+        const c = await finalized()
+        await db.update(whatsappEvents).set({ createdAt: new Date(Date.now() - 30 * 3600_000) }).where(eq(whatsappEvents.senderPhone, c.sender))
+        const sent = await sendPrescription(c.id, DOCTOR())
+        await dispatchOutboundJobs(sent.jobs.map((j) => j.id))
+        const [m] = n8n()
+        expect(m).toMatchObject({ type: 'PRESCRIPTION_IMAGE', messageKind: 'template' })
+        expect(m.template.name).toBe('etabib_prescription_ready_ps_v2')
+        expect(m.template.language).toBe('ps_AF')
+        expect(m.template.components[0]).toMatchObject({ type: 'header', parameters: [{ type: 'image', image: { link: expect.stringMatching(/^https:\/\/staging\.example\.test\/api\/media\/w\/.+\/page-1\.png$/) } }] })
+        expect(m.template.components[1].parameters.map((x: { text: string }) => x.text)).toEqual(['Synthetic Patient'])
+        expect(m.media).toBeUndefined()
+      } finally {
+        delete process.env.ETABIB_WA_TEMPLATES
+      }
+    })
+
     it('retry re-sends the SAME rendered image (no re-render); admin resend is rate limited', async () => {
       const { id } = await finalized()
       const sent = await sendPrescription(id, DOCTOR())

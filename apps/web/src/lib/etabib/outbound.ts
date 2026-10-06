@@ -20,7 +20,7 @@ import type { ConsultationCase } from '@etabeeb/db'
 import { and, eq, asc, inArray, lt, max, sql } from 'drizzle-orm'
 import { ETABIB_KEY_HEADER, getAdminWhatsapp, getDoctorWhatsapp, getOutboundConfig } from './config'
 import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatConsultationTimePs, formatPrescriptionTextPs } from './messages.ps'
-import { STAFF_MESSAGES, clinicClock, clinicTime } from './messages.staff'
+import { STAFF_MESSAGES, clinicTime } from './messages.staff'
 import { cancellationReasonLabel } from './cancellation'
 import { adminCaseUrl, doctorCaseUrl, patientWhatsAppUrl, representativeHelpUrl } from './links'
 import { signedMediaUrl } from './media-links'
@@ -234,6 +234,21 @@ async function buildPayload(
   const built = await buildTextPayload(job, refs)
   if (!built) return null
   if (built.payload.messageKind === 'image' || built.payload.messageKind === 'audio') {
+    // Outside the 24-hour window the first prescription page goes as the approved
+    // image-header template (the patient's reply then opens the window for the rest)
+    const imageTemplate = getApprovedTemplates().PATIENT_PRESCRIPTION_IMAGE
+    if (built.payload.type === 'PRESCRIPTION_IMAGE' && built.templateValues && imageTemplate && !(await windowOpen(refs.consultationId))) {
+      let template: TemplatePayload
+      try {
+        template = buildTemplatePayload('PATIENT_PRESCRIPTION_IMAGE', imageTemplate, built.templateValues, { headerImageLink: built.payload.media!.link })
+      } catch (error) {
+        throw new InvalidTemplateError(error instanceof Error ? error.message.slice(0, 150) : 'invalid template')
+      }
+      const { text: _t, media: _m, ...rest } = built.payload
+      void _t
+      void _m
+      return { ...rest, messageKind: 'template', template }
+    }
     return { ...built.payload, messageKind: built.payload.messageKind }
   }
   const intent = JOB_INTENT[built.payload.type]
@@ -302,7 +317,7 @@ async function buildTextPayload(
       const caseUrl = adminCaseUrl(c.id)
       const chatUrl = patientWhatsAppUrl(c)
       return {
-        templateValues: [c.patientName, c.patientPhone, clinicClock(iso(c.createdAt)), chatUrl, caseUrl],
+        templateValues: [c.patientName, c.patientPhone, clinicTime(iso(c.createdAt)), chatUrl, caseUrl],
         payload: {
           ...base,
           ...(to ? { to } : {}),
@@ -334,10 +349,11 @@ async function buildTextPayload(
       const link = video?.url ?? c.consultationLink
       const helpUrl = representativeHelpUrl()
       return {
+        // approved etabib_consultation_confirmed_ps: {{1}} name, {{2}} date/time, {{3}} consultation link
         templateValues: [
-          c.doctorApprovedTime ? formatConsultationTimePs(c.doctorApprovedTime) : '',
+          c.patientName ?? '-',
+          c.doctorApprovedTime ? formatConsultationTimePs(c.doctorApprovedTime) : '-',
           link ?? 'وروسته به درته ولېږل شي',
-          helpUrl,
         ],
         payload: {
         ...base,
@@ -381,7 +397,7 @@ async function buildTextPayload(
         const reason = cancellationReasonLabel(c.cancellationReason)
         const caseUrl = adminCaseUrl(c.id)
         return {
-          templateValues: [c.patientName, clinicTime(scheduled), reason, caseUrl],
+          templateValues: ['by the doctor', c.patientName, clinicTime(scheduled), reason, caseUrl],
           payload: {
             ...base,
             ...(to ? { to } : {}),
@@ -392,7 +408,7 @@ async function buildTextPayload(
       }
       const caseUrl = doctorCaseUrl(c.id)
       return {
-        templateValues: [c.patientName, clinicTime(scheduled), caseUrl],
+        templateValues: ['by the admin', c.patientName, clinicTime(scheduled), cancellationReasonLabel(c.cancellationReason), caseUrl],
         payload: {
           ...base,
           ...(to ? { to } : {}),
@@ -410,7 +426,7 @@ async function buildTextPayload(
       const pages = refs.pages ?? 1
       const caption = page === 1 ? PATIENT_MESSAGES_PS.prescriptionImageCaption({ withVoice: Boolean(refs.withVoice), pages, helpUrl: representativeHelpUrl() }) : `(${page}/${pages})`
       return {
-        templateValues: null,
+        templateValues: page === 1 ? [c.patientName ?? '-'] : null,
         payload: { ...base, ...(to ? { to } : {}), messageKind: 'image', media: { link, caption }, data: { prescriptionId: rxId, page, pages } },
       }
     }
@@ -493,14 +509,19 @@ export async function lastPatientMessageAt(caseId: string): Promise<Date | null>
 const WINDOW_MS = 23.5 * 3600_000
 
 /** Why a media job must wait (null = send now). */
-async function mediaHoldReason(job: { createdAt: Date }, refs: OutboundJobRefs): Promise<string | null> {
+async function windowOpen(caseId: string): Promise<boolean> {
+  const last = await lastPatientMessageAt(caseId)
+  return Boolean(last && Date.now() - last.getTime() <= WINDOW_MS)
+}
+
+async function mediaHoldReason(job: { createdAt: Date; templateKey: string }, refs: OutboundJobRefs): Promise<string | null> {
   if (Date.now() - job.createdAt.getTime() > WINDOW_WAIT_MAX_MS) return 'expired'
   if (refs.dependsOn?.length) {
     const deps = await db.select({ status: notificationOutbox.status }).from(notificationOutbox).where(inArray(notificationOutbox.id, refs.dependsOn))
     if (deps.some((d) => d.status === 'pending' || d.status === 'processing')) return 'waiting_for_previous_message: the prescription image is sent first'
   }
-  const last = await lastPatientMessageAt(refs.consultationId)
-  if (!last || Date.now() - last.getTime() > WINDOW_MS) {
+  if (!(await windowOpen(refs.consultationId))) {
+    if (job.templateKey === 'PRESCRIPTION_IMAGE' && (refs.page ?? 1) === 1 && getApprovedTemplates().PATIENT_PRESCRIPTION_IMAGE) return null
     return 'waiting_for_patient_reply: WhatsApp 24-hour window is closed; sent automatically when the patient writes to eTabeeb'
   }
   return null

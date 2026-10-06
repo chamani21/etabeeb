@@ -20,7 +20,7 @@ const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).
  * Doctor's voice explanation recorder. Nothing is uploaded until the doctor
  * presses "Save voice note"; a failure here never touches the prescription.
  */
-export function VoiceRecorder({ onSave, disabled }: { onSave: (blob: Blob) => Promise<void>; disabled?: boolean }) {
+export function VoiceRecorder({ onSave, disabled, patientLabel }: { onSave: (blob: Blob) => Promise<void>; disabled?: boolean; patientLabel?: string }) {
   const [state, setState] = useState<'idle' | 'recording' | 'paused' | 'recorded' | 'saving'>('idle')
   const [seconds, setSeconds] = useState(0)
   const [blob, setBlob] = useState<Blob | null>(null)
@@ -155,6 +155,7 @@ export function VoiceRecorder({ onSave, disabled }: { onSave: (blob: Blob) => Pr
   if (!supported) return <Notice kind="warning">This browser cannot record audio. The prescription can still be sent without a voice note.</Notice>
   return (
     <div className="space-y-2" data-testid="voice-recorder">
+      {patientLabel && <p className="text-sm">For: <b>{patientLabel}</b></p>}
       {state === 'idle' && (
         <Button onClick={() => void start()} disabled={disabled} className="min-h-[44px]">🎙 Record voice explanation</Button>
       )}

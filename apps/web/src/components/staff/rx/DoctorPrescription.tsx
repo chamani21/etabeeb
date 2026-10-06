@@ -14,7 +14,7 @@ type Form = { diagnosis: string; vitals: Vitals; medicines: Med[]; freeText: str
 
 interface RxState {
   caseStatus: string
-  patient: { name: string | null; age: number | null; sex: string | null; location: string | null; complaint: string | null }
+  patient: { name: string | null; age: number | null; sex: string | null; location: string | null; complaint: string | null; whatsappLast4: string | null; caseRef: string }
   current: null | {
     id: string; rxNumber: string | null; revision: number; status: 'DRAFT' | 'FINALIZED'; finalizedAt: string | null; renderedAt: string | null; renderError: string | null
     pages: number; hasPdf: boolean; deliveryRequestedAt: string | null; amendedFromId: string | null
@@ -209,8 +209,17 @@ export function DoctorPrescription({ caseId, onCaseChange }: { caseId: string; o
   const fileUrl = (rx: string, kind: 'pdf' | 'image', page = 1, download = false, ofCase = caseId) =>
     `/api/doctor/cases/${ofCase}/prescription/file?rx=${rx}&kind=${kind}&page=${page}${download ? '&download=1' : ''}`
 
+  const who = `${st.patient.name ?? 'Patient'}${st.patient.whatsappLast4 ? ` · WhatsApp …${st.patient.whatsappLast4}` : ''}`
   return (
     <div className="space-y-3 pb-24" data-testid="doctor-prescription">
+      {/* Always visible: whose prescription / voice note this is (prevents working on the wrong case) */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border-2 border-emerald-700 bg-emerald-50 px-3 py-2" data-testid="rx-patient-banner">
+        <span className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Prescription for</span>
+        <span className="text-base font-bold text-gray-900">{st.patient.name ?? 'Patient'}</span>
+        <span className="text-sm text-gray-700">{[st.patient.age, st.patient.sex?.toLowerCase()].filter(Boolean).join(' · ')}</span>
+        {st.patient.whatsappLast4 && <span className="rounded bg-white px-2 py-0.5 font-mono text-sm text-gray-800">WhatsApp …{st.patient.whatsappLast4}</span>}
+        <span className="ml-auto font-mono text-xs text-gray-500">Case {st.patient.caseRef}</span>
+      </div>
       {/* ---------------- Finalized ---------------- */}
       {cur && cur.status === 'FINALIZED' && (
         <Card title="🔒 Prescription finalized">
@@ -370,7 +379,7 @@ export function DoctorPrescription({ caseId, onCaseChange }: { caseId: string; o
               })}
             </ul>
           )}
-          <VoiceRecorder onSave={uploadVoice} disabled={act.busy} />
+          <VoiceRecorder onSave={uploadVoice} disabled={act.busy} patientLabel={who} />
           <p className="mt-2 text-xs text-gray-500">On iPhone, recording may briefly pause your call microphone; speak again in the call after stopping.</p>
           {sent && unsentVoices.length > 0 && st.caseStatus === 'IN_CONSULTATION' && (
             <div className="mt-2"><Button onClick={() => void sendVoice()} disabled={act.busy} className="min-h-[44px]">Send voice explanation</Button></div>
@@ -386,12 +395,13 @@ export function DoctorPrescription({ caseId, onCaseChange }: { caseId: string; o
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-end gap-2">
             {editing ? (
               <>
-                <span className="mr-auto text-xs text-gray-500">{dirty ? 'Unsaved changes…' : savedAt ? `Draft saved ${fmtTime(savedAt)}` : cur ? 'Draft saved' : 'New prescription'}</span>
+                <span className="mr-auto text-xs text-gray-500"><b className="text-gray-900">{who}</b> · {dirty ? 'unsaved changes…' : savedAt ? `draft saved ${fmtTime(savedAt)}` : cur ? 'draft saved' : 'new prescription'}</span>
                 <Button variant="secondary" onClick={() => void act.run(async () => (await save(), 'Draft saved.'))} disabled={act.busy} className="min-h-[44px]">Save draft</Button>
                 <Button onClick={() => void doPreview()} disabled={act.busy || !hasContent} className="min-h-[44px]" data-testid="rx-preview">{act.busy ? 'Working…' : 'Preview & finalize'}</Button>
               </>
             ) : cur?.status === 'FINALIZED' ? (
               <>
+                <span className="mr-auto text-xs text-gray-600">For <b className="text-gray-900">{who}</b></span>
                 {st.caseStatus === 'IN_CONSULTATION' && !sent && <Button onClick={() => void send(false)} disabled={act.busy} className="min-h-[44px]" data-testid="rx-send">Send prescription</Button>}
                 {st.caseStatus === 'IN_CONSULTATION' && sent && <Button variant="secondary" onClick={() => void send(false)} disabled={act.busy} className="min-h-[44px]">Send again (no duplicates)</Button>}
                 {st.caseStatus === 'IN_CONSULTATION' && (

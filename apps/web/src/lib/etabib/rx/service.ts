@@ -681,7 +681,7 @@ export async function prescriptionState(caseId: string, opts: { forAdmin?: boole
     : [{ last: null }]
   return {
     caseStatus: c.status,
-    patient: { name: c.patientName, age: c.age, sex: c.sex, location: c.location, complaint: c.mainComplaint },
+    patient: { name: c.patientName, age: c.age, sex: c.sex, location: c.location, complaint: c.mainComplaint, whatsappLast4: c.whatsappPhone ? c.whatsappPhone.slice(-4) : null, caseRef: c.id.slice(0, 8) },
     current: current
       ? {
           id: current.id,

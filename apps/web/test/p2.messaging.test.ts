@@ -146,6 +146,30 @@ describe.skipIf(!hasTestDb)('patient + staff WhatsApp sequence', () => {
     expect((m.text as string).replace(`/admin/cases/${id}`, '')).not.toContain(id.slice(0, 8))
   })
 
+  it('approved templates get values in the exact approved order (confirmation, approval, staff cancellation)', async () => {
+    process.env.ETABIB_WA_TEMPLATES = JSON.stringify({
+      CONSULTATION_CONFIRMED: { name: 'etabib_consultation_confirmed_ps', language: 'ps_AF' },
+      DOCTOR_APPROVAL_REQUEST: { name: 'etabib_doctor_approval_request_v2', language: 'en' },
+      DOCTOR_CONSULTATION_CANCELLED: { name: 'etabib_staff_consultation_cancelled', language: 'en' },
+    })
+    try {
+      const { id } = await caseAt('CONFIRMED', { adminId, doctorId })
+      await dispatchOutboundJobs([...(await jobsOfType('DOCTOR_APPROVAL_REQUEST')), ...(await jobsOfType('CONSULTATION_CONFIRMED_PATIENT'))].map((j) => j.id))
+      const vals = (type: string) => sent().find((m) => m.type === type).template.components[0].parameters.map((x: { text: string }) => x.text)
+      expect(vals('DOCTOR_APPROVAL_REQUEST')).toEqual(['Synthetic Patient', '34 / FEMALE', 'Synthetic District', expect.stringMatching(/\(Pakistan time\)$/), `https://staging.example.test/doctor/cases/${id}`])
+      const conf = vals('CONSULTATION_CONFIRMED_PATIENT')
+      expect(conf[0]).toBe('Synthetic Patient')
+      expect(conf[1]).toMatch(/\(د پاکستان وخت\)$/)
+      expect(conf[2]).toMatch(/^https:\/\/staging\.example\.test\/consult\/[A-Za-z0-9_-]{43}$/)
+      const { cancelConsultation } = await import('@/lib/etabib/cases')
+      const r = await cancelConsultation(id, { reason: 'SCHEDULING_PROBLEM' }, { type: 'ADMIN', id: adminId })
+      await dispatchOutboundJobs(r.jobs.map((j) => j.id))
+      expect(vals('CONSULTATION_CANCELLED_DOCTOR')).toEqual(['by the admin', 'Synthetic Patient', expect.stringMatching(/\(Pakistan time\)$/), 'Scheduling problem', `https://staging.example.test/doctor/cases/${id}`])
+    } finally {
+      delete process.env.ETABIB_WA_TEMPLATES
+    }
+  })
+
   it('doctor approval: short, actionable, no complaint/history, deep link to the case', async () => {
     const { id } = await caseAt('AWAITING_DOCTOR_APPROVAL', { adminId, doctorId })
     await dispatchOutboundJobs((await jobsOfType('DOCTOR_APPROVAL_REQUEST')).map((j) => j.id))
