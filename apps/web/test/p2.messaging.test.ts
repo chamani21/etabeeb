@@ -96,7 +96,7 @@ describe.skipIf(!hasTestDb)('patient + staff WhatsApp sequence', () => {
     expect(patient.map((m) => m.type)).toEqual(['ASK_PATIENT_NAME', 'ASK_PATIENT_PHONE', 'PATIENT_ACKNOWLEDGED'])
     const [m1, m2, m3] = patient.map((m) => m.text as string)
     expect(m1).toBe('السلام علیکم، eTabeeb ته ښه راغلاست.\n\nد آنلاین مشورې لپاره مهرباني وکړئ د ناروغ نوم ولیکئ.')
-    expect(m2).toBe('مننه احمد خان.\n\nاوس مهرباني وکړئ د اړیکې لپاره د ناروغ د موبایل شمېره ولیکئ.\nلکه: 0300XXXXXXX')
+    expect(m2).toBe('مننه احمد خان.\n\nاوس مهرباني وکړئ د اړیکې لپاره د ناروغ د موبایل شمېره ولیکئ.\n\nد پاکستان بېلګه:\n0300 0000000\nیا\n+92 300 0000000\n\nد افغانستان بېلګه:\n070 000 0000\nیا\n+93 70 000 0000')
     expect(m3).toBe(
       'مننه احمد خان.\n\nستاسو د آنلاین مشورې غوښتنه ثبت شوه.\n\nزموږ استازی به ډېر ژر له تاسو سره اړیکه ونیسي.\n\nکه کومه پوښتنه لرئ:\n' + HELP,
     )
@@ -126,7 +126,7 @@ describe.skipIf(!hasTestDb)('patient + staff WhatsApp sequence', () => {
     }
     const confirmed = patient.find((m) => m.type === 'CONSULTATION_CONFIRMED_PATIENT')!.text as string
     expect(confirmed).toMatch(
-      /^ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه\.\n\nوخت:\n.+\(د پاکستان وخت\)\n\nد مشورې لینک:\nhttps:\/\/staging\.example\.test\/consult\/[A-Za-z0-9_-]{43}\n\nمرستې لپاره:\nhttps:\/\/staging\.example\.test\/help$/,
+      /^ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه\.\n\nستاسو د آنلاین مشورې وخت:\n\n🇵🇰 د پاکستان وخت:\n\d{2} \S+ \d{4} — \d{1,2}:\d{2} \S+\n\n🇦🇫 د افغانستان وخت:\n\d{2} \S+ \d{4} — \d{1,2}:\d{2} \S+\n\nد مشورې لینک:\nhttps:\/\/staging\.example\.test\/consult\/[A-Za-z0-9_-]{43}\n\nمرستې لپاره:\nhttps:\/\/staging\.example\.test\/help$/,
     )
     expect(confirmed).not.toMatch(/etb-[0-9a-f]{32}|livekit|eyJ/i)
   })
@@ -161,7 +161,7 @@ describe.skipIf(!hasTestDb)('patient + staff WhatsApp sequence', () => {
       expect(vals('DOCTOR_APPROVAL_REQUEST')).toEqual(['Synthetic Patient', '34 / FEMALE', 'Synthetic District', expect.stringMatching(/\(Pakistan time\)$/), `https://staging.example.test/doctor/cases/${id}`])
       const conf = vals('CONSULTATION_CONFIRMED_PATIENT')
       expect(conf[0]).toBe('Synthetic Patient')
-      expect(conf[1]).toMatch(/\(د پاکستان وخت\)$/)
+      expect(conf[1]).toMatch(/^پاکستان: \d{2} \S+ \d{4}، \d{1,2}:\d{2} \S+ \| افغانستان: \d{2} \S+ \d{4}، \d{1,2}:\d{2} \S+$/)
       expect(conf[2]).toMatch(/^https:\/\/staging\.example\.test\/consult\/[A-Za-z0-9_-]{43}$/)
       const { cancelConsultation } = await import('@/lib/etabib/cases')
       const r = await cancelConsultation(id, { reason: 'SCHEDULING_PROBLEM' }, { type: 'ADMIN', id: adminId })

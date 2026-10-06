@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
+import { formatConsultationForPatient } from '@/lib/etabib/patient-time'
 
 const VideoRoom = dynamic(() => import('@/components/video/VideoRoom').then((m) => m.VideoRoom), { ssr: false })
 
@@ -17,6 +18,7 @@ const T = {
   doctor: 'ډاکټر',
   time: 'د مشورې وخت',
   pakistanTime: 'د پاکستان وخت',
+  afghanistanTime: 'د افغانستان وخت',
   loading: 'لږ صبر وکړئ…',
   explain:
     'د مشورې لپاره ستاسو کیمرې او مایکروفون ته اجازه پکار ده. کله چې براوزر پوښتنه وکړي، «اجازه ورکړئ» (Allow) کېکاږئ.',
@@ -58,12 +60,15 @@ type Access =
   | { status: 'cancelled'; helpUrl?: string | null }
   | { status: 'invalid' | 'revoked' | 'error' }
 
-function fmtPs(iso: string): string {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Karachi', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
-  }).formatToParts(new Date(iso))
-  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
-  return `${g('year')}-${g('month')}-${g('day')} ${g('hour')}:${g('minute')} (${T.pakistanTime})`
+/** Consultation time for both countries (shared formatter: one timestamp, two local dates/times). */
+function BothTimes({ iso }: { iso: string }) {
+  const t = formatConsultationForPatient(new Date(iso))
+  return (
+    <span className="mt-1 block space-y-0.5" data-testid="both-times">
+      <span className="block">🇵🇰 {T.pakistanTime}: <b className="inline-block" dir="rtl">{t.pakistan.date} — {t.pakistan.time}</b></span>
+      <span className="block">🇦🇫 {T.afghanistanTime}: <b className="inline-block" dir="rtl">{t.afghanistan.date} — {t.afghanistan.time}</b></span>
+    </span>
+  )
 }
 
 async function post(path: string, token: string) {
@@ -115,7 +120,7 @@ export default function ConsultPage({ params }: { params: { token: string } }) {
         {info && phase !== 'incall' && (
           <section className="rounded-xl bg-white p-4 shadow-sm">
             <p className="text-lg"><span className="font-semibold">{T.doctor}:</span> {info.doctorName}</p>
-            <p className="mt-1"><span className="font-semibold">{T.time}:</span> <span dir="ltr" className="inline-block">{fmtPs(info.scheduledAt)}</span></p>
+            <div className="mt-1"><span className="font-semibold">{T.time}:</span> <BothTimes iso={info.scheduledAt} /></div>
           </section>
         )}
 
@@ -139,7 +144,7 @@ export default function ConsultPage({ params }: { params: { token: string } }) {
         {access.status === 'not_configured' && <Box kind="warning">{T.notConfigured}</Box>}
         {access.status === 'too_early' && info && (
           <Box kind="warning">
-            {T.tooEarly} <span dir="ltr" className="inline-block font-semibold">{fmtPs(info.opensAt)}</span>
+            {T.tooEarly} <BothTimes iso={info.opensAt} />
             <p className="mt-2 text-sm">{T.autoRefresh}</p>
           </Box>
         )}

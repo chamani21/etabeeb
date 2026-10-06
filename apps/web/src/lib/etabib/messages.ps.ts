@@ -4,7 +4,10 @@
  * Every automated patient message is defined here. Route handlers and
  * services must not contain inline patient-facing text.
  */
-import { CLINIC_TIMEZONE } from './config'
+
+/** Number examples for both countries (spaces are only for reading; any format is accepted). */
+const PHONE_EXAMPLES_PS =
+  '\n\nد پاکستان بېلګه:\n0300 0000000\nیا\n+92 300 0000000\n\nد افغانستان بېلګه:\n070 000 0000\nیا\n+93 70 000 0000'
 
 export const PATIENT_MESSAGES_PS = {
   /** MESSAGE 1 — first contact: welcome + ask for the patient's name only. */
@@ -13,9 +16,9 @@ export const PATIENT_MESSAGES_PS = {
   invalidName: 'بښنه غواړو، نوم مو سم ترلاسه نه شو. مهرباني وکړئ یوازې د ناروغ نوم ولیکئ.',
   /** MESSAGE 2 — ask for the contact phone only. */
   askPhone: (name: string) =>
-    `مننه ${name}.\n\nاوس مهرباني وکړئ د اړیکې لپاره د ناروغ د موبایل شمېره ولیکئ.\nلکه: 0300XXXXXXX`,
+    `مننه ${name}.\n\nاوس مهرباني وکړئ د اړیکې لپاره د ناروغ د موبایل شمېره ولیکئ.` + PHONE_EXAMPLES_PS,
   /** Phone was not a valid number. */
-  invalidPhone: 'بښنه غواړو، دا شمېره سمه نه ده. مهرباني وکړئ د موبایل سمه شمېره ولیکئ، لکه: 0300XXXXXXX',
+  invalidPhone: 'بښنه غواړو، دا شمېره سمه نه ده. مهرباني وکړئ د پاکستان یا افغانستان د موبایل سمه شمېره ولیکئ.' + PHONE_EXAMPLES_PS,
   /** MESSAGE 3 — name + phone received: registered, a representative takes over. Automated questions stop. */
   acknowledged: (name: string | null, helpUrl: string | null) =>
     `مننه${name ? ` ${name}` : ''}.\n\nستاسو د آنلاین مشورې غوښتنه ثبت شوه.\n\nزموږ استازی به ډېر ژر له تاسو سره اړیکه ونیسي.` +
@@ -24,8 +27,8 @@ export const PATIENT_MESSAGES_PS = {
   caseInProgress: (helpUrl: string | null) =>
     'ستاسو غوښتنه زموږ له ټیم سره ده. زموږ استازی به ډېر ژر له تاسو سره اړیکه ونیسي.' + helpBlock('که کومه پوښتنه لرئ:', helpUrl),
   /** MESSAGE 4 — confirmed by Dr. Jalaluddin: time, secure eTabeeb link (never a raw video token), help. */
-  consultationConfirmed: (time: string, link: string | null, helpUrl: string | null = null) =>
-    `ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه.\n\nوخت:\n${time}\n\n` +
+  consultationConfirmed: (timeBlock: string, link: string | null, helpUrl: string | null = null) =>
+    `ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه.\n\nستاسو د آنلاین مشورې وخت:\n\n${timeBlock}\n\n` +
     (link ? `د مشورې لینک:\n${link}` : 'د مشورې لینک به وروسته درته ولیږل شي.') +
     helpBlock('مرستې لپاره:', helpUrl),
   /** Consultation cancelled (reason is a fixed Pashto label — never staff notes). */
@@ -61,21 +64,6 @@ export const CANCELLATION_REASON_PS: Readonly<Record<string, string>> = {
   DUPLICATE_REQUEST: 'دا غوښتنه دوه ځله ثبت شوې وه',
   TEST_CASE: 'دا د ازموینې غوښتنه وه',
   OTHER: 'اداري لامل',
-}
-
-/** Format a consultation time for patients, e.g. "2026-10-05 14:30 (د پاکستان وخت)". */
-export function formatConsultationTimePs(date: Date): string {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: CLINIC_TIMEZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(date)
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
-  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} (د پاکستان وخت)`
 }
 
 /** Pashto section labels for the plain-text prescription (doctor content is inserted as written). */

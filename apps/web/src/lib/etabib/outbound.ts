@@ -19,7 +19,8 @@ import { notificationOutbox, consultationCases, prescriptions, prescriptionItems
 import type { ConsultationCase } from '@etabeeb/db'
 import { and, eq, asc, inArray, lt, max, sql } from 'drizzle-orm'
 import { ETABIB_KEY_HEADER, getAdminWhatsapp, getDoctorWhatsapp, getOutboundConfig } from './config'
-import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatConsultationTimePs, formatPrescriptionTextPs } from './messages.ps'
+import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatPrescriptionTextPs } from './messages.ps'
+import { consultationTimeBlockPs, consultationTimeLinePs } from './patient-time'
 import { STAFF_MESSAGES, clinicTime } from './messages.staff'
 import { cancellationReasonLabel } from './cancellation'
 import { adminCaseUrl, doctorCaseUrl, patientWhatsAppUrl, representativeHelpUrl } from './links'
@@ -355,14 +356,15 @@ async function buildTextPayload(
         // approved etabib_consultation_confirmed_ps: {{1}} name, {{2}} date/time, {{3}} consultation link
         templateValues: [
           c.patientName ?? '-',
-          c.doctorApprovedTime ? formatConsultationTimePs(c.doctorApprovedTime) : '-',
+          // {{2}} "نېټه او وخت": both countries on one line (template parameters cannot contain newlines)
+          c.doctorApprovedTime ? consultationTimeLinePs(c.doctorApprovedTime) : '-',
           link ?? 'وروسته به درته ولېږل شي',
         ],
         payload: {
         ...base,
         ...(to ? { to } : {}),
         text: PATIENT_MESSAGES_PS.consultationConfirmed(
-          c.doctorApprovedTime ? formatConsultationTimePs(c.doctorApprovedTime) : '',
+          c.doctorApprovedTime ? consultationTimeBlockPs(c.doctorApprovedTime) : '',
           link,
           helpUrl,
         ),

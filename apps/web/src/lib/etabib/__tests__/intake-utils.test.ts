@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { normalizePhone, waIdToE164 } from '../phone'
 import { extractInboundMessages, sanitizePatientName } from '../whatsapp'
 import { sanitizeErrorText } from '../sanitize'
-import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatConsultationTimePs } from '../messages.ps'
+import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS } from '../messages.ps'
+import { consultationTimeBlockPs, consultationTimeLinePs, formatConsultationForPatient } from '../patient-time'
 
 describe('phone normalization', () => {
   it.each([
@@ -13,8 +14,24 @@ describe('phone normalization', () => {
     ['۰۳۰۰۱۲۳۴۵۶۷', '+923001234567'], // Pashto digits
     ['0701234567', '+93701234567'],
     ['+93 70 123 4567', '+93701234567'],
+    ['+923001234567', '+923001234567'], // already international: unchanged
+    ['+93701234567', '+93701234567'],
+    ['0093701234567', '+93701234567'],
+    // the exact examples shown to patients normalize correctly
+    ['0300 0000000', '+923000000000'],
+    ['+92 300 0000000', '+923000000000'],
+    ['070 000 0000', '+93700000000'],
+    ['+93 70 000 0000', '+93700000000'],
   ])('%s → %s', (input, expected) => {
     expect(normalizePhone(input)).toBe(expected)
+  })
+
+  it('an Afghan number is never given the Pakistan country code (and vice versa)', () => {
+    expect(normalizePhone('0701234567')).not.toMatch(/^\+92/)
+    expect(normalizePhone('03001234567')).not.toMatch(/^\+93/)
+    // ambiguous lengths are rejected instead of guessed
+    expect(normalizePhone('0301234567')).toBeNull()
+    expect(normalizePhone('07012345678')).toBeNull()
   })
 
   it.each(['hello', '12345', '0300123', '+92123', 'call me 0300', ''])('rejects %s', (input) => {
@@ -91,7 +108,7 @@ describe('Pashto patient messages', () => {
     PATIENT_MESSAGES_PS.invalidPhone,
     PATIENT_MESSAGES_PS.acknowledged('احمد', 'https://etabeeb.example/help'),
     PATIENT_MESSAGES_PS.caseInProgress('https://etabeeb.example/help'),
-    PATIENT_MESSAGES_PS.consultationConfirmed('2026-10-05 14:30', 'https://example.test/x', 'https://wa.me/920000000000'),
+    PATIENT_MESSAGES_PS.consultationConfirmed(consultationTimeBlockPs(new Date('2026-10-06T12:00:00Z')), 'https://example.test/x', 'https://wa.me/920000000000'),
     PATIENT_MESSAGES_PS.consultationCancelled({ name: 'احمد', sex: 'MALE', reason: CANCELLATION_REASON_PS.DOCTOR_UNAVAILABLE!, helpUrl: 'https://wa.me/920000000000' }),
     ...Object.values(CANCELLATION_REASON_PS),
     PATIENT_MESSAGES_PS.prescriptionReady,
@@ -107,7 +124,27 @@ describe('Pashto patient messages', () => {
     expect(PATIENT_MESSAGES_PS.acknowledged('احمد', 'https://etabeeb.example/help')).not.toMatch(/\?|؟/)
     expect(PATIENT_MESSAGES_PS.acknowledged(null, null)).not.toMatch(/\?|؟|https?:/)
   })
-  it('formats times in clinic time', () => {
-    expect(formatConsultationTimePs(new Date('2026-10-05T09:30:00Z'))).toBe('2026-10-05 14:30 (د پاکستان وخت)')
+  it('shows consultation times for Pakistan AND Afghanistan from one timestamp (timezone database)', () => {
+    // Pakistan 5:00 PM → Afghanistan 4:30 PM
+    expect(formatConsultationForPatient(new Date('2026-10-06T12:00:00Z'))).toEqual({
+      pakistan: { date: '06 اکتوبر 2026', time: '5:00 ماښام' },
+      afghanistan: { date: '06 اکتوبر 2026', time: '4:30 ماښام' },
+    })
+    // Pakistan 10:00 AM → Afghanistan 9:30 AM
+    expect(formatConsultationForPatient(new Date('2026-10-06T05:00:00Z'))).toEqual({
+      pakistan: { date: '06 اکتوبر 2026', time: '10:00 سهار' },
+      afghanistan: { date: '06 اکتوبر 2026', time: '9:30 سهار' },
+    })
+    // Pakistan 12:15 AM on 7 Oct → Afghanistan 11:45 PM on the PREVIOUS date (6 Oct)
+    expect(formatConsultationForPatient(new Date('2026-10-06T19:15:00Z'))).toEqual({
+      pakistan: { date: '07 اکتوبر 2026', time: '12:15 شپه' },
+      afghanistan: { date: '06 اکتوبر 2026', time: '11:45 شپه' },
+    })
+  })
+  it('renders the Pashto block (messages) and a single-line form (template variables)', () => {
+    const ts = new Date('2026-10-06T12:00:00Z')
+    expect(consultationTimeBlockPs(ts)).toBe('🇵🇰 د پاکستان وخت:\n06 اکتوبر 2026 — 5:00 ماښام\n\n🇦🇫 د افغانستان وخت:\n06 اکتوبر 2026 — 4:30 ماښام')
+    expect(consultationTimeLinePs(ts)).toBe('پاکستان: 06 اکتوبر 2026، 5:00 ماښام | افغانستان: 06 اکتوبر 2026، 4:30 ماښام')
+    expect(consultationTimeLinePs(ts)).not.toMatch(/[\n\t]| {5,}/) // valid WhatsApp template parameter
   })
 })
