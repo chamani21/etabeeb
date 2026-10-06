@@ -217,6 +217,47 @@ describe.skipIf(!hasTestDb)('prescription stage', () => {
   })
 
   // ------------------------------------------------------------------
+  describe('short universal prescription ID', () => {
+    it('5-char unambiguous code (letters + digits), shared by revisions, printed on the document, locked', async () => {
+      const { id } = await caseAt('IN_CONSULTATION', { adminId, doctorId })
+      await saveDraft(id, draft(), DOCTOR())
+      const [d] = await rxOf(id)
+      expect(d!.rxCode).toMatch(/^[2-9A-HJKMNP-Z]{5}$/)
+      expect(d!.rxCode).toMatch(/[A-Z]/)
+      expect(d!.rxCode).toMatch(/[0-9]/)
+      await finalizePrescription(id, DOCTOR())
+      const v2 = await createAmendment(id, DOCTOR())
+      expect(v2.rxCode).toBe(d!.rxCode)
+      const { loadRxDocument } = await import('@/lib/etabib/rx/service')
+      expect((await loadRxDocument(d!.id)).rxNumber).toBe(d!.rxCode)
+      await expect(db.update(prescriptions).set({ rxCode: 'ZZZ22' }).where(eq(prescriptions.id, d!.id))).rejects.toThrow(/locked/)
+      // codes are unique across prescriptions
+      const other = await caseAt('IN_CONSULTATION', { adminId, doctorId })
+      const o = await saveDraft(other.id, draft(), DOCTOR())
+      expect(o.rxCode).not.toBe(d!.rxCode)
+    })
+
+    it('admin queue search and doctor lookup find the case by code (any case/format); doctor sees only doctor cases', async () => {
+      const c = await caseAt('PRESCRIBED', { adminId, doctorId })
+      const [rx] = await rxOf(c.id)
+      const code = rx!.rxCode!
+      const { listCasesForAdmin } = await import('@/lib/etabib/queries')
+      for (const q of [code, code.toLowerCase(), `rx-${code}`, ` ${code.slice(0, 2)} ${code.slice(2)} `]) {
+        const rows = await listCasesForAdmin({ status: 'ALL', q })
+        expect(rows.map((r) => r.id)).toEqual([c.id])
+        expect(rows[0]!.rxCode).toBe(code)
+      }
+      const { GET: lookup } = await import('@/app/api/doctor/prescriptions/lookup/route')
+      loginAs(doctorId)
+      expect(await (await lookup(getReq(`/x?code=${code.toLowerCase()}`))).json()).toEqual({ caseId: c.id })
+      expect((await lookup(getReq('/x?code=22222'))).status).toBe(404)
+      expect((await lookup(getReq('/x?code=../x'))).status).toBe(404)
+      loginAs(adminId, 'administrator')
+      expect((await lookup(getReq(`/x?code=${code}`))).status).toBe(403)
+    })
+  })
+
+  // ------------------------------------------------------------------
   describe('send (call stays open) vs. explicit completion', () => {
     const finalized = async () => {
       const c = await caseAt('IN_CONSULTATION', { adminId, doctorId })
@@ -446,7 +487,7 @@ describe.skipIf(!hasTestDb)('prescription stage', () => {
     it('public QR verification shows no clinical data; drafts and random tokens are not found', async () => {
       const { rx } = await sentCase()
       const v = await verifyPrescriptionToken(rx.verificationToken)
-      expect(v).toMatchObject({ rxNumber: rx.rxNumber, revision: 1, status: 'FINALIZED', doctor: 'Dr Jalal-ud-din "Jalal"' })
+      expect(v).toMatchObject({ rxNumber: rx.rxCode, revision: 1, status: 'FINALIZED', doctor: 'Dr Jalal-ud-din "Jalal"' })
       expect(JSON.stringify(v)).not.toMatch(/Paracetamol|Synthetic Patient|diagnosis/i)
       expect(rx.verificationToken).toMatch(/^[A-Za-z0-9_-]{22}$/) // 128-bit, not enumerable
       expect(await verifyPrescriptionToken('A'.repeat(22))).toBeNull()

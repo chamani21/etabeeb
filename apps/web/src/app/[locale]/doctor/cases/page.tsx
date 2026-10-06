@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/components/staff/api'
 import { fmtTime, shortId } from '@/components/staff/format'
-import { Button, Card, Notice, StatusBadge } from '@/components/staff/ui'
+import { Button, Card, Notice, StatusBadge, inputCls } from '@/components/staff/ui'
+import { useRouter } from 'next/navigation'
 
 type C = {
   id: string; status: string; patientName: string | null; age: number | null; sex: string | null; location: string | null
@@ -15,6 +16,19 @@ type Lists = { pendingApproval: C[]; confirmed: C[]; inConsultation: C[]; recent
 export default function DoctorCasesPage() {
   const [data, setData] = useState<Lists | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [code, setCode] = useState('')
+  const [findError, setFindError] = useState<string | null>(null)
+  const router = useRouter()
+  const find = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFindError(null)
+    try {
+      const r = await api<{ caseId: string }>(`/api/doctor/prescriptions/lookup?code=${encodeURIComponent(code.trim())}`)
+      router.push(`/doctor/cases/${r.caseId}`)
+    } catch (err) {
+      setFindError(err instanceof Error ? err.message : 'Not found')
+    }
+  }
   const load = useCallback(async () => {
     try {
       setData(await api<Lists>('/api/doctor/cases'))
@@ -54,6 +68,14 @@ export default function DoctorCasesPage() {
         <h1 className="text-2xl font-bold text-emerald-900">My consultations</h1>
         <Button variant="secondary" onClick={() => void load()}>Refresh</Button>
       </div>
+      <Card>
+        <form onSubmit={(e) => void find(e)} className="flex flex-wrap items-center gap-2" data-testid="rx-find">
+          <label className="text-sm font-medium text-gray-700" htmlFor="rx-code">Find prescription</label>
+          <input id="rx-code" className={`${inputCls} w-40 font-mono uppercase tracking-wider`} placeholder="e.g. K7Q4M" value={code} onChange={(e) => setCode(e.target.value)} maxLength={12} autoCapitalize="characters" />
+          <Button type="submit" disabled={code.trim().length < 5}>Open</Button>
+          {findError && <span className="text-sm text-red-700">{findError}</span>}
+        </form>
+      </Card>
       {error && <Notice kind="error">{error}</Notice>}
       {!data ? <p className="text-sm text-gray-500">Loading…</p> : (
         <>

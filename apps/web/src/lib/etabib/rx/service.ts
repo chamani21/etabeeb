@@ -156,6 +156,7 @@ export async function saveDraft(caseId: string, input: RxDraftInput, doctor: Doc
           verificationToken: verificationToken(),
           consultationId: caseId,
           rxNumber: await newRxNumber(tx),
+          rxCode: sql`etabib_new_rx_code()`,
           revision: 1,
           workflowStatus: 'DRAFT',
           prescribedBy: doctor.id,
@@ -190,6 +191,7 @@ export async function createAmendment(caseId: string, doctor: Doctor): Promise<P
         verificationToken: verificationToken(),
         consultationId: caseId,
         rxNumber: rx.rxNumber,
+        rxCode: rx.rxCode,
         revision: rx.revision + 1,
         amendedFromId: rx.id,
         workflowStatus: 'DRAFT',
@@ -287,7 +289,7 @@ export async function loadRxDocument(rxId: string): Promise<RxDocument> {
   const appUrl = getAppUrl()
   const finalized = rx.workflowStatus !== 'DRAFT'
   return {
-    rxNumber: rx.rxNumber ?? 'ETB-RX-DRAFT',
+    rxNumber: rx.rxCode ?? rx.rxNumber ?? 'DRAFT',
     revision: rx.revision,
     status: rx.workflowStatus as RxDocument['status'],
     issuedAt: rx.finalizedAt ?? new Date(),
@@ -614,7 +616,7 @@ async function loadCase(caseId: string): Promise<ConsultationCase> {
 export async function previousPrescriptions(c: ConsultationCase) {
   if (!c.whatsappPhone) return []
   return db
-    .select({ id: prescriptions.id, rxNumber: prescriptions.rxNumber, revision: prescriptions.revision, finalizedAt: prescriptions.finalizedAt, caseId: consultationCases.id, status: prescriptions.workflowStatus })
+    .select({ id: prescriptions.id, rxNumber: prescriptions.rxNumber, rxCode: prescriptions.rxCode, revision: prescriptions.revision, finalizedAt: prescriptions.finalizedAt, caseId: consultationCases.id, status: prescriptions.workflowStatus })
     .from(prescriptions)
     .innerJoin(consultationCases, eq(consultationCases.id, prescriptions.consultationId))
     .where(
@@ -686,6 +688,7 @@ export async function prescriptionState(caseId: string, opts: { forAdmin?: boole
       ? {
           id: current.id,
           rxNumber: current.rxNumber,
+          rxCode: current.rxCode,
           revision: current.revision,
           status: current.workflowStatus,
           finalizedAt: current.finalizedAt,
@@ -709,7 +712,7 @@ export async function prescriptionState(caseId: string, opts: { forAdmin?: boole
           },
         }
       : null,
-    revisions: revisions.map((r) => ({ id: r.id, rxNumber: r.rxNumber, revision: r.revision, status: r.workflowStatus, finalizedAt: r.finalizedAt, pages: r.imageKeys?.length ?? 0, hasPdf: Boolean(r.pdfKey) })),
+    revisions: revisions.map((r) => ({ id: r.id, rxNumber: r.rxNumber, rxCode: r.rxCode, revision: r.revision, status: r.workflowStatus, finalizedAt: r.finalizedAt, pages: r.imageKeys?.length ?? 0, hasPdf: Boolean(r.pdfKey) })),
     voiceNotes: voices.map((v) => ({ id: v.id, durationMs: v.durationMs, includeInDelivery: v.includeInDelivery, createdAt: v.createdAt, sizeBytes: v.sizeBytes })),
     deliveries,
     whatsappWindowOpen: Boolean(last && Date.now() - new Date(last).getTime() < WINDOW_MS),
@@ -728,7 +731,7 @@ export async function prescriptionFile(caseId: string, rxId: string, kind: 'pdf'
   if (!key) return null
   const data = await getFile(key)
   if (!data) return null
-  const base = `${rx.rxNumber ?? 'prescription'}${rx.revision > 1 ? `-rev${rx.revision}` : ''}`
+  const base = `prescription-${rx.rxCode ?? rx.rxNumber ?? 'rx'}${rx.revision > 1 ? `-rev${rx.revision}` : ''}`
   return kind === 'pdf' ? { data, contentType: 'application/pdf', filename: `${base}.pdf` } : { data, contentType: 'image/png', filename: `${base}-page-${page}.png` }
 }
 
@@ -736,12 +739,31 @@ export async function prescriptionFile(caseId: string, rxId: string, kind: 'pdf'
 export async function verifyPrescriptionToken(token: string) {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null
   const [rx] = await db
-    .select({ rxNumber: prescriptions.rxNumber, revision: prescriptions.revision, status: prescriptions.workflowStatus, finalizedAt: prescriptions.finalizedAt, prescribedBy: prescriptions.prescribedBy, consultationId: prescriptions.consultationId })
+    .select({ rxNumber: prescriptions.rxNumber, rxCode: prescriptions.rxCode, revision: prescriptions.revision, status: prescriptions.workflowStatus, finalizedAt: prescriptions.finalizedAt, prescribedBy: prescriptions.prescribedBy, consultationId: prescriptions.consultationId })
     .from(prescriptions)
     .where(eq(prescriptions.verificationToken, token))
     .limit(1)
   if (!rx || !rx.consultationId || rx.status === 'DRAFT') return null
   const isV1 = rx.prescribedBy === getV1DoctorUserId()
   const [u] = isV1 ? [] : await db.select({ name: users.displayName }).from(users).where(eq(users.id, rx.prescribedBy)).limit(1)
-  return { rxNumber: rx.rxNumber, revision: rx.revision, status: rx.status as 'FINALIZED' | 'SUPERSEDED', issuedAt: rx.finalizedAt, doctor: isV1 ? DR_JALALUDDIN.nameEn : (u?.name ?? 'eTabeeb doctor') }
+  return { rxNumber: rx.rxCode ?? rx.rxNumber, revision: rx.revision, status: rx.status as 'FINALIZED' | 'SUPERSEDED', issuedAt: rx.finalizedAt, doctor: isV1 ? DR_JALALUDDIN.nameEn : (u?.name ?? 'eTabeeb doctor') }
+}
+
+/** Normalize a typed prescription ID (spaces, dashes, "RX" prefix, case). */
+export function normalizeRxCode(input: string): string | null {
+  const c = input.toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^RX(?=[A-Z0-9]{5}$)/, '')
+  return /^[2-9A-HJKMNP-Z]{5}$/.test(c) ? c : null
+}
+
+/** Case that holds a prescription with this code (any revision), or null. */
+export async function findCaseByRxCode(code: string): Promise<{ caseId: string; status: ConsultationCase['status']; cancelledFromStatus: ConsultationCase['cancelledFromStatus'] } | null> {
+  const norm = normalizeRxCode(code)
+  if (!norm) return null
+  const [row] = await db
+    .select({ caseId: consultationCases.id, status: consultationCases.status, cancelledFromStatus: consultationCases.cancelledFromStatus })
+    .from(prescriptions)
+    .innerJoin(consultationCases, eq(consultationCases.id, prescriptions.consultationId))
+    .where(eq(prescriptions.rxCode, norm))
+    .limit(1)
+  return row ?? null
 }

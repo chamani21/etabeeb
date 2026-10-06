@@ -6,8 +6,8 @@ import { fmtTime } from '@/components/staff/format'
 import { Button, Card, Dl, Notice, useAction } from '@/components/staff/ui'
 
 interface AdminRxState {
-  current: null | { id: string; rxNumber: string | null; revision: number; status: string; finalizedAt: string | null; renderedAt: string | null; renderError: string | null; pages: number; hasPdf: boolean; deliveryRequestedAt: string | null }
-  revisions: Array<{ id: string; rxNumber: string | null; revision: number; status: string; finalizedAt: string | null; pages: number; hasPdf: boolean }>
+  current: null | { id: string; rxNumber: string | null; rxCode: string | null; revision: number; status: string; finalizedAt: string | null; renderedAt: string | null; renderError: string | null; pages: number; hasPdf: boolean; deliveryRequestedAt: string | null }
+  revisions: Array<{ id: string; rxNumber: string | null; rxCode: string | null; revision: number; status: string; finalizedAt: string | null; pages: number; hasPdf: boolean }>
   voiceNotes: Array<{ id: string; durationMs: number; includeInDelivery: boolean }>
   deliveries: Array<{ jobId: string; kind: 'image' | 'voice' | 'text'; page: number | null; status: string; lastError: string | null; sentAt: string | null; deliveredAt: string | null; readAt: string | null; canRetry: boolean }>
   whatsappWindowOpen: boolean
@@ -48,7 +48,7 @@ export function AdminPrescription({ caseId }: { caseId: string }) {
       {cur && (
         <Dl rows={[
           ['Status', cur.status === 'DRAFT' ? 'Draft (doctor is writing)' : `🔒 Finalized${cur.revision > 1 ? ` — revision ${cur.revision}` : ''}`],
-          ['Prescription ID', cur.rxNumber],
+          ['Prescription ID', <b key="c" className="font-mono text-base tracking-wider">{cur.rxCode ?? cur.rxNumber}</b>],
           ['Finalized', fmtTime(cur.finalizedAt)],
           ['Image / PDF', cur.renderedAt ? `${cur.pages} image page(s) + PDF` : cur.renderError ? `render failed (${cur.renderError})` : cur.status === 'DRAFT' ? '—' : 'pending'],
           ['Sent to WhatsApp', cur.deliveryRequestedAt ? fmtTime(cur.deliveryRequestedAt) : 'not yet'],
@@ -73,7 +73,7 @@ export function AdminPrescription({ caseId }: { caseId: string }) {
           <ul className="mt-1 space-y-1">
             {st.revisions.map((r) => (
               <li key={r.id} className="flex flex-wrap gap-2">
-                <span className="font-mono">{r.rxNumber} rev {r.revision}</span><span className="text-gray-600">{r.status.toLowerCase()} {fmtTime(r.finalizedAt)}</span>
+                <span className="font-mono">{r.rxCode ?? r.rxNumber} rev {r.revision}</span><span className="text-gray-600">{r.status.toLowerCase()} {fmtTime(r.finalizedAt)}</span>
                 {r.hasPdf && <a className="text-emerald-800 underline" href={file(r.id, 'pdf', 1, true)}>PDF</a>}
               </li>
             ))}

@@ -24,6 +24,7 @@ interface Row {
   proposedConsultationTime: string | null
   doctorApprovedTime: string | null
   warning: string | null
+  rxCode: string | null
 }
 
 export default function AdminCasesPage() {
@@ -81,7 +82,7 @@ export default function AdminCasesPage() {
             setQuery(q.trim())
           }}
         >
-          <input className={inputCls} placeholder="Search by case ID, phone or patient name" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className={inputCls} placeholder="Search by prescription ID (e.g. K7Q4M), case ID, phone or patient name" value={q} onChange={(e) => setQ(e.target.value)} />
           <Button type="submit">Search</Button>
           {query && (
             <Button type="button" variant="secondary" onClick={() => { setQ(''); setQuery('') }}>
@@ -102,6 +103,7 @@ export default function AdminCasesPage() {
               <thead>
                 <tr className="border-b text-left text-xs uppercase text-gray-500">
                   <th className="px-2 py-2">Case</th>
+                  <th className="px-2 py-2">Rx ID</th>
                   <th className="px-2 py-2">Patient</th>
                   <th className="px-2 py-2">Phone</th>
                   <th className="px-2 py-2">Status</th>
@@ -119,6 +121,7 @@ export default function AdminCasesPage() {
                     <td className="px-2 py-2 font-mono">
                       <Link href={`/admin/cases/${r.id}`} className="text-emerald-800 underline">{shortId(r.id)}</Link>
                     </td>
+                    <td className="px-2 py-2 font-mono font-semibold tracking-wider">{r.rxCode ?? '—'}</td>
                     <td className="px-2 py-2">{r.patientName ?? <span className="text-gray-400">(not yet given)</span>}</td>
                     <td className="px-2 py-2 font-mono text-xs">{r.patientPhone ?? r.whatsappPhone ?? '—'}</td>
                     <td className="px-2 py-2"><StatusBadge status={r.status} /></td>

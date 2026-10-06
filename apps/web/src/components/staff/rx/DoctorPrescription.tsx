@@ -16,7 +16,7 @@ interface RxState {
   caseStatus: string
   patient: { name: string | null; age: number | null; sex: string | null; location: string | null; complaint: string | null; whatsappLast4: string | null; caseRef: string }
   current: null | {
-    id: string; rxNumber: string | null; revision: number; status: 'DRAFT' | 'FINALIZED'; finalizedAt: string | null; renderedAt: string | null; renderError: string | null
+    id: string; rxNumber: string | null; rxCode: string | null; revision: number; status: 'DRAFT' | 'FINALIZED'; finalizedAt: string | null; renderedAt: string | null; renderError: string | null
     pages: number; hasPdf: boolean; deliveryRequestedAt: string | null; amendedFromId: string | null
     content: { diagnosis: string | null; vitals: Record<string, string>; freeText: string | null; investigations: string | null; advice: string | null; followUp: string | null; followUpInterval: string | null; redFlags: string | null; medicines: Array<Record<string, string | null>> }
   }
@@ -24,7 +24,7 @@ interface RxState {
   voiceNotes: Array<{ id: string; durationMs: number; includeInDelivery: boolean; createdAt: string }>
   deliveries: Array<{ jobId: string; kind: 'image' | 'voice' | 'text'; page: number | null; voiceNoteId: string | null; status: string; lastError: string | null; sentAt: string | null; deliveredAt: string | null; readAt: string | null; canRetry: boolean; createdAt: string }>
   whatsappWindowOpen: boolean
-  previous: Array<{ id: string; rxNumber: string | null; revision: number; finalizedAt: string | null; caseId: string }>
+  previous: Array<{ id: string; rxNumber: string | null; rxCode: string | null; revision: number; finalizedAt: string | null; caseId: string }>
 }
 
 const INVESTIGATIONS = ['CBC', 'HbA1c', 'LFTs', 'RFTs', 'Urine R/E', 'X-ray chest', 'Ultrasound abdomen', 'ECG']
@@ -224,7 +224,7 @@ export function DoctorPrescription({ caseId, onCaseChange }: { caseId: string; o
       {cur && cur.status === 'FINALIZED' && (
         <Card title="🔒 Prescription finalized">
           <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
-            <span>ID: <b className="font-mono">{cur.rxNumber}</b></span>
+            <span>Prescription ID: <b className="font-mono text-base tracking-wider" data-testid="rx-code">{cur.rxCode ?? cur.rxNumber}</b></span>
             <span>Revision: <b>{cur.revision}</b></span>
             <span>Finalized: <b>{fmtTime(cur.finalizedAt)}</b></span>
             <span>Document: <b>{cur.renderedAt ? `${cur.pages} page(s) + PDF` : cur.renderError ? 'render failed — will retry on send' : 'rendering…'}</b></span>
@@ -344,7 +344,7 @@ export function DoctorPrescription({ caseId, onCaseChange }: { caseId: string; o
               <ul className="space-y-2 text-sm">
                 {st.previous.map((p) => (
                   <li key={p.id} className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono">{p.rxNumber}{p.revision > 1 ? ` rev ${p.revision}` : ''}</span>
+                    <span className="font-mono">{p.rxCode ?? p.rxNumber}{p.revision > 1 ? ` rev ${p.revision}` : ''}</span>
                     <span className="text-gray-600">{fmtTime(p.finalizedAt)}</span>
                     <a className="text-emerald-800 underline" href={fileUrl(p.id, 'pdf', 1, false, p.caseId)} target="_blank" rel="noopener">View</a>
                     <a className="text-emerald-800 underline" href={fileUrl(p.id, 'pdf', 1, true, p.caseId)}>Download</a>

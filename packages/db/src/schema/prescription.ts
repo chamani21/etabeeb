@@ -68,6 +68,9 @@ export const prescriptions = pgTable(
     // consultation_cases.id (FK added in migration 0005; no Drizzle reference to avoid an import cycle)
     consultationId: uuid('consultation_id'),
     rxNumber: text('rx_number'), // human-readable ETB-RX-YYYYMMDD-NNNNN, shared by all revisions
+    // Short universal prescription ID (MR-number style, e.g. K7Q4M): printed, searchable,
+    // shared by all revisions, never changes. Unambiguous alphabet (no 0/O, 1/I/L).
+    rxCode: text('rx_code'),
     revision: integer('revision').notNull().default(1),
     amendedFromId: uuid('amended_from_id'), // previous revision (never overwritten)
     // DRAFT (editable) | FINALIZED (locked, immutable clinical content) | SUPERSEDED (an amendment replaced it)
@@ -93,6 +96,7 @@ export const prescriptions = pgTable(
     statusIdx: index('prescriptions_status_idx').on(t.status),
     consultationIdx: index('prescriptions_consultation_idx').on(t.consultationId),
     rxRevisionUq: uniqueIndex('prescriptions_rx_revision_uq').on(t.rxNumber, t.revision),
+    rxCodeRevisionUq: uniqueIndex('prescriptions_rx_code_revision_uq').on(t.rxCode, t.revision),
   }),
 )
 

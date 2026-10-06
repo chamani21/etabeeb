@@ -80,6 +80,8 @@ export interface AdminCaseRow {
   proposedConsultationTime: Date | null
   doctorApprovedTime: Date | null
   warning: string | null
+  /** Short universal prescription ID of the case (latest revision), if any */
+  rxCode: string | null
 }
 
 export async function listCasesForAdmin(filter: { status: ConsultationStatus | 'OPEN' | 'ALL'; q?: string | undefined }): Promise<AdminCaseRow[]> {
@@ -91,6 +93,10 @@ export async function listCasesForAdmin(filter: { status: ConsultationStatus | '
     const digits = q.replace(/\D/g, '')
     const ors: SQL[] = [ilike(consultationCases.patientName, `%${q.replace(/[%_]/g, '')}%`)]
     if (/^[0-9a-f-]{4,36}$/i.test(q)) ors.push(sql`${consultationCases.id}::text ILIKE ${q.toLowerCase() + '%'}`)
+    const code = q.toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^RX(?=[A-Z0-9]{5}$)/, '')
+    if (/^[2-9A-HJKMNP-Z]{5}$/.test(code)) {
+      ors.push(sql`EXISTS (SELECT 1 FROM prescriptions p WHERE p.consultation_id = ${consultationCases.id} AND p.rx_code = ${code})`)
+    }
     if (digits.length >= 4) {
       const tail = digits.startsWith('0') ? digits.slice(1) : digits
       ors.push(sql`regexp_replace(coalesce(${consultationCases.patientPhone}, ''), '\\D', '', 'g') LIKE ${'%' + tail + '%'}`)
@@ -105,6 +111,10 @@ export async function listCasesForAdmin(filter: { status: ConsultationStatus | '
     .orderBy(desc(consultationCases.updatedAt))
     .limit(200)
   const warnings = await warningsFor(rows.map((r) => r.id))
+  const codeRows = rows.length
+    ? await db.selectDistinctOn([prescriptions.consultationId], { caseId: prescriptions.consultationId, code: prescriptions.rxCode }).from(prescriptions).where(inArray(prescriptions.consultationId, rows.map((r) => r.id))).orderBy(prescriptions.consultationId, desc(prescriptions.revision))
+    : []
+  const codes = new Map(codeRows.filter((r) => r.caseId && r.code).map((r) => [r.caseId!, r.code!]))
   return rows.map((c) => ({
     id: c.id,
     status: c.status,
@@ -118,6 +128,7 @@ export async function listCasesForAdmin(filter: { status: ConsultationStatus | '
     proposedConsultationTime: c.proposedConsultationTime,
     doctorApprovedTime: c.doctorApprovedTime,
     warning: warningText(warnings.get(c.id)),
+    rxCode: codes.get(c.id) ?? null,
   }))
 }
 
