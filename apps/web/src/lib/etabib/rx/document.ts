@@ -3,18 +3,9 @@
  * every rendering). Built from the database rows; the renderer turns it into
  * the same paged stationery for both the WhatsApp image(s) and the PDF.
  */
+import type { MedicineLike } from './medicine'
 
-export interface RxMedicine {
-  name: string
-  strength?: string | null | undefined
-  formulation?: string | null | undefined
-  route?: string | null | undefined
-  dose?: string | null | undefined
-  frequency?: string | null | undefined
-  timing?: string | null | undefined
-  duration?: string | null | undefined
-  instructions?: string | null | undefined
-}
+export type RxMedicine = MedicineLike
 
 export interface RxVitals {
   weight?: string | null | undefined

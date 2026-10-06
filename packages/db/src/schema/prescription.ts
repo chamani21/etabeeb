@@ -115,6 +115,12 @@ export const prescriptionItems = pgTable('prescription_items', {
   timing: text('timing'), // e.g. "after meals"
   durationDays: integer('duration_days'),
   duration: text('duration'), // free text, e.g. "5 days", "2 weeks"
+  // eTabib structured medicine entry (null on older rows → the text columns are used as-is)
+  formCode: text('form_code'), // TABLET | SYRUP | CREAM | INJECTION | OTHER (custom text in formulation)
+  doseQuantity: text('dose_quantity'), // '0.5' | '1' | '2'
+  doseUnit: text('dose_unit'), // TABLET | TEASPOON | AMPULE (custom dose text in dose when OTHER)
+  frequencyCode: text('frequency_code'), // OD | BD | TDS | HS | WEEKLY | OTHER (custom text in frequency)
+  timingCode: text('timing_code'), // BEFORE_MEAL | BEFORE_BREAKFAST | AFTER_MEAL | OTHER (custom text in timing)
   quantity: text('quantity'), // e.g. "30 tablets"
   refills: integer('refills').notNull().default(0),
   indication: text('indication'),

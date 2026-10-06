@@ -43,6 +43,22 @@ describe('prescription template (HTML)', () => {
     expect(html).not.toMatch(/https?:\/\/(?!staging\.example\.test\/rx)/) // only the verify URL appears (inside the QR data)
   })
 
+  it('structured medicines print via the canonical formatter (patterns, abbreviations, custom text)', () => {
+    const html = buildRxHtml({ ...base, medicines: [
+      { formCode: 'TABLET', name: 'Amoxicillin', strength: '500 mg', doseQuantity: '1', doseUnit: 'TABLET', frequencyCode: 'TDS', timingCode: 'AFTER_MEAL', duration: '5 days' },
+      { formCode: 'SYRUP', name: 'Paracetamol', strength: '120 mg/5 mL', doseQuantity: '1', doseUnit: 'TEASPOON', frequencyCode: 'BD', timingCode: 'AFTER_MEAL', duration: '3 days' },
+      { formCode: 'OTHER', formulation: 'Drops', name: 'Drug X', strength: '10 mg/mL', dose: '3 drops', frequencyCode: 'OTHER', frequency: 'Every 6 hours', timingCode: 'OTHER', timing: 'As needed', duration: '5 days' },
+    ] }, assets)
+    const sep = '<span class="sep"> | </span>'
+    expect(html).toContain('Tab. Amoxicillin 500 mg')
+    expect(html).toContain(['1 tablet', '1-1-1', 'After meal', '5 days'].join(sep))
+    expect(html).toContain('Syp. Paracetamol 120 mg/5 mL')
+    expect(html).toContain(['1 teaspoon', '1-0-1', 'After meal', '3 days'].join(sep))
+    expect(html).toContain('Drops Drug X 10 mg/mL')
+    expect(html).toContain(['3 drops', 'Every 6 hours', 'As needed', '5 days'].join(sep))
+    expect(html).not.toMatch(/>TDS<|>BD<|TDS \||BD \|/)
+  })
+
   it('drafts carry a DRAFT watermark and no QR code', () => {
     const html = buildRxHtml({ ...base, status: 'DRAFT', verifyUrl: null }, { ...assets, qrDataUri: null })
     expect(html).toContain('DRAFT<br>مسوده')

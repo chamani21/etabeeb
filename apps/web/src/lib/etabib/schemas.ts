@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import { EtabibError } from './errors'
 import { normalizePhone } from './phone'
 import { CANCELLATION_REASONS } from './transitions'
+import { DOSE_CODE_RE, FORM_CODES, FREQUENCY_CODES, TIMING_CODES } from './rx/medicine'
 import { prescriptionItemSchema } from '@/lib/prescriptions'
 
 export const caseIdSchema = z.string().uuid()
@@ -133,16 +134,29 @@ const rxText = (max: number) => z.string().trim().max(max).nullable().optional()
 const rxMedicineSchema = z
   .object({
     name: z.string().trim().max(160),
+    formCode: z.enum(FORM_CODES).nullable().optional(),
+    formulation: rxText(60), // custom form when formCode = OTHER (or legacy free text)
     strength: rxText(60),
-    formulation: rxText(60),
+    doseCode: z.string().regex(DOSE_CODE_RE).nullable().optional(),
+    dose: rxText(120), // custom dose when doseCode = OTHER
+    frequencyCode: z.enum(FREQUENCY_CODES).nullable().optional(),
+    frequency: rxText(120), // custom frequency when frequencyCode = OTHER
+    timingCode: z.enum(TIMING_CODES).nullable().optional(),
+    timing: rxText(120), // custom timing when timingCode = OTHER
     route: rxText(60),
-    dose: rxText(120),
-    frequency: rxText(120),
-    timing: rxText(120),
     duration: rxText(60),
     instructions: rxText(500),
   })
   .strict()
+  .superRefine((m, ctx) => {
+    const need = (code: unknown, text: string | null | undefined, path: string, label: string) => {
+      if (code === 'OTHER' && !(text ?? '').trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message: `${label} is required when "Other" is selected` })
+    }
+    need(m.formCode, m.formulation, 'formulation', 'Custom form')
+    need(m.doseCode, m.dose, 'dose', 'Custom dose')
+    need(m.frequencyCode, m.frequency, 'frequency', 'Custom frequency')
+    need(m.timingCode, m.timing, 'timing', 'Custom timing')
+  })
 
 /** Prescription draft (doctor). Nothing is mandatory except a name per medicine row actually used. */
 export const rxDraftSchema = z

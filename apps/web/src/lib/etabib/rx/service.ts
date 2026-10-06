@@ -31,6 +31,7 @@ import { enqueueOutboundJob, type EnqueuedJob } from '../outbound'
 import { lockCase, recordCaseEvent, transitionCase, updateCaseFields, type Actor, type Tx } from '../transitions'
 import { endVideoSessionTx } from '../video'
 import { DR_JALALUDDIN, ETABEEB_CONTACT, type RxDocument, type RxMedicine, type RxVitals } from './document'
+import { parseDoseCode } from './medicine'
 import { getFile, putFile } from '../storage'
 
 type Doctor = Actor & { type: 'DOCTOR'; id: string }
@@ -43,7 +44,7 @@ type Staff = Actor & { type: 'DOCTOR' | 'ADMIN'; id: string }
 export interface RxDraftInput {
   diagnosis?: string | null | undefined
   vitals?: RxVitals | null | undefined
-  medicines: RxMedicine[]
+  medicines: RxMedicineInput[]
   freeText?: string | null | undefined
   investigations?: string | null | undefined
   advice?: string | null | undefined
@@ -100,27 +101,78 @@ function assertCaseWritable(c: ConsultationCase): void {
   }
 }
 
-async function writeItems(tx: Tx, rxId: string, medicines: RxMedicine[]): Promise<void> {
+/** Draft medicine row as submitted by the doctor UI / API (codes + text for "Other"). */
+export interface RxMedicineInput {
+  name: string
+  formCode?: string | null | undefined
+  formulation?: string | null | undefined
+  strength?: string | null | undefined
+  doseCode?: string | null | undefined
+  dose?: string | null | undefined
+  frequencyCode?: string | null | undefined
+  frequency?: string | null | undefined
+  timingCode?: string | null | undefined
+  timing?: string | null | undefined
+  route?: string | null | undefined
+  duration?: string | null | undefined
+  instructions?: string | null | undefined
+}
+
+async function writeItems(tx: Tx, rxId: string, medicines: RxMedicineInput[]): Promise<void> {
   await tx.delete(prescriptionItems).where(eq(prescriptionItems.prescriptionId, rxId))
   const rows = medicines
     .map((m) => ({ ...m, name: (m.name ?? '').trim() }))
     .filter((m) => m.name)
-    .map((m, i) => ({
-      prescriptionId: rxId,
-      genericName: m.name,
-      strength: clean(m.strength),
-      formulation: clean(m.formulation),
-      route: clean(m.route),
-      dose: clean(m.dose),
-      frequency: clean(m.frequency),
-      timing: clean(m.timing),
-      duration: clean(m.duration),
-      patientInstructions: clean(m.instructions),
-      substitutionAllowed: true,
-      isControlled: false,
-      sortOrder: i,
-    }))
+    .map((m, i) => {
+      const dose = parseDoseCode(m.doseCode)
+      return {
+        prescriptionId: rxId,
+        genericName: m.name,
+        strength: clean(m.strength),
+        formCode: m.formCode ?? null,
+        // text columns hold the custom value for OTHER (or legacy free text); a coded choice needs none
+        formulation: m.formCode && m.formCode !== 'OTHER' ? null : clean(m.formulation),
+        route: clean(m.route),
+        doseQuantity: dose?.quantity ?? null,
+        doseUnit: dose?.unit ?? null,
+        dose: dose ? null : clean(m.dose),
+        frequencyCode: m.frequencyCode ?? null,
+        frequency: m.frequencyCode && m.frequencyCode !== 'OTHER' ? null : clean(m.frequency),
+        timingCode: m.timingCode ?? null,
+        timing: m.timingCode && m.timingCode !== 'OTHER' ? null : clean(m.timing),
+        duration: clean(m.duration),
+        patientInstructions: clean(m.instructions),
+        substitutionAllowed: true,
+        isControlled: false,
+        sortOrder: i,
+      }
+    })
   if (rows.length) await tx.insert(prescriptionItems).values(rows)
+}
+
+type ItemRow = typeof prescriptionItems.$inferSelect
+/** Stored item → structured medicine (canonical, for rendering). */
+function itemToMedicine(i: ItemRow): RxMedicine {
+  return {
+    name: i.genericName,
+    strength: i.strength,
+    formCode: i.formCode,
+    formulation: i.formulation,
+    doseQuantity: i.doseQuantity,
+    doseUnit: i.doseUnit,
+    dose: i.dose,
+    frequencyCode: i.frequencyCode,
+    frequency: i.frequency,
+    route: i.route,
+    timingCode: i.timingCode,
+    timing: i.timing,
+    duration: i.duration ?? (i.durationDays ? `${i.durationDays} days` : null),
+    instructions: i.patientInstructions,
+  }
+}
+/** Stored item → draft input (round-trips through the editor and amendments). */
+function itemToInput(i: ItemRow): RxMedicineInput {
+  return { ...itemToMedicine(i), doseCode: i.doseUnit && i.doseQuantity ? `${i.doseUnit}:${i.doseQuantity}` : null }
 }
 
 function contentPatch(input: RxDraftInput) {
@@ -210,11 +262,7 @@ export async function createAmendment(caseId: string, doctor: Doctor): Promise<P
         notes: rx.notes,
       })
       .returning()
-    await writeItems(
-      tx,
-      draft!.id,
-      items.map((i) => ({ name: i.genericName, strength: i.strength, formulation: i.formulation, route: i.route, dose: i.dose, frequency: i.frequency, timing: i.timing, duration: i.duration ?? (i.durationDays ? `${i.durationDays} days` : null), instructions: i.patientInstructions })),
-    )
+    await writeItems(tx, draft!.id, items.map(itemToInput))
     await recordCaseEvent(tx, { caseId, eventType: 'PRESCRIPTION_AMENDMENT_CREATED', oldStatus: c.status, newStatus: c.status, actor: doctor, metadata: { prescriptionId: draft!.id, amendedFromId: rx.id, revision: draft!.revision } })
     return draft!
   })
@@ -228,7 +276,7 @@ export async function copyMedicinesIntoDraft(caseId: string, fromPrescriptionId:
   const from = await db.select().from(prescriptionItems).where(eq(prescriptionItems.prescriptionId, fromPrescriptionId)).orderBy(asc(prescriptionItems.sortOrder))
   const current = await currentRx(db, caseId)
   const existing = current ? await db.select().from(prescriptionItems).where(eq(prescriptionItems.prescriptionId, current.id)).orderBy(asc(prescriptionItems.sortOrder)) : []
-  const toMed = (i: typeof from[number]): RxMedicine => ({ name: i.genericName, strength: i.strength, formulation: i.formulation, route: i.route, dose: i.dose, frequency: i.frequency, timing: i.timing, duration: i.duration ?? (i.durationDays ? `${i.durationDays} days` : null), instructions: i.patientInstructions })
+  const toMed = itemToInput
   const base: RxDraftInput = current
     ? { diagnosis: current.diagnosis, vitals: current.vitals as RxVitals | null, freeText: current.freeText, investigations: current.investigations, advice: current.advice, followUp: current.followUp, followUpInterval: current.followUpInterval, redFlags: current.redFlags, medicines: existing.map(toMed) }
     : { medicines: [] }
@@ -298,7 +346,7 @@ export async function loadRxDocument(rxId: string): Promise<RxDocument> {
     vitals: (rx.vitals ?? {}) as RxVitals,
     complaint: c.mainComplaint,
     diagnosis: rx.diagnosis,
-    medicines: items.map((i) => ({ name: i.genericName, strength: i.strength, formulation: i.formulation, route: i.route, dose: i.dose, frequency: i.frequency, timing: i.timing, duration: i.duration ?? (i.durationDays ? `${i.durationDays} days` : null), instructions: i.patientInstructions })),
+    medicines: items.map(itemToMedicine),
     freeText: rx.freeText,
     investigations: rx.investigations,
     advice: rx.advice,
@@ -708,7 +756,7 @@ export async function prescriptionState(caseId: string, opts: { forAdmin?: boole
             followUp: current.followUp,
             followUpInterval: current.followUpInterval,
             redFlags: current.redFlags,
-            medicines: items.map((i) => ({ name: i.genericName, strength: i.strength, formulation: i.formulation, route: i.route, dose: i.dose, frequency: i.frequency, timing: i.timing, duration: i.duration ?? (i.durationDays ? `${i.durationDays} days` : null), instructions: i.patientInstructions })),
+            medicines: items.map(itemToInput),
           },
         }
       : null,

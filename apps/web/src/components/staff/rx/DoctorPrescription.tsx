@@ -6,8 +6,7 @@ import { fmtTime } from '@/components/staff/format'
 import { Button, Card, Field, Notice, inputCls, useAction } from '@/components/staff/ui'
 import { VoiceRecorder } from './VoiceRecorder'
 
-type Med = { name: string; strength: string; formulation: string; route: string; dose: string; frequency: string; timing: string; duration: string; instructions: string }
-const emptyMed: Med = { name: '', strength: '', formulation: '', route: '', dose: '', frequency: '', timing: '', duration: '', instructions: '' }
+import { MedicineCard, emptyMed, medErrors, medFromStored, medToApi, type Med } from './MedicineCard'
 type Vitals = { weight: string; bp: string; pulse: string; temperature: string; respiratoryRate: string }
 const emptyVitals: Vitals = { weight: '', bp: '', pulse: '', temperature: '', respiratoryRate: '' }
 type Form = { diagnosis: string; vitals: Vitals; medicines: Med[]; freeText: string; investigations: string; advice: string; followUp: string; followUpInterval: string; redFlags: string }
@@ -35,7 +34,7 @@ function toForm(c: NonNullable<RxState['current']>['content'] | null): Form {
   return {
     diagnosis: s(c?.diagnosis),
     vitals: { ...emptyVitals, ...(c?.vitals ?? {}) },
-    medicines: c?.medicines.length ? c.medicines.map((m) => ({ ...emptyMed, ...Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v ?? ''])) }) as Med) : [{ ...emptyMed }],
+    medicines: c?.medicines.length ? c.medicines.map((m) => medFromStored(m)) : [{ ...emptyMed }],
     freeText: s(c?.freeText),
     investigations: s(c?.investigations),
     advice: s(c?.advice),
@@ -97,7 +96,7 @@ export function DoctorPrescription({ caseId, onCaseChange }: { caseId: string; o
   const body = () => ({
     diagnosis: form.diagnosis,
     vitals: form.vitals,
-    medicines: form.medicines.filter((m) => m.name.trim()).map((m) => ({ ...m })),
+    medicines: form.medicines.filter((m) => m.name.trim()).map(medToApi),
     freeText: form.freeText,
     investigations: form.investigations,
     advice: form.advice,
@@ -119,7 +118,16 @@ export function DoctorPrescription({ caseId, onCaseChange }: { caseId: string; o
   }, [dirty, editing, save])
 
   const set = (patch: Partial<Form>) => (setForm({ ...form, ...patch }), setDirty(true))
-  const setMed = (i: number, k: keyof Med, v: string) => set({ medicines: form.medicines.map((m, n) => (n === i ? { ...m, [k]: v } : m)) })
+  const patchMed = (i: number, patch: Partial<Med>) => set({ medicines: form.medicines.map((m, n) => (n === i ? { ...m, ...patch } : m)) })
+  const nameRefs = useRef<Array<HTMLInputElement | null>>([])
+  const [focusNew, setFocusNew] = useState<number | null>(null)
+  useEffect(() => {
+    if (focusNew === null) return
+    nameRefs.current[focusNew]?.closest('[data-testid="rx-med"]')?.querySelector<HTMLSelectElement>('[data-testid="med-form"]')?.focus()
+    setFocusNew(null)
+  }, [focusNew])
+  const medsInvalid = form.medicines.some((m) => Object.keys(medErrors(m)).length > 0)
+  const [showMedErrors, setShowMedErrors] = useState(false)
   const moveMed = (i: number, d: -1 | 1) => {
     const j = i + d
     if (j < 0 || j >= form.medicines.length) return
@@ -131,6 +139,10 @@ export function DoctorPrescription({ caseId, onCaseChange }: { caseId: string; o
 
   const doPreview = () =>
     act.run(async () => {
+      if (medsInvalid) {
+        setShowMedErrors(true)
+        throw new Error('Please complete the highlighted medicine fields.')
+      }
       if (editing) await save()
       const r = await api<{ pages: string[] }>(`/api/doctor/cases/${caseId}/prescription/preview`, { method: 'POST', body: {} })
       setPreview(r.pages)
@@ -272,32 +284,23 @@ export function DoctorPrescription({ caseId, onCaseChange }: { caseId: string; o
           </Card>
 
           <Card title="Medicines">
+            <datalist id="rx-durations">{['3 days', '5 days', '7 days', '10 days', '2 weeks', '1 month', 'Continue'].map((d) => <option key={d} value={d} />)}</datalist>
             <div className="space-y-3">
               {form.medicines.map((m, i) => (
-                <div key={i} className="rounded-lg border border-gray-200 p-2" data-testid="rx-med">
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-800 text-xs font-bold text-white">{i + 1}</span>
-                    <input className={`${inputCls} font-semibold`} placeholder="Medicine name *" value={m.name} onChange={(e) => setMed(i, 'name', e.target.value)} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                    <input className={inputCls} placeholder="Strength (500 mg)" value={m.strength} onChange={(e) => setMed(i, 'strength', e.target.value)} />
-                    <input className={inputCls} placeholder="Form (tablet, syrup)" value={m.formulation} onChange={(e) => setMed(i, 'formulation', e.target.value)} />
-                    <input className={inputCls} placeholder="Dose (1 tablet)" value={m.dose} onChange={(e) => setMed(i, 'dose', e.target.value)} />
-                    <input className={inputCls} placeholder="Route (oral)" value={m.route} onChange={(e) => setMed(i, 'route', e.target.value)} />
-                    <input className={inputCls} placeholder="Frequency (twice daily)" value={m.frequency} onChange={(e) => setMed(i, 'frequency', e.target.value)} />
-                    <input className={inputCls} placeholder="Timing (after meals)" value={m.timing} onChange={(e) => setMed(i, 'timing', e.target.value)} />
-                    <input className={inputCls} placeholder="Duration (5 days)" value={m.duration} onChange={(e) => setMed(i, 'duration', e.target.value)} />
-                    <input className={`${inputCls} col-span-2 md:col-span-1`} placeholder="Instructions" value={m.instructions} onChange={(e) => setMed(i, 'instructions', e.target.value)} />
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Button variant="secondary" onClick={() => moveMed(i, -1)} disabled={i === 0} aria-label="Move up">↑</Button>
-                    <Button variant="secondary" onClick={() => moveMed(i, 1)} disabled={i === form.medicines.length - 1} aria-label="Move down">↓</Button>
-                    <Button variant="secondary" onClick={() => set({ medicines: [...form.medicines.slice(0, i + 1), { ...m }, ...form.medicines.slice(i + 1)] })}>Duplicate</Button>
-                    <Button variant="secondary" onClick={() => set({ medicines: form.medicines.length > 1 ? form.medicines.filter((_, n) => n !== i) : [{ ...emptyMed }] })}>Remove</Button>
-                  </div>
-                </div>
+                <MedicineCard
+                  key={i}
+                  ref={(el) => { nameRefs.current[i] = el }}
+                  index={i}
+                  med={m}
+                  count={form.medicines.length}
+                  showErrors={showMedErrors}
+                  onChange={(patch) => patchMed(i, patch)}
+                  onDuplicate={() => set({ medicines: [...form.medicines.slice(0, i + 1), { ...m }, ...form.medicines.slice(i + 1)] })}
+                  onRemove={() => set({ medicines: form.medicines.length > 1 ? form.medicines.filter((_, n) => n !== i) : [{ ...emptyMed }] })}
+                  onMove={(d) => moveMed(i, d)}
+                />
               ))}
-              <Button variant="secondary" onClick={() => set({ medicines: [...form.medicines, { ...emptyMed }] })} className="min-h-[44px] w-full">+ Add medicine</Button>
+              <Button variant="secondary" onClick={() => { set({ medicines: [...form.medicines, { ...emptyMed }] }); setFocusNew(form.medicines.length) }} className="min-h-[44px] w-full" data-testid="med-add">+ Add medicine</Button>
             </div>
           </Card>
 

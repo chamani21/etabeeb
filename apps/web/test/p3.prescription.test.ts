@@ -131,6 +131,34 @@ describe.skipIf(!hasTestDb)('prescription stage', () => {
       expect(JSON.stringify(await eventsFor(id))).not.toMatch(/Paracetamol|edited advice/) // no clinical text in audit
     })
 
+    it('structured medicines round-trip (codes stored; Other text kept); Other without text is refused by the API', async () => {
+      const { id } = await caseAt('IN_CONSULTATION', { adminId, doctorId })
+      const meds = [
+        { name: 'Amoxicillin', formCode: 'TABLET', strength: '500 mg', doseCode: 'TABLET:1', frequencyCode: 'TDS', timingCode: 'AFTER_MEAL', duration: '5 days' },
+        { name: 'Drug X', formCode: 'OTHER', formulation: 'Drops', strength: '10 mg/mL', doseCode: 'OTHER', dose: '3 drops', frequencyCode: 'OTHER', frequency: 'Every 6 hours', timingCode: 'OTHER', timing: 'As needed', duration: '5 days' },
+      ]
+      loginAs(doctorId)
+      expect((await draftRoute(jsonRequest('/x', { medicines: meds }), p(id))).status).toBe(200)
+      const [rx] = await rxOf(id)
+      const items = await db.select().from(prescriptionItems).where(eq(prescriptionItems.prescriptionId, rx!.id)).orderBy(prescriptionItems.sortOrder)
+      expect(items[0]).toMatchObject({ formCode: 'TABLET', formulation: null, doseQuantity: '1', doseUnit: 'TABLET', dose: null, frequencyCode: 'TDS', frequency: null, timingCode: 'AFTER_MEAL', timing: null })
+      expect(items[1]).toMatchObject({ formCode: 'OTHER', formulation: 'Drops', doseUnit: null, dose: '3 drops', frequencyCode: 'OTHER', frequency: 'Every 6 hours', timingCode: 'OTHER', timing: 'As needed' })
+      const state = await prescriptionState(id)
+      expect(state.current!.content.medicines[0]).toMatchObject({ doseCode: 'TABLET:1', frequencyCode: 'TDS' })
+      const { loadRxDocument } = await import('@/lib/etabib/rx/service')
+      const { formatMedicine } = await import('@/lib/etabib/rx/medicine')
+      const doc = await loadRxDocument(rx!.id)
+      expect(doc.medicines.map((m) => formatMedicine(m).details.join(' | '))).toEqual(['1 tablet | 1-1-1 | After meal | 5 days', '3 drops | Every 6 hours | As needed | 5 days'])
+      for (const bad of [{ name: 'A', formCode: 'OTHER' }, { name: 'A', doseCode: 'OTHER' }, { name: 'A', frequencyCode: 'OTHER', frequency: ' ' }, { name: 'A', timingCode: 'OTHER' }, { name: 'A', frequencyCode: 'BT' }, { name: 'A', doseCode: 'TABLET:3' }]) {
+        expect((await draftRoute(jsonRequest('/x', { medicines: [bad] }), p(id))).status).toBe(400)
+      }
+      // amendment keeps the structured values
+      await finalizePrescription(id, DOCTOR())
+      const v2 = await createAmendment(id, DOCTOR())
+      const copied = await db.select().from(prescriptionItems).where(eq(prescriptionItems.prescriptionId, v2.id)).orderBy(prescriptionItems.sortOrder)
+      expect(copied[0]).toMatchObject({ formCode: 'TABLET', doseUnit: 'TABLET', doseQuantity: '1', frequencyCode: 'TDS', timingCode: 'AFTER_MEAL' })
+    })
+
     it('preview renders the real document (draft watermark is the renderer’s job) and is audited', async () => {
       const { id } = await caseAt('IN_CONSULTATION', { adminId, doctorId })
       await saveDraft(id, draft(), DOCTOR())

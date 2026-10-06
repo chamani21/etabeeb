@@ -9,6 +9,7 @@
  * logo and QR are data URIs) and the renderer blocks all requests.
  */
 import type { RxDocument, RxMedicine } from './document'
+import { formatMedicine } from './medicine'
 
 export interface TemplateAssets {
   logoDataUri: string
@@ -69,14 +70,13 @@ function fmtDate(d: Date): string {
 }
 
 function medicineBlock(m: RxMedicine, n: number): string {
-  const title = [m.name, m.strength, m.formulation].filter(Boolean).map(esc).join(' ')
-  const how = [m.dose, m.frequency, m.route, m.timing].filter(Boolean).map(esc).join(' · ')
+  const f = formatMedicine(m) // the one canonical formatter (UI preview, PNG, PDF)
   return `<div class="blk med" data-blk>
     <div class="med-n">${n}</div>
     <div class="med-b">
-      <div class="med-t" dir="ltr">${title}</div>
-      ${how ? `<div class="med-h" dir="ltr">${how}${m.duration ? ` <span class="dur">— ${esc(m.duration)}</span>` : ''}</div>` : m.duration ? `<div class="med-h" dir="ltr"><span class="dur">${esc(m.duration)}</span></div>` : ''}
-      ${m.instructions ? `<div class="med-i" dir="auto">${esc(m.instructions)}</div>` : ''}
+      <div class="med-t" dir="ltr">${esc(f.title)}</div>
+      ${f.details.length ? `<div class="med-h" dir="ltr">${f.details.map(esc).join('<span class="sep"> | </span>')}</div>` : ''}
+      ${f.instructions ? `<div class="med-i" dir="auto">${esc(f.instructions)}</div>` : ''}
     </div>
   </div>`
 }
@@ -182,7 +182,7 @@ p{margin:0}
 .med-b{flex:1;min-width:0}
 .med-t{font-size:15.5px;font-weight:700;color:var(--ink);word-wrap:break-word;overflow-wrap:anywhere}
 .med-h{font-size:13px;color:#2c3e55;margin-top:2px;overflow-wrap:anywhere}
-.med-h .dur{color:var(--teal);font-weight:600}
+.med-h .sep{color:var(--teal);font-weight:700}
 .med-i{font-size:13.5px;color:#2c3e55;margin-top:2px;font-family:'NSans','Naskh';line-height:1.5;overflow-wrap:anywhere}
 .sec{padding:2px 0}
 .sec-h{display:flex;align-items:center;gap:10px;margin:9px 0 2px;direction:rtl;line-height:1.5}
