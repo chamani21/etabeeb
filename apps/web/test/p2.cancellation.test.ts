@@ -8,7 +8,7 @@ vi.mock('@/lib/auth-helpers', () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from '@/lib/auth-helpers'
 import { db } from '@etabeeb/db'
-import { consultationVideoSessions, notificationOutbox } from '@etabeeb/db/schema'
+import { consultationVideoSessions, notificationOutbox, whatsappEvents } from '@etabeeb/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import { cancelConsultation, createCasePrescription, startConsultation } from '@/lib/etabib/cases'
 import { dispatchOutboundJobs } from '@/lib/etabib/outbound'
@@ -252,7 +252,9 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
 
     it('cancellation notification uses the approved Pashto template when configured', async () => {
       process.env.ETABIB_WA_TEMPLATES = JSON.stringify({ CONSULTATION_CANCELLED: { name: 'etabib_consultation_cancelled_ps', language: 'ps_AF' } })
-      const { id } = await caseAt('PAYMENT_RECEIVED', { adminId, doctorId })
+      const { id, sender } = await caseAt('PAYMENT_RECEIVED', { adminId, doctorId })
+      // the patient's 24-hour window is closed → the approved template is required
+      await db.update(whatsappEvents).set({ createdAt: new Date(Date.now() - 30 * 3600_000) }).where(eq(whatsappEvents.senderPhone, sender))
       const r = await cancelConsultation(id, { reason: 'PAYMENT_ISSUE' }, ADMIN())
       await dispatchOutboundJobs(r.jobs.map((j) => j.id))
       const [m] = sentOfType('CONSULTATION_CANCELLED_PATIENT')

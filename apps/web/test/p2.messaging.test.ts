@@ -9,8 +9,8 @@ import { REPRESENTATIVE_PREFILL_PS } from '@/lib/etabib/links'
 import { GET as helpRoute } from '@/app/[locale]/help/route'
 import { hasTestDb, resetDb, createUser, fakePhone, inbound, jobsOfType, caseAt, getCase } from './helpers'
 import { db } from '@etabeeb/db'
-import { notificationOutbox } from '@etabeeb/db/schema'
-import { asc, like } from 'drizzle-orm'
+import { notificationOutbox, whatsappEvents } from '@etabeeb/db/schema'
+import { asc, eq, like } from 'drizzle-orm'
 
 const N8N_URL = 'https://n8n.example.test/webhook/outbound'
 const HELP = 'https://staging.example.test/help'
@@ -153,7 +153,9 @@ describe.skipIf(!hasTestDb)('patient + staff WhatsApp sequence', () => {
       DOCTOR_CONSULTATION_CANCELLED: { name: 'etabib_staff_consultation_cancelled', language: 'en' },
     })
     try {
-      const { id } = await caseAt('CONFIRMED', { adminId, doctorId })
+      const { id, sender } = await caseAt('CONFIRMED', { adminId, doctorId })
+      // patient window closed → template; (staff numbers never wrote → template)
+      await db.update(whatsappEvents).set({ createdAt: new Date(Date.now() - 30 * 3600_000) }).where(eq(whatsappEvents.senderPhone, sender))
       await dispatchOutboundJobs([...(await jobsOfType('DOCTOR_APPROVAL_REQUEST')), ...(await jobsOfType('CONSULTATION_CONFIRMED_PATIENT'))].map((j) => j.id))
       const vals = (type: string) => sent().find((m) => m.type === type).template.components[0].parameters.map((x: { text: string }) => x.text)
       expect(vals('DOCTOR_APPROVAL_REQUEST')).toEqual(['Synthetic Patient', '34 / FEMALE', 'Synthetic District', expect.stringMatching(/\(Pakistan time\)$/), `https://staging.example.test/doctor/cases/${id}`])
@@ -165,6 +167,24 @@ describe.skipIf(!hasTestDb)('patient + staff WhatsApp sequence', () => {
       const r = await cancelConsultation(id, { reason: 'SCHEDULING_PROBLEM' }, { type: 'ADMIN', id: adminId })
       await dispatchOutboundJobs(r.jobs.map((j) => j.id))
       expect(vals('CONSULTATION_CANCELLED_DOCTOR')).toEqual(['by the admin', 'Synthetic Patient', expect.stringMatching(/\(Pakistan time\)$/), 'Scheduling problem', `https://staging.example.test/doctor/cases/${id}`])
+    } finally {
+      delete process.env.ETABIB_WA_TEMPLATES
+    }
+  })
+
+  it('templates are used only when the recipient window is closed; inside it, free text (with links) is sent', async () => {
+    process.env.ETABIB_WA_TEMPLATES = JSON.stringify({ DOCTOR_APPROVAL_REQUEST: { name: 'etabib_doctor_approval_request_v2', language: 'en' } })
+    try {
+      await caseAt('AWAITING_DOCTOR_APPROVAL', { adminId, doctorId })
+      const [job] = await jobsOfType('DOCTOR_APPROVAL_REQUEST')
+      await dispatchOutboundJobs([job!.id])
+      expect(sent()[0].messageKind).toBe('template') // the doctor never wrote to eTabeeb
+      // the doctor writes to eTabeeb (ignored as staff, but it opens the window)
+      await db.insert(whatsappEvents).values({ wamid: `wamid.SYN.DOC.${Date.now()}`, senderPhone: '+923009990002', eventType: 'text', disposition: 'ignored_staff' })
+      await db.update(notificationOutbox).set({ status: 'pending' }).where(eq(notificationOutbox.id, job!.id))
+      await dispatchOutboundJobs([job!.id])
+      expect(sent()[1].messageKind).toBe('text')
+      expect(sent()[1].text).toContain('🩺 Review & approve')
     } finally {
       delete process.env.ETABIB_WA_TEMPLATES
     }

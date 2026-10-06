@@ -254,6 +254,9 @@ async function buildPayload(
   const intent = JOB_INTENT[built.payload.type]
   const approved = intent ? getApprovedTemplates()[intent] : undefined
   if (!intent || !approved || !built.templateValues) return { ...built.payload, messageKind: 'text' }
+  // Inside the recipient's 24-hour window free-form text is allowed (free, keeps the
+  // clickable links); approved templates are only needed when the window is closed.
+  if (built.payload.to && (await recipientWindowOpen(built.payload.to))) return { ...built.payload, messageKind: 'text' }
   let template: TemplatePayload
   try {
     template = buildTemplatePayload(intent, approved, built.templateValues)
@@ -509,6 +512,13 @@ export async function lastPatientMessageAt(caseId: string): Promise<Date | null>
 const WINDOW_MS = 23.5 * 3600_000
 
 /** Why a media job must wait (null = send now). */
+/** The recipient (patient or staff) wrote to eTabeeb within Meta's 24-hour window. */
+async function recipientWindowOpen(phone: string): Promise<boolean> {
+  const e164 = phone.startsWith('+') ? phone : `+${phone.replace(/\D/g, '')}`
+  const [row] = await db.select({ last: max(whatsappEvents.createdAt) }).from(whatsappEvents).where(eq(whatsappEvents.senderPhone, e164))
+  return Boolean(row?.last && Date.now() - new Date(row.last).getTime() <= WINDOW_MS)
+}
+
 async function windowOpen(caseId: string): Promise<boolean> {
   const last = await lastPatientMessageAt(caseId)
   return Boolean(last && Date.now() - last.getTime() <= WINDOW_MS)
