@@ -5,6 +5,7 @@ import { api } from '@/components/staff/api'
 import { fmtTime } from '@/components/staff/format'
 import { Button, Card, Field, Notice, inputCls, useAction } from '@/components/staff/ui'
 import { VoiceRecorder } from './VoiceRecorder'
+import { ConfirmDeleteButton } from './ConfirmDeleteButton'
 
 import { MedicineCard, emptyMed, medErrors, medFromStored, medToApi, type Med } from './MedicineCard'
 type Vitals = { weight: string; bp: string; pulse: string; temperature: string; respiratoryRate: string }
@@ -375,7 +376,7 @@ export function DoctorPrescription({ caseId, onCaseChange }: { caseId: string; o
                       <label className="flex items-center gap-1">
                         <input type="checkbox" checked={v.includeInDelivery} disabled={Boolean(job) || act.busy} onChange={(e) => void voiceChange(v.id, e.target.checked)} /> Send with prescription
                       </label>
-                      {!job && <Button variant="secondary" onClick={() => void voiceChange(v.id, 'delete')} disabled={act.busy}>Delete</Button>}
+                      {!job && <ConfirmDeleteButton onConfirm={() => void voiceChange(v.id, 'delete')} disabled={act.busy} />}
                     </div>
                   </li>
                 )

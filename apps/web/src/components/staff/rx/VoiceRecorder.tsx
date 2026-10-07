@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Button, Notice } from '@/components/staff/ui'
+import { ConfirmDeleteButton } from './ConfirmDeleteButton'
 
 const MAX_SECONDS = 5 * 60
 
@@ -179,7 +180,7 @@ export function VoiceRecorder({ onSave, disabled, patientLabel }: { onSave: (blo
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => void save()} disabled={state === 'saving'} className="min-h-[44px]">{state === 'saving' ? 'Saving…' : 'Save voice note'}</Button>
             <Button variant="secondary" onClick={() => (discard(), void start())} disabled={state === 'saving'} className="min-h-[44px]">Record again</Button>
-            <Button variant="secondary" onClick={discard} disabled={state === 'saving'} className="min-h-[44px]">Delete</Button>
+            <ConfirmDeleteButton onConfirm={discard} disabled={state === 'saving'} question="Delete this recording?" />
           </div>
         </div>
       )}
