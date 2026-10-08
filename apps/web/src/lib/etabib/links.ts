@@ -49,5 +49,8 @@ export function patientWhatsAppUrl(c: { whatsappPhone: string | null; patientPho
 
 export const adminCaseUrl = (caseId: string) => appPath(`/admin/cases/${caseId}`)
 export const doctorCaseUrl = (caseId: string) => appPath(`/doctor/cases/${caseId}`)
+/** Shared inbox conversation (authenticated; login returns there). */
+export const adminInboxUrl = (conversationId: string) => appPath(`/admin/inbox?c=${conversationId}`)
+export const doctorInboxUrl = (conversationId: string) => appPath(`/doctor/inbox?c=${conversationId}`)
 /** The patient's secure consultation page (raw token only ever appears here). */
 export const consultationUrl = (token: string) => appPath(`/consult/${token}`)

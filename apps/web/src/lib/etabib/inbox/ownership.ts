@@ -101,6 +101,15 @@ async function notice(tx: Tx, conv: Conversation, version: number, text: string)
   return job.created ? [job.id] : []
 }
 
+/** Notice to the configured staff WhatsApp number through the existing staff outbox path (one per event). */
+async function staffNotice(tx: Tx, conv: Conversation, type: 'STAFF_HANDOVER_REQUEST' | 'STAFF_HANDOVER_RETURNED', dedupeKey: string, requestedById: string | null): Promise<string[]> {
+  const latest = await latestCaseForContact(tx, conv.contactPhone)
+  if (!latest) return []
+  const [who] = requestedById ? await tx.select({ name: users.displayName }).from(users).where(eq(users.id, requestedById)).limit(1) : []
+  const job = await enqueueOutboundJob(tx, { type, consultationId: latest.id, dedupeKey, conversationId: conv.id, ...(who?.name ? { requestedBy: who.name } : {}) })
+  return job.created ? [job.id] : []
+}
+
 async function setOwner(tx: Tx, conv: Conversation, owner: Conversation['owner'], ownerUserId: string | null): Promise<number> {
   const version = conv.ownerVersion + 1
   const [updated] = await tx
@@ -175,7 +184,9 @@ export async function changeOwnership(conversationId: string, actor: InboxActor,
           if (found.length !== ids.length) throw new EtabibError('validation_error', 'Selected files do not belong to this conversation', 400)
           await tx.update(waAttachments).set({ flaggedAt: now, flaggedBy: actor.id, updatedAt: now }).where(and(inArray(waAttachments.id, ids), eq(waAttachments.conversationId, conv.id)))
         }
-        await tx.insert(waHandoverRequests).values({ conversationId: conv.id, requestedBy: actor.id, toUserId: doctorId, summary, attachmentIds: ids })
+        const [req] = await tx.insert(waHandoverRequests).values({ conversationId: conv.id, requestedBy: actor.id, toUserId: doctorId, summary, attachmentIds: ids }).returning({ id: waHandoverRequests.id })
+        // Staff WhatsApp notice to the doctor (link only — no summary, files or conversation text)
+        noticeJobIds = await staffNotice(tx, conv, 'STAFF_HANDOVER_REQUEST', req!.id, actor.id)
         await note(tx, conv, actor, `Doctor handover requested: ${summary}`, 'HANDOVER_REQUEST')
         await audit(tx, actor, 'INBOX_HANDOVER_REQUESTED', conv, { files: ids.length })
         break
@@ -224,7 +235,7 @@ export async function changeOwnership(conversationId: string, actor: InboxActor,
         ;[owner, ownerUserId] = ['ADMIN', target]
         const instruction = (input.instruction ?? '').trim().slice(0, 1000)
         await note(tx, conv, actor, instruction ? `Returned to admin: ${instruction}` : 'Returned to admin.', 'RETURNED')
-        noticeJobIds = await notice(tx, conv, version, HANDOVER_NOTICES_PS.backToStaff)
+        noticeJobIds = [...(await notice(tx, conv, version, HANDOVER_NOTICES_PS.backToStaff)), ...(await staffNotice(tx, conv, 'STAFF_HANDOVER_RETURNED', `${conv.id}:v${version}`, null))]
         await audit(tx, actor, 'INBOX_RETURNED_TO_ADMIN', conv, { toQueue: target === null })
         break
       }

@@ -23,7 +23,7 @@ import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatPrescriptionTextPs }
 import { consultationTimeBlockPs, consultationTimeLinePs } from './patient-time'
 import { STAFF_MESSAGES, clinicTime } from './messages.staff'
 import { cancellationReasonLabel } from './cancellation'
-import { adminCaseUrl, doctorCaseUrl, patientWhatsAppUrl, representativeHelpUrl } from './links'
+import { adminCaseUrl, adminInboxUrl, doctorCaseUrl, doctorInboxUrl, patientWhatsAppUrl, representativeHelpUrl } from './links'
 import { signedMediaUrl } from './media-links'
 import { JOB_INTENT, buildTemplatePayload, getApprovedTemplates, type TemplatePayload } from './templates'
 import type { Tx } from './transitions'
@@ -52,6 +52,9 @@ export const OUTBOUND_JOB_TYPES = [
   'INBOX_IMAGE',
   'INBOX_DOCUMENT',
   'INBOX_NOTICE',
+  // Shared inbox: staff notices on their configured WhatsApp numbers
+  'STAFF_HANDOVER_REQUEST',
+  'STAFF_HANDOVER_RETURNED',
 ] as const
 export type OutboundJobType = (typeof OUTBOUND_JOB_TYPES)[number]
 
@@ -77,6 +80,8 @@ export const JOB_AUDIENCE: Readonly<Record<OutboundJobType, OutboundAudience>> =
   INBOX_IMAGE: 'PATIENT',
   INBOX_DOCUMENT: 'PATIENT',
   INBOX_NOTICE: 'PATIENT',
+  STAFF_HANDOVER_REQUEST: 'DOCTOR',
+  STAFF_HANDOVER_RETURNED: 'ADMIN',
 }
 
 /** Media jobs WhatsApp can only deliver inside the patient's 24-hour window (no approved media template). */
@@ -90,6 +95,9 @@ export const CANCELLATION_JOB_TYPES: ReadonlySet<string> = new Set<OutboundJobTy
   'CONSULTATION_CANCELLED_ADMIN',
   'CONSULTATION_CANCELLED_DOCTOR',
 ])
+
+/** Staff notices about a conversation handover: not tied to the case lifecycle. */
+const STAFF_HANDOVER_TYPES: readonly string[] = ['STAFF_HANDOVER_REQUEST', 'STAFF_HANDOVER_RETURNED']
 
 /** Message variants for patient jobs (selects the Pashto string). */
 export type PatientMessageKey = 'default' | 'invalid'
@@ -110,6 +118,8 @@ export interface OutboundJobRefs {
   /** Inbox jobs: the conversation and the stored message (content is never in the outbox) */
   conversationId?: string
   messageId?: string
+  /** STAFF_HANDOVER_REQUEST: display name of the requesting admin */
+  requestedBy?: string
 }
 
 export interface EnqueuedJob {
@@ -142,6 +152,7 @@ export async function enqueueOutboundJob(
     dependsOn?: string[]
     conversationId?: string
     messageId?: string
+    requestedBy?: string
   },
 ): Promise<EnqueuedJob> {
   const idempotencyKey = `${KEY_PREFIX}${input.type}:${input.dedupeKey}`
@@ -155,6 +166,7 @@ export async function enqueueOutboundJob(
     ...(input.dependsOn?.length ? { dependsOn: input.dependsOn } : {}),
     ...(input.conversationId ? { conversationId: input.conversationId } : {}),
     ...(input.messageId ? { messageId: input.messageId } : {}),
+    ...(input.requestedBy ? { requestedBy: input.requestedBy.slice(0, 80) } : {}),
   }
   const inserted = await tx
     .insert(notificationOutbox)
@@ -470,6 +482,17 @@ async function buildTextPayload(
     case 'INBOX_NOTICE':
       // Built by inbox/dispatch.ts (ownership + window re-checked at dispatch)
       return null
+    case 'STAFF_HANDOVER_REQUEST':
+    case 'STAFF_HANDOVER_RETURNED': {
+      if (!refs.conversationId) return null
+      const name = c.patientName ?? null
+      const text =
+        type === 'STAFF_HANDOVER_REQUEST'
+          ? STAFF_MESSAGES.doctorHandoverRequested({ patientName: name, requestedBy: refs.requestedBy ?? 'Admin', chatUrl: doctorInboxUrl(refs.conversationId) })
+          : STAFF_MESSAGES.adminHandoverReturned({ patientName: name, chatUrl: adminInboxUrl(refs.conversationId) })
+      // No approved template exists for these notices: free-form text, delivered only inside the staff member's own 24-hour window
+      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text, data: { conversationId: refs.conversationId } } }
+    }
     case 'PRESCRIPTION_READY': {
       const prescriptionId = refs.prescriptionId ?? c.prescriptionId
       if (!prescriptionId) return null
@@ -617,7 +640,7 @@ export async function withdrawPendingJobsTx(tx: Tx, caseId: string): Promise<num
         sql`${notificationOutbox.idempotencyKey} LIKE ${KEY_PREFIX + '%'}`,
         sql`(${notificationOutbox.templateVariables}::jsonb ->> 'consultationId') = ${caseId}`,
         // Inbox chat replies belong to the conversation, not to the case lifecycle
-        notInArray(notificationOutbox.templateKey, [...INBOX_JOB_TYPES]),
+        notInArray(notificationOutbox.templateKey, [...INBOX_JOB_TYPES, ...STAFF_HANDOVER_TYPES]),
       ),
     )
     .returning({ id: notificationOutbox.id })
@@ -694,7 +717,7 @@ export async function dispatchOutboundJobs(jobIds: string[]): Promise<DispatchRe
         results.push({ jobId, dispatched: false, reason: 'staff_owned' })
         continue
       }
-      if (refs && !CANCELLATION_JOB_TYPES.has(claimed.templateKey) && (await isCaseCancelled(refs.consultationId))) {
+      if (refs && !CANCELLATION_JOB_TYPES.has(claimed.templateKey) && !STAFF_HANDOVER_TYPES.includes(claimed.templateKey) && (await isCaseCancelled(refs.consultationId))) {
         // Race with cancellation: never send an obsolete message for a cancelled case
         await withdrawJob(jobId)
         results.push({ jobId, dispatched: false, reason: 'case_cancelled' })

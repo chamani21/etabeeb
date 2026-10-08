@@ -64,4 +64,9 @@ export const STAFF_MESSAGES = {
     `Reason: ${d.reason}\n\n📋 Open case\n${d.caseUrl}`,
   doctorCancelled: (d: { patientName: string | null; scheduledTime: string | null; caseUrl: string }) =>
     `eTabeeb — Consultation cancelled\n\nPatient: ${val(d.patientName)}\nScheduled time: ${clinicTime(d.scheduledTime)}\n\nView case\n${d.caseUrl}`,
+  // Shared inbox handover (no summary, files or conversation text — those stay in the dashboard)
+  doctorHandoverRequested: (d: { patientName: string | null; requestedBy: string | null; chatUrl: string }) =>
+    `eTabeeb — Patient chat handover requested\n\nPatient: ${val(d.patientName)}\nFrom: ${val(d.requestedBy)}\n\n💬 Open chat to accept or decline\n${d.chatUrl}`,
+  adminHandoverReturned: (d: { patientName: string | null; chatUrl: string }) =>
+    `eTabeeb — Patient chat returned to admin\n\nPatient: ${val(d.patientName)}\nThe doctor returned the conversation (see the internal note).\n\n💬 Open chat\n${d.chatUrl}`,
 } as const

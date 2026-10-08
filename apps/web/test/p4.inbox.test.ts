@@ -302,6 +302,47 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
   })
 
   // ------------------------------------------------------------------
+  describe('staff WhatsApp notices', () => {
+    it('handover request notifies the doctor, return notifies the admin: link only, staff numbers, once each', async () => {
+      const { c } = await adminOwned()
+      await changeOwnership(c.id, A(), { action: 'request_doctor', expectedVersion: c.ownerVersion, summary: 'SYN confidential summary text' })
+      const [req] = await jobsOf('STAFF_HANDOVER_REQUEST')
+      expect(req).toBeTruthy()
+      await dispatchOutboundJobs([req!.id])
+      const toDoctor = n8nBodies().find((b) => b.type === 'STAFF_HANDOVER_REQUEST')
+      expect(toDoctor).toMatchObject({ audience: 'DOCTOR', to: '+923009990002', messageKind: 'text' })
+      expect(toDoctor.text).toContain(`/doctor/inbox?c=${c.id}`)
+      expect(toDoctor.text).not.toContain('confidential summary') // summary stays in the dashboard
+      await changeOwnership(c.id, D(), { action: 'accept', expectedVersion: c.ownerVersion })
+      const now = await conv(c.contactPhone)
+      await changeOwnership(c.id, D(), { action: 'return_to_admin', expectedVersion: now.ownerVersion, instruction: 'SYN follow-up' })
+      const [ret] = await jobsOf('STAFF_HANDOVER_RETURNED')
+      await dispatchOutboundJobs([ret!.id])
+      const toAdmin = n8nBodies().find((b) => b.type === 'STAFF_HANDOVER_RETURNED')
+      expect(toAdmin).toMatchObject({ audience: 'ADMIN', to: '+923009990001', messageKind: 'text' })
+      expect(toAdmin.text).toContain(`/admin/inbox?c=${c.id}`)
+      // Staff ownership never suppresses staff notices; replaying a dispatch sends nothing twice
+      await dispatchOutboundJobs([req!.id, ret!.id])
+      expect(n8nBodies().filter((b) => b.type.startsWith('STAFF_HANDOVER'))).toHaveLength(2)
+      expect(await jobsOf('STAFF_HANDOVER_REQUEST')).toHaveLength(1)
+      expect(await jobsOf('STAFF_HANDOVER_RETURNED')).toHaveLength(1)
+    })
+
+    it('existing staff notices still go out while staff own the conversation', async () => {
+      const phone = fakePhone()
+      await processInboundMessage(msg(phone, 'Salam'))
+      await processInboundMessage(msg(phone, 'Synthetic Patient'))
+      const r = await processInboundMessage(msg(phone, '03001234567')) // → ADMIN_INTAKE + ADMIN_NEW_CASE
+      const c = await conv(phone)
+      await changeOwnership(c.id, A(), { action: 'take_over', expectedVersion: c.ownerVersion })
+      const adminJob = r.jobs.find((j) => j.type === 'ADMIN_NEW_CASE')!
+      const [res] = await dispatchOutboundJobs([adminJob.id])
+      expect(res!.dispatched).toBe(true)
+      expect(n8nBodies().find((b) => b.type === 'ADMIN_NEW_CASE')).toMatchObject({ audience: 'ADMIN', to: '+923009990001' })
+    })
+  })
+
+  // ------------------------------------------------------------------
   describe('sending', () => {
     it('internal notes never enter the WhatsApp outbox', async () => {
       const { c } = await adminOwned()
