@@ -8,7 +8,7 @@
  * Internal notes are a separate table and can never reach the outbox.
  */
 import { randomUUID } from 'crypto'
-import { eq } from 'drizzle-orm'
+import { and, eq, gt } from 'drizzle-orm'
 import { db } from '@etabeeb/db'
 import { waAttachments, waConversations, waInternalNotes, waMessages } from '@etabeeb/db/schema'
 import { EtabibError } from '../errors'
@@ -184,6 +184,39 @@ export async function sendFile(
     const locked = await lockForSend(tx, actor, conversationId, input.expectedVersion)
     const r = await queue(tx, locked.conv, locked.latestCaseId, actor, asImage ? 'INBOX_IMAGE' : 'INBOX_DOCUMENT', input.clientRequestKey, { kind: asImage ? 'image' : 'document', body: caption })
     await storeStaffAttachment(tx, locked.conv, actor, r.messageId, { id, storageKey: key, mimeType: accepted.type, size: input.data.length, sha: sha256(input.data), filename: sanitizeFilename(input.filename) })
+    return { ...r, duplicate: false }
+  })
+}
+
+export const INVITE_COOLDOWN_MS = 24 * 3600_000
+
+/**
+ * Owner-only, when the patient's 24-hour window is CLOSED: send the approved
+ * Pashto reply-invitation template (etabib_reply_invite_ps). Its only variable is
+ * the patient's name — never free text. At most one per conversation per 24 h.
+ */
+export async function sendReplyInvite(conversationId: string, actor: InboxActor, input: { clientRequestKey: string; expectedVersion: number }): Promise<SendResult> {
+  checkKey(input.clientRequestKey)
+  await viewableConversation(actor, conversationId)
+  const dup = await existingByKey(conversationId, input.clientRequestKey)
+  if (dup) return dup
+  return db.transaction(async (tx) => {
+    const [conv] = await tx.select().from(waConversations).where(eq(waConversations.id, conversationId)).limit(1).for('update')
+    if (!conv) throw new EtabibError('not_found', 'Conversation not found', 404)
+    if (!isOwner(actor, conv)) throw new EtabibError('not_owner', 'Only the current owner of this conversation can invite the patient', 403)
+    if (conv.ownerVersion !== input.expectedVersion) throw new EtabibError('ownership_conflict', 'The conversation changed in the meantime. Reload and try again.', 409)
+    if (windowState(conv.lastPatientMessageAt).open) throw new EtabibError('window_open', 'The reply window is open — send a normal message instead', 409)
+    const [recent] = await tx
+      .select({ id: waMessages.id })
+      .from(waMessages)
+      .where(and(eq(waMessages.conversationId, conv.id), eq(waMessages.kind, 'invite'), gt(waMessages.createdAt, new Date(Date.now() - INVITE_COOLDOWN_MS))))
+      .limit(1)
+    if (recent) throw new EtabibError('invite_recent', 'An invitation was already sent in the last 24 hours. Wait for the patient to reply.', 409)
+    const latest = await latestCaseForContact(tx, conv.contactPhone)
+    if (!latest) throw new EtabibError('no_case', 'This contact has no consultation case yet', 409)
+    // Template variable {{1}}: the patient's name only (shown in the chat as the message body)
+    const name = (latest.patientName ?? conv.profileName ?? '').trim().slice(0, 60) || null
+    const r = await queue(tx, conv, latest.id, actor, 'INBOX_INVITE', input.clientRequestKey, { kind: 'invite', body: name })
     return { ...r, duplicate: false }
   })
 }

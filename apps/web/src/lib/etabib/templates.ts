@@ -36,6 +36,7 @@ export const MESSAGE_INTENTS = [
   'PATIENT_PRESCRIPTION_IMAGE',
   'STAFF_HANDOVER_REQUEST',
   'STAFF_HANDOVER_RETURNED',
+  'PATIENT_REPLY_INVITE',
 ] as const
 export type MessageIntent = (typeof MESSAGE_INTENTS)[number]
 
@@ -52,9 +53,9 @@ export const JOB_INTENT: Readonly<Partial<Record<OutboundJobType, MessageIntent>
   CONSULTATION_CANCELLED_PATIENT: 'CONSULTATION_CANCELLED',
   CONSULTATION_CANCELLED_ADMIN: 'ADMIN_CONSULTATION_CANCELLED',
   CONSULTATION_CANCELLED_DOCTOR: 'DOCTOR_CONSULTATION_CANCELLED',
-  // Prepared only: used once an approved template is added to ETABIB_WA_TEMPLATES
   STAFF_HANDOVER_REQUEST: 'STAFF_HANDOVER_REQUEST',
   STAFF_HANDOVER_RETURNED: 'STAFF_HANDOVER_RETURNED',
+  INBOX_INVITE: 'PATIENT_REPLY_INVITE',
 }
 
 export interface TemplateDefinition {
@@ -100,9 +101,9 @@ export const TEMPLATE_DEFINITIONS: Readonly<Record<MessageIntent, TemplateDefini
   },
   CONSULTATION_CONFIRMED_DOCTOR: {
     intent: 'CONSULTATION_CONFIRMED_DOCTOR', proposedName: 'etabib_doctor_confirmed_v2', language: 'en', audience: 'DOCTOR', category: 'UTILITY',
-    params: ['patientName', 'time', 'caseUrl'],
-    body: 'eTabeeb — Consultation confirmed. Patient: {{1}}. Time: {{2}}. Open case & join video: {{3}}',
-    approved: false, wired: true,
+    params: ['patientName', 'caseUrl'],
+    body: 'eTabeeb staff notification: The consultation for patient {{1}} has been confirmed.\n\nOpen the dashboard to review the confirmed consultation details:\n{{2}}\n\nPlease refer to the dashboard for the current arrangements.',
+    approved: true, wired: true,
   },
   CONSULTATION_TIME_CHANGED: {
     intent: 'CONSULTATION_TIME_CHANGED', proposedName: 'etabib_consultation_time_changed_ps', language: 'ps_AF', audience: 'PATIENT', category: 'UTILITY',
@@ -149,15 +150,21 @@ export const TEMPLATE_DEFINITIONS: Readonly<Record<MessageIntent, TemplateDefini
   },
   STAFF_HANDOVER_REQUEST: {
     intent: 'STAFF_HANDOVER_REQUEST', proposedName: 'etabib_staff_handover_request', language: 'en', audience: 'DOCTOR', category: 'UTILITY',
-    params: ['patientName', 'requestedBy', 'chatUrl'],
-    body: 'eTabeeb — a patient chat needs the doctor.\n\nPatient: {{1}}\nRequested by: {{2}}\n\nOpen the chat to accept or decline: {{3}}',
-    approved: false, wired: true,
+    params: ['patientName', 'chatUrl'],
+    body: 'eTabeeb staff notification: An administrator has requested that you take over the conversation for patient {{1}}.\n\nOpen the dashboard to review and accept or decline:\n{{2}}\n\nThe administrator remains responsible until you accept.',
+    approved: true, wired: true,
   },
   STAFF_HANDOVER_RETURNED: {
     intent: 'STAFF_HANDOVER_RETURNED', proposedName: 'etabib_staff_handover_returned', language: 'en', audience: 'ADMIN', category: 'UTILITY',
     params: ['patientName', 'chatUrl'],
-    body: 'eTabeeb — a patient chat was returned to the admin.\n\nPatient: {{1}}\n\nOpen the chat: {{2}}',
-    approved: false, wired: true,
+    body: 'eTabeeb staff notification: The doctor has returned the conversation for patient {{1}} to you for further handling.\n\nOpen the dashboard to review the conversation and any internal instructions:\n{{2}}\n\nThis is an update to an existing patient conversation.',
+    approved: true, wired: true,
+  },
+  PATIENT_REPLY_INVITE: {
+    intent: 'PATIENT_REPLY_INVITE', proposedName: 'etabib_reply_invite_ps', language: 'ps_AF', audience: 'PATIENT', category: 'UTILITY',
+    params: ['name'],
+    body: 'محترم/محترمه {{1}}،\n\nستاسو د eTabeeb مشورې په اړه له تاسو سره خبرو ته اړتیا لرو.\n\nمهرباني وکړئ همدې پیغام ته ځواب راکړئ، ترڅو خبرې درسره دوام ورکړو.\n\nمننه.',
+    approved: true, wired: true,
   },
 }
 

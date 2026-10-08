@@ -52,6 +52,8 @@ export const OUTBOUND_JOB_TYPES = [
   'INBOX_IMAGE',
   'INBOX_DOCUMENT',
   'INBOX_NOTICE',
+  // Approved reply-invitation template when the patient's 24-hour window is closed
+  'INBOX_INVITE',
   // Shared inbox: staff notices on their configured WhatsApp numbers
   'STAFF_HANDOVER_REQUEST',
   'STAFF_HANDOVER_RETURNED',
@@ -80,6 +82,7 @@ export const JOB_AUDIENCE: Readonly<Record<OutboundJobType, OutboundAudience>> =
   INBOX_IMAGE: 'PATIENT',
   INBOX_DOCUMENT: 'PATIENT',
   INBOX_NOTICE: 'PATIENT',
+  INBOX_INVITE: 'PATIENT',
   STAFF_HANDOVER_REQUEST: 'DOCTOR',
   STAFF_HANDOVER_RETURNED: 'ADMIN',
 }
@@ -406,7 +409,8 @@ async function buildTextPayload(
     case 'CONSULTATION_CONFIRMED_DOCTOR': {
       const data = { consultationId: c.id, patientName: c.patientName, approvedTime: iso(c.doctorApprovedTime), caseUrl: doctorCaseUrl(c.id) }
       return {
-        templateValues: [c.patientName, clinicTime(data.approvedTime), data.caseUrl],
+        // approved etabib_doctor_confirmed_v2: {{1}} patient, {{2}} dashboard link
+        templateValues: [c.patientName, data.caseUrl],
         payload: { ...base, ...(to ? { to } : {}), text: STAFF_MESSAGES.doctorConfirmed(data), data },
       }
     }
@@ -480,6 +484,7 @@ async function buildTextPayload(
     case 'INBOX_IMAGE':
     case 'INBOX_DOCUMENT':
     case 'INBOX_NOTICE':
+    case 'INBOX_INVITE':
       // Built by inbox/dispatch.ts (ownership + window re-checked at dispatch)
       return null
     case 'STAFF_HANDOVER_REQUEST':
@@ -492,7 +497,8 @@ async function buildTextPayload(
           : STAFF_MESSAGES.adminHandoverReturned({ patientName: name, chatUrl: adminInboxUrl(refs.conversationId) })
       // Outside the staff member's 24-hour window an approved template is used once mapped in ETABIB_WA_TEMPLATES
       const chatUrl = type === 'STAFF_HANDOVER_REQUEST' ? doctorInboxUrl(refs.conversationId) : adminInboxUrl(refs.conversationId)
-      const templateValues = type === 'STAFF_HANDOVER_REQUEST' ? [name ?? '-', refs.requestedBy ?? 'Admin', chatUrl] : [name ?? '-', chatUrl]
+      // approved etabib_staff_handover_request / _returned: {{1}} patient, {{2}} dashboard link
+      const templateValues = [name ?? '-', chatUrl]
       return { templateValues, payload: { ...base, ...(to ? { to } : {}), text, data: { conversationId: refs.conversationId } } }
     }
     case 'PRESCRIPTION_READY': {

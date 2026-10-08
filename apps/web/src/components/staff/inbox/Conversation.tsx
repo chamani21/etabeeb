@@ -421,7 +421,7 @@ export function Conversation({ conversationId, onBack, compact = false, fill = f
       ? 'The bot owns this conversation. Take over to message the patient.'
       : `Only the current owner (${ownerText}) can message the patient. You can add internal notes.`
     : !c.window.open
-      ? 'WhatsApp window closed: free-form messages are only allowed within 24 hours of the patient’s last message. Wait for the patient to write. (No approved “invite reply” template exists yet.)'
+      ? 'WhatsApp window closed: free-form messages are only allowed within 24 hours of the patient’s last message. You can send the approved invitation asking the patient to reply.'
       : null
 
   return (
@@ -566,7 +566,9 @@ export function Conversation({ conversationId, onBack, compact = false, fill = f
                   <div className="mb-0.5 text-[11px] text-gray-500">
                     {x.direction === 'IN' ? 'Patient' : x.senderRole === 'BOT' ? 'Bot' : x.senderRole === 'SYSTEM' ? 'eTabeeb (automatic)' : `${x.senderName ?? OWNER_LABEL[x.senderRole]} (${OWNER_LABEL[x.senderRole]})`} · {fmtTime(x.at)}
                   </div>
-                  {x.historical && !x.body ? (
+                  {x.kind === 'invite' ? (
+                    <p className="italic text-gray-700">Reply invitation (approved template){x.body ? ` — ${x.body}` : ''}</p>
+                  ) : x.historical && !x.body ? (
                     <p className="italic text-gray-600">
                       {x.direction === 'IN' ? `Patient message (${x.kind})` : (TEMPLATE_LABEL[x.templateKey ?? ''] ?? 'Automatic message')} — content not recorded before the inbox was enabled
                     </p>
@@ -632,7 +634,24 @@ export function Conversation({ conversationId, onBack, compact = false, fill = f
         {error && <div className="mb-2"><Notice kind="error">{error}</Notice></div>}
         {info && <div className="mb-2"><Notice kind="success">{info}</Notice></div>}
         {mode === 'patient' && sendBlock ? (
-          <p className="rounded border border-gray-200 bg-gray-50 p-2 text-sm text-gray-700">{sendBlock}</p>
+          <div className="space-y-2">
+            <p className="rounded border border-gray-200 bg-gray-50 p-2 text-sm text-gray-700">{sendBlock}</p>
+            {view.me.isOwner && !c.window.open && (
+              <Button
+                variant="secondary"
+                className="min-h-[44px]"
+                disabled={busy}
+                onClick={() =>
+                  void run(
+                    () => api(`/api/inbox/conversations/${conversationId}/invite`, { body: { clientRequestKey: newRequestKey(), expectedVersion: c.ownerVersion } }),
+                    'Invitation sent. You can message freely once the patient replies.',
+                  )
+                }
+              >
+                Invite patient to reply (approved template)
+              </Button>
+            )}
+          </div>
         ) : (
           <>
             <div className="flex items-end gap-2">

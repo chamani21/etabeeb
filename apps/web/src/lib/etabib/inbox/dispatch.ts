@@ -13,11 +13,12 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@etabeeb/db'
 import { notificationOutbox, waAttachments, waConversations, waMessages } from '@etabeeb/db/schema'
 import { signedMediaUrl } from '../media-links'
+import { buildTemplatePayload, getApprovedTemplates } from '../templates'
 import type { OutboundJobRefs, OutboundPayload } from '../outbound'
 import type { Tx } from '../transitions'
 import { conversationByPhone, isInboxEnabled, touchConversation, windowState } from './core'
 
-export const INBOX_JOB_TYPES = ['INBOX_TEXT', 'INBOX_AUDIO', 'INBOX_IMAGE', 'INBOX_DOCUMENT', 'INBOX_NOTICE'] as const
+export const INBOX_JOB_TYPES = ['INBOX_TEXT', 'INBOX_AUDIO', 'INBOX_IMAGE', 'INBOX_DOCUMENT', 'INBOX_NOTICE', 'INBOX_INVITE'] as const
 export type InboxJobType = (typeof INBOX_JOB_TYPES)[number]
 export const INBOX_JOB_TYPE_SET: ReadonlySet<string> = new Set(INBOX_JOB_TYPES)
 
@@ -43,6 +44,23 @@ export async function prepareInboxDispatch(job: ClaimedJob, refs: OutboundJobRef
   if (job.templateKey !== 'INBOX_NOTICE') {
     const roleOk = (conv.owner === 'ADMIN' && msg.senderRole === 'ADMIN') || (conv.owner === 'DOCTOR' && msg.senderRole === 'DOCTOR')
     if (!roleOk || conv.ownerUserId !== msg.senderUserId) return { action: 'cancel', reason: 'superseded: sender no longer owns the conversation' }
+  }
+  if (job.templateKey === 'INBOX_INVITE') {
+    // The only message allowed outside the window: the approved reply-invitation template
+    const approved = getApprovedTemplates().PATIENT_REPLY_INVITE
+    if (!approved) return { action: 'fail', reason: 'template_not_configured: etabib_reply_invite_ps is not mapped' }
+    if (windowState(conv.lastPatientMessageAt).open) return { action: 'cancel', reason: 'superseded: the patient wrote again (free-form reply possible)' }
+    const name = msg.body?.trim() || 'ګران ناروغ'
+    let template
+    try {
+      template = buildTemplatePayload('PATIENT_REPLY_INVITE', approved, [name])
+    } catch {
+      return { action: 'fail', reason: 'invalid_template' }
+    }
+    return {
+      action: 'send',
+      payload: { jobId: job.id, idempotencyKey: job.idempotencyKey, type: 'INBOX_INVITE', audience: 'PATIENT', consultationId: refs.consultationId, to: conv.contactPhone, messageKind: 'template', template, callback: { path: '/api/hooks/outbound-result' } },
+    }
   }
   if (!windowState(conv.lastPatientMessageAt).open) return { action: 'fail', reason: 'window_closed: the patient has not written in the last 24 hours' }
 

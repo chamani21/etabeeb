@@ -385,6 +385,53 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
       expect(await jobsOf('STAFF_HANDOVER_RETURNED')).toHaveLength(1)
     })
 
+    it('outside the staff window the approved 2-parameter templates are used (name + dashboard link)', async () => {
+      process.env.ETABIB_WA_TEMPLATES = JSON.stringify({
+        STAFF_HANDOVER_REQUEST: { name: 'etabib_staff_handover_request', language: 'en' },
+        STAFF_HANDOVER_RETURNED: { name: 'etabib_staff_handover_returned', language: 'en' },
+        CONSULTATION_CONFIRMED_DOCTOR: { name: 'etabib_doctor_confirmed_v2', language: 'en' },
+      })
+      try {
+        const { c } = await adminOwned()
+        await changeOwnership(c.id, A(), { action: 'request_doctor', expectedVersion: c.ownerVersion, summary: 'SYN' })
+        const [req] = await jobsOf('STAFF_HANDOVER_REQUEST')
+        await dispatchOutboundJobs([req!.id])
+        const sent = n8nBodies().find((b) => b.type === 'STAFF_HANDOVER_REQUEST')
+        expect(sent.messageKind).toBe('template')
+        expect(sent.template.name).toBe('etabib_staff_handover_request')
+        const params = sent.template.components[0].parameters.map((p: { text: string }) => p.text)
+        expect(params).toHaveLength(2)
+        expect(params[1]).toContain(`/doctor/inbox?c=${c.id}`)
+        const { buildTemplatePayload, TEMPLATE_DEFINITIONS } = await import('@/lib/etabib/templates')
+        expect(TEMPLATE_DEFINITIONS.CONSULTATION_CONFIRMED_DOCTOR.params).toHaveLength(2)
+        expect(() => buildTemplatePayload('CONSULTATION_CONFIRMED_DOCTOR', { name: 'etabib_doctor_confirmed_v2', language: 'en' }, ['SYN', 'https://x.test/doctor/cases/1'])).not.toThrow()
+      } finally {
+        delete process.env.ETABIB_WA_TEMPLATES
+      }
+    })
+
+    it('reply invitation: owner only, window closed only, approved template with the name, once per 24 h', async () => {
+      process.env.ETABIB_WA_TEMPLATES = JSON.stringify({ PATIENT_REPLY_INVITE: { name: 'etabib_reply_invite_ps', language: 'ps_AF' } })
+      try {
+        const { sendReplyInvite } = await import('@/lib/etabib/inbox/send')
+        const { c, phone } = await adminOwned()
+        await db.update(consultationCases).set({ patientName: 'SYN Invite' }).where(eq(consultationCases.whatsappPhone, phone))
+        await expect(sendReplyInvite(c.id, A(), { clientRequestKey: key(), expectedVersion: c.ownerVersion })).rejects.toMatchObject({ code: 'window_open' })
+        await db.update(waConversations).set({ lastPatientMessageAt: new Date(Date.now() - 30 * 3600_000) }).where(eq(waConversations.id, c.id))
+        await expect(sendReplyInvite(c.id, A2(), { clientRequestKey: key(), expectedVersion: c.ownerVersion })).rejects.toMatchObject({ code: 'not_owner' })
+        const r = await sendReplyInvite(c.id, A(), { clientRequestKey: key(), expectedVersion: c.ownerVersion })
+        await dispatchOutboundJobs([r.jobId!])
+        const sent = n8nBodies().find((b) => b.type === 'INBOX_INVITE')
+        expect(sent).toMatchObject({ messageKind: 'template', to: phone, template: { name: 'etabib_reply_invite_ps', language: 'ps_AF' } })
+        expect(sent.template.components[0].parameters).toEqual([{ type: 'text', text: 'SYN Invite' }])
+        await expect(sendReplyInvite(c.id, A(), { clientRequestKey: key(), expectedVersion: c.ownerVersion })).rejects.toMatchObject({ code: 'invite_recent' })
+        // Free-form text stays blocked until the patient replies
+        await expect(sendText(c.id, A(), { body: 'x', clientRequestKey: key(), expectedVersion: c.ownerVersion })).rejects.toMatchObject({ code: 'window_closed' })
+      } finally {
+        delete process.env.ETABIB_WA_TEMPLATES
+      }
+    })
+
     it('existing staff notices still go out while staff own the conversation', async () => {
       const phone = fakePhone()
       await processInboundMessage(msg(phone, 'Salam'))
