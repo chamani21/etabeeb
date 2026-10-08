@@ -1,0 +1,1 @@
+ALTER TABLE "wa_conversations" ADD COLUMN "bot_reset_at" timestamp with time zone;

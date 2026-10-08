@@ -175,6 +175,8 @@ export type IntakeOutcome =
   | 'released_held_media'
   /** Inbox: a human owns the conversation — stored, no bot reply */
   | 'staff_owned'
+  /** Inbox: sent before staff returned the chat to the bot — stored, never drives the new intake */
+  | 'before_reset'
 
 export interface InboundResult {
   wamid: string
@@ -277,7 +279,20 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
       return { wamid: msg.wamid, duplicate: false, outcome: 'staff_owned', consultationId: caseId, status: current?.status ?? held?.status ?? null, jobs: [], disposition, mediaFetchIds }
     }
 
-    if (!current && held) {
+    // "Return to bot" boundary: only messages SENT after it start/continue the new intake
+    const resetAt = conv?.botResetAt ?? null
+    if (resetAt) {
+      const sentAt = msg.providerTimestamp ?? new Date()
+      if (Math.floor(sentAt.getTime() / 1000) < Math.floor(resetAt.getTime() / 1000)) {
+        await recordForInbox(current?.id ?? null)
+        await tx.update(whatsappEvents).set({ consultationId: current?.id ?? null, processedAt: new Date(), disposition }).where(eq(whatsappEvents.id, ledgerId))
+        return { wamid: msg.wamid, duplicate: false, outcome: 'before_reset', consultationId: current?.id ?? null, status: current?.status ?? null, jobs: [], disposition, mediaFetchIds }
+      }
+    }
+    // A reset is waiting for its first message (no case created since): start the intake, not a held-media release
+    const restartPending = Boolean(resetAt) && (!current || current.createdAt.getTime() < resetAt!.getTime())
+
+    if (!current && held && !restartPending) {
       await recordForInbox(null)
       await tx.update(whatsappEvents).set({ consultationId: held.caseId, processedAt: new Date(), disposition }).where(eq(whatsappEvents.id, ledgerId))
       return { wamid: msg.wamid, duplicate: false, outcome: 'released_held_media', consultationId: held.caseId, status: held.status, jobs: [], disposition, mediaFetchIds }
@@ -310,6 +325,26 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
         }),
       )
       outcome = 'case_in_progress'
+    } else if (
+      restartPending &&
+      !current.patientName &&
+      !(
+        await tx
+          .select({ id: notificationOutbox.id })
+          .from(notificationOutbox)
+          .where(
+            and(
+              eq(notificationOutbox.templateKey, 'ASK_PATIENT_NAME'),
+              sql`(${notificationOutbox.templateVariables}::jsonb ->> 'consultationId') = ${current.id}`,
+              sql`${notificationOutbox.createdAt} >= ${resetAt!.toISOString()}::timestamptz`,
+            ),
+          )
+          .limit(1)
+      )[0]
+    ) {
+      // Restarted intake reusing an empty NEW case: this first message is a greeting, not the name
+      jobs.push(await enqueueOutboundJob(tx, { type: 'ASK_PATIENT_NAME', consultationId: current.id, dedupeKey: msg.wamid, recipientPhone: msg.from }))
+      outcome = 'asked_name'
     } else if (!current.patientName) {
       const name = sanitizePatientName(msg.text)
       if (name) {

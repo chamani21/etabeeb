@@ -66,7 +66,7 @@ export interface View {
   me: { id: string; role: 'ADMIN' | 'DOCTOR'; isOwner: boolean; canSend: boolean }
   pending: { id: string; toMe: boolean; requestedBy: string; summary: string | null; attachmentIds: string[]; createdAt: string } | null
   actions: string[]
-  resumeBlocker: string | null
+  resumeBlocker: { message: string; caseId: string } | null
   cases: Array<{ id: string; status: string; patientName: string | null; createdAt: string }>
   messages: Msg[]
   hasMore: boolean
@@ -107,7 +107,7 @@ const ACTION_LABEL: Record<string, string> = {
   accept: 'Accept',
   decline: 'Decline',
   return_to_admin: 'Return to admin',
-  resume_bot: 'Resume bot',
+  resume_bot: 'Return to bot',
 }
 
 const kb = (n: number | null) => (n === null ? '' : n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
@@ -260,7 +260,7 @@ export function Conversation({ conversationId, onBack, compact = false, fill = f
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [showFiles, setShowFiles] = useState(false)
-  const [panel, setPanel] = useState<null | 'request_doctor' | 'decline' | 'return_to_admin'>(null)
+  const [panel, setPanel] = useState<null | 'request_doctor' | 'decline' | 'return_to_admin' | 'resume_bot'>(null)
   const [panelText, setPanelText] = useState('')
   const [panelFiles, setPanelFiles] = useState<string[]>([])
   const scroller = useRef<HTMLDivElement | null>(null)
@@ -347,8 +347,9 @@ export function Conversation({ conversationId, onBack, compact = false, fill = f
       setPanelFiles(view.attachments.filter((a) => a.source === 'PATIENT' && a.flaggedAt).map((a) => a.id))
       return
     }
-    if (action === 'resume_bot' && view.resumeBlocker) {
-      setError(view.resumeBlocker)
+    if (action === 'resume_bot') {
+      // Blocked → the explanation and case link are shown in the panel instead of a confirm button
+      setPanel('resume_bot')
       return
     }
     void ownership(action, {}, action === 'take_over' ? 'You now own this conversation. The bot will not reply to the patient.' : undefined)
@@ -358,6 +359,7 @@ export function Conversation({ conversationId, onBack, compact = false, fill = f
     if (panel === 'request_doctor') void ownership('request_doctor', { summary: panelText, attachmentIds: panelFiles }, 'Doctor handover requested. You stay responsible until the doctor accepts.').then(() => setPanel(null))
     if (panel === 'decline') void ownership('decline', { reason: panelText }, 'Declined. The admin stays responsible.').then(() => setPanel(null))
     if (panel === 'return_to_admin') void ownership('return_to_admin', { instruction: panelText }, 'Returned to admin.').then(() => setPanel(null))
+    if (panel === 'resume_bot') void ownership('resume_bot', {}, 'Returned to the bot. The patient’s next message will start a new intake.').then(() => setPanel(null))
   }
 
   const send = () =>
@@ -509,11 +511,24 @@ export function Conversation({ conversationId, onBack, compact = false, fill = f
             </>
           )}
           {panel === 'decline' && <input dir="auto" className={inputCls} maxLength={500} placeholder="Internal reason (admin stays responsible)" value={panelText} onChange={(e) => setPanelText(e.target.value)} />}
+          {panel === 'resume_bot' &&
+            (view.resumeBlocker ? (
+              <Notice kind="warning">
+                {view.resumeBlocker.message}{' '}
+                <a className="font-medium underline" href={`/${view.me.role === 'ADMIN' ? 'admin' : 'doctor'}/cases/${view.resumeBlocker.caseId}`}>
+                  Open the case
+                </a>
+              </Notice>
+            ) : (
+              <p>Return this conversation to the bot? The patient’s next message will start a new intake. Previous records will remain available.</p>
+            ))}
           {panel === 'return_to_admin' && <input dir="auto" className={inputCls} maxLength={1000} placeholder="Optional instruction for the admin (e.g. arrange follow-up, payment)" value={panelText} onChange={(e) => setPanelText(e.target.value)} />}
           <div className="flex gap-2">
-            <Button className="min-h-[44px]" disabled={busy} onClick={submitPanel}>
-              {ACTION_LABEL[panel]}
-            </Button>
+            {!(panel === 'resume_bot' && view.resumeBlocker) && (
+              <Button className="min-h-[44px]" disabled={busy} onClick={submitPanel}>
+                {panel === 'resume_bot' ? 'Yes, return to bot' : ACTION_LABEL[panel]}
+              </Button>
+            )}
             <Button variant="secondary" className="min-h-[44px]" onClick={() => setPanel(null)}>
               Cancel
             </Button>

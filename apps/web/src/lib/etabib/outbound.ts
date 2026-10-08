@@ -490,8 +490,10 @@ async function buildTextPayload(
         type === 'STAFF_HANDOVER_REQUEST'
           ? STAFF_MESSAGES.doctorHandoverRequested({ patientName: name, requestedBy: refs.requestedBy ?? 'Admin', chatUrl: doctorInboxUrl(refs.conversationId) })
           : STAFF_MESSAGES.adminHandoverReturned({ patientName: name, chatUrl: adminInboxUrl(refs.conversationId) })
-      // No approved template exists for these notices: free-form text, delivered only inside the staff member's own 24-hour window
-      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text, data: { conversationId: refs.conversationId } } }
+      // Outside the staff member's 24-hour window an approved template is used once mapped in ETABIB_WA_TEMPLATES
+      const chatUrl = type === 'STAFF_HANDOVER_REQUEST' ? doctorInboxUrl(refs.conversationId) : adminInboxUrl(refs.conversationId)
+      const templateValues = type === 'STAFF_HANDOVER_REQUEST' ? [name ?? '-', refs.requestedBy ?? 'Admin', chatUrl] : [name ?? '-', chatUrl]
+      return { templateValues, payload: { ...base, ...(to ? { to } : {}), text, data: { conversationId: refs.conversationId } } }
     }
     case 'PRESCRIPTION_READY': {
       const prescriptionId = refs.prescriptionId ?? c.prescriptionId

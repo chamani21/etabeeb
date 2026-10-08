@@ -13,14 +13,14 @@
  * replies written under an older version are cancelled here and re-checked at
  * dispatch. Typing a message never changes ownership.
  */
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, notInArray } from 'drizzle-orm'
 import { db } from '@etabeeb/db'
-import { users, waAttachments, waConversations, waHandoverRequests, waInternalNotes, waMessages } from '@etabeeb/db/schema'
+import { consultationCases, users, waAttachments, waConversations, waHandoverRequests, waInternalNotes, waMessages } from '@etabeeb/db/schema'
 import { EtabibError } from '../errors'
 import { getV1DoctorUserId } from '../config'
 import { enqueueOutboundJob } from '../outbound'
 import { recordStaffAudit, type StaffAuditAction } from '../staff-audit'
-import type { Tx } from '../transitions'
+import { CLOSED_STATUSES, type Tx } from '../transitions'
 import { caseLinkFor, latestCaseForContact, openCaseForContact, windowState, type Conversation, type InboxRole } from './core'
 import { cancelStaleStaffReplies, withdrawQueuedBotReplies } from './dispatch'
 import { HANDOVER_NOTICES_PS } from './notices'
@@ -128,13 +128,33 @@ async function isActiveAdmin(tx: Tx, userId: string | null): Promise<boolean> {
   return Boolean(u?.active)
 }
 
-/** Whether "Resume bot" has a valid continuation (never restarts intake or repeats the name question). */
-export async function botResumeBlocker(executor: Tx | typeof db, contactPhone: string): Promise<string | null> {
-  const open = await openCaseForContact(executor, contactPhone)
-  if (open && open.status === 'NEW' && !open.patientName) {
-    return 'The bot would have to ask for the patient’s name again. Keep the conversation with staff and complete the intake manually.'
+export interface ResumeBlocker {
+  message: string
+  /** The case that must be resolved first (link to its page) */
+  caseId: string
+}
+
+/**
+ * "Return to bot" starts a NEW intake on the patient's next message. It never
+ * cancels, completes or overwrites an open consultation: a contact with an open
+ * case past the first bot step must have that case resolved first. An empty NEW
+ * case (no name, no phone yet) is simply reused by the restarted intake.
+ */
+export async function botResumeBlocker(executor: Tx | typeof db, contactPhone: string): Promise<ResumeBlocker | null> {
+  const [open] = await executor
+    .select({ id: consultationCases.id, status: consultationCases.status, patientName: consultationCases.patientName, patientPhone: consultationCases.patientPhone })
+    .from(consultationCases)
+    .where(and(eq(consultationCases.whatsappPhone, contactPhone), notInArray(consultationCases.status, [...CLOSED_STATUSES])))
+    .limit(1)
+  if (!open) return null
+  if (open.status === 'NEW' && !open.patientName && !open.patientPhone) return null
+  return {
+    caseId: open.id,
+    message:
+      open.status === 'NEW'
+        ? 'This contact has an intake in progress with details already collected. Finish it with the patient here, or resolve the case first; the bot will not overwrite it.'
+        : `This contact has an open consultation (${open.status.replace(/_/g, ' ').toLowerCase()}). Complete or cancel it from the case page before returning the conversation to the bot.`,
   }
-  return null
 }
 
 export async function changeOwnership(conversationId: string, actor: InboxActor, input: OwnershipInput): Promise<OwnershipResult> {
@@ -243,11 +263,14 @@ export async function changeOwnership(conversationId: string, actor: InboxActor,
         const isOwner = conv.owner !== 'BOT' && ((conv.owner === actor.role && conv.ownerUserId === actor.id) || (actor.role === 'ADMIN' && conv.owner === 'ADMIN' && !conv.ownerUserId))
         if (!isOwner) throw forbidden('Only the current owner can hand the conversation back to the bot')
         const blocker = await botResumeBlocker(tx, conv.contactPhone)
-        if (blocker) throw new EtabibError('bot_resume_blocked', blocker, 409)
+        if (blocker) throw new EtabibError('bot_resume_blocked', blocker.message, 409)
         if (pending) await tx.update(waHandoverRequests).set({ status: 'CANCELLED', resolvedBy: actor.id, resolvedAt: now }).where(eq(waHandoverRequests.id, pending.id))
         version = await setOwner(tx, conv, 'BOT', null)
         ;[owner, ownerUserId] = ['BOT', null]
-        await note(tx, conv, actor, 'Conversation handed back to the bot.', 'BOT_RESUMED')
+        // Reset boundary: the next genuine patient message (sent after now) starts a new intake.
+        // Nothing is created or sent now; previous cases, messages and files are untouched.
+        await tx.update(waConversations).set({ botResetAt: now }).where(eq(waConversations.id, conv.id))
+        await note(tx, conv, actor, 'Returned to the bot. The patient’s next message starts a new intake.', 'BOT_RESUMED')
         await audit(tx, actor, 'INBOX_BOT_RESUMED', conv)
         break
       }

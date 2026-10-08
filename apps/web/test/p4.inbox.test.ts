@@ -199,13 +199,70 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
       void c
     })
 
-    it('resume bot is refused when the bot would repeat the name question; allowed otherwise', async () => {
-      const { c } = await adminOwned() // case NEW, no name yet
+    it('return to bot is refused while an open consultation needs resolution (explains + names the case)', async () => {
+      const { c, phone } = await adminOwned(fakePhone(), { intake: true }) // ADMIN_INTAKE
+      const [kase] = await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))
       await expect(changeOwnership(c.id, A(), { action: 'resume_bot', expectedVersion: c.ownerVersion })).rejects.toMatchObject({ code: 'bot_resume_blocked' })
-      const { c: c2, phone } = await adminOwned()
-      await db.update(consultationCases).set({ patientName: 'SYN Name' }).where(eq(consultationCases.whatsappPhone, phone))
-      const r = await changeOwnership(c2.id, A(), { action: 'resume_bot', expectedVersion: c2.ownerVersion })
-      expect(r.owner).toBe('BOT')
+      const v = await conversationView(A(), c.id)
+      expect(v.resumeBlocker).toMatchObject({ caseId: kase!.id })
+      expect((await conv(phone)).owner).toBe('ADMIN')
+    })
+
+    it('return to bot: nothing happens until the next patient message, which starts a NEW intake once (old case kept)', async () => {
+      const { c, phone } = await adminOwned(fakePhone(), { intake: true })
+      const [old] = await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))
+      await cancelConsultation(old!.id, { reason: 'PATIENT_REQUESTED' }, { type: 'ADMIN', id: admin.id })
+      const jobsBefore = (await db.select().from(notificationOutbox)).length
+      await changeOwnership(c.id, A(), { action: 'resume_bot', expectedVersion: c.ownerVersion })
+      expect((await conv(phone)).owner).toBe('BOT')
+      expect((await conv(phone)).botResetAt).not.toBeNull()
+      expect((await db.select().from(notificationOutbox)).length).toBe(jobsBefore) // no case, no notice, no intake message yet
+      expect(await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))).toHaveLength(1)
+      const later = (s: number) => new Date(Date.now() + s * 1000)
+      const first = await processInboundMessage(msg(phone, 'Salam again', { providerTimestamp: later(2) }))
+      expect(first.outcome).toBe('asked_name')
+      const cases = await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))
+      expect(cases).toHaveLength(2)
+      expect(first.consultationId).not.toBe(old!.id)
+      await processInboundMessage(msg(phone, 'Synthetic Second', { providerTimestamp: later(3) }))
+      const third = await processInboundMessage(msg(phone, '03001234567', { providerTimestamp: later(4) }))
+      expect(third.outcome).toBe('phone_saved_admin_intake')
+      expect(third.consultationId).toBe(first.consultationId) // one case for the whole intake
+      const adminJobs = (await jobsOf('ADMIN_NEW_CASE')).filter((j) => (j.templateVariables ?? '').includes(first.consultationId!))
+      expect(adminJobs).toHaveLength(1)
+      // Old case and its history untouched
+      const [oldAfter] = await db.select().from(consultationCases).where(eq(consultationCases.id, old!.id))
+      expect(oldAfter!.status).toBe('CANCELLED')
+    })
+
+    it('reset with an empty NEW case: the first message is not taken as the name; webhook replays and pre-reset messages never drive intake', async () => {
+      const { c, phone } = await adminOwned() // case NEW, no name
+      const preReset = msg(phone, 'sent before reset', { providerTimestamp: new Date(Date.now() - 60_000) })
+      await changeOwnership(c.id, A(), { action: 'resume_bot', expectedVersion: c.ownerVersion })
+      const late = await processInboundMessage(preReset) // delivered late, sent before the reset
+      expect(late.outcome).toBe('before_reset')
+      expect(late.jobs).toHaveLength(0)
+      const next = msg(phone, 'Salam', { providerTimestamp: new Date(Date.now() + 2000) })
+      const r1 = await processInboundMessage(next)
+      expect(r1.outcome).toBe('asked_name') // greeting is not saved as the name
+      const replay = await processInboundMessage(next)
+      expect(replay.duplicate).toBe(true)
+      const r2 = await processInboundMessage(msg(phone, 'Synthetic Restart', { providerTimestamp: new Date(Date.now() + 3000) }))
+      expect(r2.outcome).toBe('name_saved_asked_phone')
+      expect(r2.consultationId).toBe(r1.consultationId)
+      const [kase] = await db.select().from(consultationCases).where(eq(consultationCases.id, r1.consultationId!))
+      expect(kase!.patientName).toBe('Synthetic Restart')
+      expect(await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))).toHaveLength(1)
+    })
+
+    it('a photo as the first message after reset is kept on the NEW intake and the name is asked', async () => {
+      const { c, phone } = await adminOwned()
+      await changeOwnership(c.id, A(), { action: 'resume_bot', expectedVersion: c.ownerVersion })
+      const r = await processInboundMessage(msg(phone, null, { type: 'image', providerTimestamp: new Date(Date.now() + 2000), media: { id: 'MEDIA.RESET.1', mimeType: 'image/jpeg', filename: null, caption: null } }))
+      expect(r.outcome).toBe('asked_name')
+      const [att] = await db.select().from(waAttachments).where(eq(waAttachments.providerMediaId, 'MEDIA.RESET.1'))
+      expect(att!.caseId).toBe(r.consultationId)
+      expect(r.mediaFetchIds).toHaveLength(1)
     })
   })
 

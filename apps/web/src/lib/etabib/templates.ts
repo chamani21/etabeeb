@@ -34,6 +34,8 @@ export const MESSAGE_INTENTS = [
   'ADMIN_CONSULTATION_CANCELLED',
   'DOCTOR_CONSULTATION_CANCELLED',
   'PATIENT_PRESCRIPTION_IMAGE',
+  'STAFF_HANDOVER_REQUEST',
+  'STAFF_HANDOVER_RETURNED',
 ] as const
 export type MessageIntent = (typeof MESSAGE_INTENTS)[number]
 
@@ -50,6 +52,9 @@ export const JOB_INTENT: Readonly<Partial<Record<OutboundJobType, MessageIntent>
   CONSULTATION_CANCELLED_PATIENT: 'CONSULTATION_CANCELLED',
   CONSULTATION_CANCELLED_ADMIN: 'ADMIN_CONSULTATION_CANCELLED',
   CONSULTATION_CANCELLED_DOCTOR: 'DOCTOR_CONSULTATION_CANCELLED',
+  // Prepared only: used once an approved template is added to ETABIB_WA_TEMPLATES
+  STAFF_HANDOVER_REQUEST: 'STAFF_HANDOVER_REQUEST',
+  STAFF_HANDOVER_RETURNED: 'STAFF_HANDOVER_RETURNED',
 }
 
 export interface TemplateDefinition {
@@ -141,6 +146,18 @@ export const TEMPLATE_DEFINITIONS: Readonly<Record<MessageIntent, TemplateDefini
     params: ['name'], header: 'IMAGE',
     body: 'محترم/محترمه {{1}}،\n\nستاسو د eTabeeb مشوره بشپړه شوه. ستاسو نسخه په دې پیغام کې ده.\n\nکه ډاکټر غږیزه مشوره هم درکړې وي، د ترلاسه کولو لپاره دې پیغام ته ځواب ولیکئ.',
     approved: true, wired: true,
+  },
+  STAFF_HANDOVER_REQUEST: {
+    intent: 'STAFF_HANDOVER_REQUEST', proposedName: 'etabib_staff_handover_request', language: 'en', audience: 'DOCTOR', category: 'UTILITY',
+    params: ['patientName', 'requestedBy', 'chatUrl'],
+    body: 'eTabeeb — a patient chat needs the doctor.\n\nPatient: {{1}}\nRequested by: {{2}}\n\nOpen the chat to accept or decline: {{3}}',
+    approved: false, wired: true,
+  },
+  STAFF_HANDOVER_RETURNED: {
+    intent: 'STAFF_HANDOVER_RETURNED', proposedName: 'etabib_staff_handover_returned', language: 'en', audience: 'ADMIN', category: 'UTILITY',
+    params: ['patientName', 'chatUrl'],
+    body: 'eTabeeb — a patient chat was returned to the admin.\n\nPatient: {{1}}\n\nOpen the chat: {{2}}',
+    approved: false, wired: true,
   },
 }
 

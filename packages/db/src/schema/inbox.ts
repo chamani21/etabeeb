@@ -30,6 +30,9 @@ export const waConversations = pgTable(
     // Provider timestamp of the last patient message (Meta customer-service window)
     lastPatientMessageAt: timestamp('last_patient_message_at', { withTimezone: true }),
     lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
+    // "Return to bot": the next genuine patient message after this time starts a new
+    // intake (messages sent before it never do). Null = no reset requested.
+    botResetAt: timestamp('bot_reset_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
