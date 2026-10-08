@@ -22,7 +22,8 @@ export async function resetDb(): Promise<void> {
   // TRUNCATE does not fire the case_events row-level immutability trigger
   await db.transaction(async (tx) => {
     await tx.execute(sql`SET LOCAL client_min_messages = warning`)
-    await tx.execute(sql`TRUNCATE case_events, whatsapp_events, consultation_cases, integration_errors,
+    await tx.execute(sql`TRUNCATE wa_conversation_reads, wa_internal_notes, wa_handover_requests, wa_attachments, wa_messages, wa_conversations,
+      case_events, whatsapp_events, consultation_cases, integration_errors,
       notification_outbox, prescription_voice_notes, prescription_items, prescriptions, whatsapp_allowed_senders, staff_audit_events,
       consultation_join_tokens, consultation_video_sessions,
       password_reset_tokens, etabib_runtime_status, user_roles, roles, users CASCADE`)

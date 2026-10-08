@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth-helpers'
 import { StaffShell } from '@/components/staff/StaffShell'
+import { isInboxEnabled } from '@/lib/etabib/inbox/core'
 
 // Server-side gate for every admin page; the APIs enforce the same rules independently.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       user={user.displayName || 'Admin'}
       nav={[
         { href: '/admin/cases', label: 'Consultations' },
+        ...(isInboxEnabled() ? [{ href: '/admin/inbox', label: 'Messages', badge: 'inbox' as const }] : []),
         { href: '/admin/senders', label: 'WhatsApp allow-list' },
         { href: '/admin/staff', label: 'Staff accounts' },
         { href: '/admin/status', label: 'System status' },

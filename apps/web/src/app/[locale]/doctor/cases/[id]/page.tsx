@@ -9,6 +9,7 @@ import { CancelConsultation, CancellationSummary } from '@/components/staff/Canc
 import { cancellationReasonLabel } from '@/lib/etabib/cancellation'
 import dynamic from 'next/dynamic'
 import { DoctorPrescription } from '@/components/staff/rx/DoctorPrescription'
+import { CaseChat } from '@/components/staff/inbox/CaseChat'
 
 const VideoRoom = dynamic(() => import('@/components/video/VideoRoom').then((m) => m.VideoRoom), { ssr: false })
 
@@ -61,6 +62,7 @@ export default function DoctorCaseDetailPage({ params }: { params: { id: string 
       {c.status === 'AWAITING_DOCTOR_APPROVAL' && <DecisionForm c={c} onDone={load} />}
       {c.status === 'CONFIRMED' && <StartCard caseId={c.id} approvedTime={c.doctorApprovedTime} onDone={load} />}
       {['CONFIRMED', 'IN_CONSULTATION', 'PRESCRIPTION_SENT', 'COMPLETED'].includes(c.status) && <DoctorPrescription caseId={c.id} onCaseChange={load} />}
+      <CaseChat caseId={c.id} />
       <CancelConsultation role="DOCTOR" c={c} onDone={load} />
 
       <Card title="Timeline">

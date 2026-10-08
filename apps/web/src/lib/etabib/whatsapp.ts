@@ -15,13 +15,33 @@ import { normalizePhone, toAsciiDigits, waIdToE164 } from './phone'
 import { CLOSED_STATUSES, createCase, transitionCase, updateCaseFields, type Actor, type ConsultationStatus } from './transitions'
 import { enqueueOutboundJob, type EnqueuedJob } from './outbound'
 import { evaluateInboundSender, type InboundDisposition } from './inbound-policy'
+import { ensureConversation, isInboxEnabled } from './inbox/core'
+import { recordInboundMessage } from './inbox/inbound'
+
+export interface InboundMedia {
+  /** Meta media id (the download URL is resolved later, never stored) */
+  id: string
+  mimeType: string | null
+  filename: string | null
+  caption: string | null
+}
 
 export interface InboundMessage {
   wamid: string
   from: string // E.164
   type: string
   text: string | null
+  // Inbox fields (optional; absent in legacy callers/tests)
+  providerTimestamp?: Date | null
+  media?: InboundMedia | null
+  replyTo?: string | null
+  profileName?: string | null
+  businessPhoneNumberId?: string | null
 }
+
+const mediaSchema = z
+  .object({ id: z.string().min(1).max(128), mime_type: z.string().max(128).optional(), filename: z.string().max(512).optional(), caption: z.string().max(4096).optional() })
+  .passthrough()
 
 // Minimal, permissive shape of a forwarded Meta Cloud API webhook
 const metaMessageSchema = z
@@ -29,6 +49,7 @@ const metaMessageSchema = z
     id: z.string().min(1).max(256),
     from: z.string().min(5).max(32),
     type: z.string().min(1).max(32),
+    timestamp: z.string().regex(/^\d{1,12}$/).optional(),
     text: z.object({ body: z.string() }).partial().optional(),
     button: z.object({ text: z.string() }).partial().optional(),
     interactive: z
@@ -38,10 +59,23 @@ const metaMessageSchema = z
       })
       .partial()
       .optional(),
+    image: mediaSchema.optional(),
+    document: mediaSchema.optional(),
+    audio: mediaSchema.optional(),
+    video: mediaSchema.optional(),
+    sticker: mediaSchema.optional(),
+    reaction: z.object({ message_id: z.string().max(256).optional(), emoji: z.string().max(32).optional() }).passthrough().optional(),
+    context: z.object({ id: z.string().max(256).optional() }).passthrough().optional(),
   })
   .passthrough()
 
-const metaValueSchema = z.object({ messages: z.array(z.unknown()).optional() }).passthrough()
+const metaValueSchema = z
+  .object({
+    messages: z.array(z.unknown()).optional(),
+    metadata: z.object({ phone_number_id: z.string().max(64).optional() }).passthrough().optional(),
+    contacts: z.array(z.object({ wa_id: z.string().max(32).optional(), profile: z.object({ name: z.string().max(256).optional() }).passthrough().optional() }).passthrough()).optional(),
+  })
+  .passthrough()
 const metaBodySchema = z
   .object({
     entry: z.array(
@@ -58,6 +92,18 @@ function messageText(m: z.infer<typeof metaMessageSchema>): string | null {
   return typeof raw === 'string' ? raw : null
 }
 
+function messageMedia(m: z.infer<typeof metaMessageSchema>): InboundMedia | null {
+  const media = m.image ?? m.document ?? m.audio ?? m.video ?? m.sticker
+  if (!media) return null
+  return { id: media.id, mimeType: media.mime_type ?? null, filename: media.filename ?? null, caption: media.caption ?? null }
+}
+
+type MetaValue = z.infer<typeof metaValueSchema>
+interface RawWithContext {
+  raw: unknown
+  value: MetaValue | null
+}
+
 /**
  * Extract inbound messages from the forwarded payload. Accepts the full Meta
  * webhook body, a single `value` object, or n8n's `{ body: … }` wrapper.
@@ -69,24 +115,37 @@ export function extractInboundMessages(payload: unknown): InboundMessage[] {
     root = (root as { body: unknown }).body
   }
 
-  const rawMessages: unknown[] = []
+  const rawMessages: RawWithContext[] = []
   const full = metaBodySchema.safeParse(root)
   if (full.success) {
     for (const entry of full.data.entry) {
-      for (const change of entry.changes ?? []) rawMessages.push(...(change.value.messages ?? []))
+      for (const change of entry.changes ?? []) for (const raw of change.value.messages ?? []) rawMessages.push({ raw, value: change.value })
     }
   } else {
     const value = metaValueSchema.safeParse(root)
-    if (value.success) rawMessages.push(...(value.data.messages ?? []))
+    if (value.success) for (const raw of value.data.messages ?? []) rawMessages.push({ raw, value: value.data })
   }
 
   const out: InboundMessage[] = []
-  for (const raw of rawMessages) {
+  for (const { raw, value } of rawMessages) {
     const parsed = metaMessageSchema.safeParse(raw)
     if (!parsed.success) continue
     const from = waIdToE164(parsed.data.from)
     if (!from) continue
-    out.push({ wamid: parsed.data.id, from, type: parsed.data.type, text: messageText(parsed.data) })
+    const m = parsed.data
+    const profile = value?.contacts?.find((c) => c.wa_id === m.from)?.profile?.name ?? null
+    const media = messageMedia(m)
+    out.push({
+      wamid: m.id,
+      from,
+      type: m.type,
+      text: messageText(m) ?? (m.type === 'reaction' ? (m.reaction?.emoji ?? null) : null),
+      providerTimestamp: m.timestamp ? new Date(Number(m.timestamp) * 1000) : null,
+      media,
+      replyTo: m.context?.id ?? (m.type === 'reaction' ? (m.reaction?.message_id ?? null) : null),
+      profileName: profile,
+      businessPhoneNumberId: value?.metadata?.phone_number_id ?? null,
+    })
   }
   return out
 }
@@ -114,6 +173,8 @@ export type IntakeOutcome =
   | 'case_in_progress'
   | 'already_acknowledged'
   | 'released_held_media'
+  /** Inbox: a human owns the conversation — stored, no bot reply */
+  | 'staff_owned'
 
 export interface InboundResult {
   wamid: string
@@ -124,6 +185,8 @@ export interface InboundResult {
   jobs: EnqueuedJob[]
   /** Inbound gate result; absent for duplicates (decided on first delivery). */
   disposition?: InboundDisposition
+  /** Inbox: attachments to download after commit */
+  mediaFetchIds?: string[]
 }
 
 const PATIENT: Actor = { type: 'PATIENT', id: null }
@@ -166,6 +229,16 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
     const meta = { wamid: msg.wamid }
     let outcome: IntakeOutcome
 
+    // Shared inbox (feature flag): every processed message is stored durably in
+    // the contact's conversation; a human owner suppresses the bot's replies.
+    const conv = isInboxEnabled() ? await ensureConversation(tx, msg.from, msg.profileName) : null
+    const mediaFetchIds: string[] = []
+    const recordForInbox = async (caseId: string | null) => {
+      if (!conv) return
+      const r = await recordInboundMessage(tx, conv, msg, caseId)
+      mediaFetchIds.push(...r.fetchIds)
+    }
+
     const existing = await tx
       .select()
       .from(consultationCases)
@@ -174,26 +247,40 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
       .for('update')
     let current: ConsultationCase | undefined = existing[0]
 
-    if (!current) {
-      // A reply to a prescription sent outside the 24-hour window (e.g. "send me the
-      // voice advice") must not restart onboarding: it only releases the held media.
-      const [held] = await tx
-        .select({ caseId: consultationCases.id, status: consultationCases.status })
-        .from(consultationCases)
-        .innerJoin(notificationOutbox, sql`(${notificationOutbox.templateVariables}::jsonb ->> 'consultationId') = ${consultationCases.id}::text`)
-        .where(
-          and(
-            eq(consultationCases.whatsappPhone, msg.from),
-            eq(notificationOutbox.status, 'pending'),
-            inArray(notificationOutbox.templateKey, ['PRESCRIPTION_IMAGE', 'PRESCRIPTION_VOICE']),
-            sql`${notificationOutbox.createdAt} > now() - interval '7 days'`,
-          ),
-        )
-        .limit(1)
-      if (held) {
-        await tx.update(whatsappEvents).set({ consultationId: held.caseId, processedAt: new Date(), disposition }).where(eq(whatsappEvents.id, ledgerId))
-        return { wamid: msg.wamid, duplicate: false, outcome: 'released_held_media', consultationId: held.caseId, status: held.status, jobs: [], disposition }
-      }
+    // A reply to a prescription sent outside the 24-hour window (e.g. "send me the
+    // voice advice") must not restart onboarding: it only releases the held media.
+    const held = current
+      ? undefined
+      : (
+          await tx
+            .select({ caseId: consultationCases.id, status: consultationCases.status })
+            .from(consultationCases)
+            .innerJoin(notificationOutbox, sql`(${notificationOutbox.templateVariables}::jsonb ->> 'consultationId') = ${consultationCases.id}::text`)
+            .where(
+              and(
+                eq(consultationCases.whatsappPhone, msg.from),
+                eq(notificationOutbox.status, 'pending'),
+                inArray(notificationOutbox.templateKey, ['PRESCRIPTION_IMAGE', 'PRESCRIPTION_VOICE']),
+                sql`${notificationOutbox.createdAt} > now() - interval '7 days'`,
+              ),
+            )
+            .limit(1)
+        )[0]
+
+    if (conv && conv.owner !== 'BOT') {
+      // Staff own this conversation: store only. No case is created, no intake
+      // step advances, no conversational reply is queued. Held prescription media
+      // is still released by the caller (transactional delivery, not a bot reply).
+      const caseId = current?.id ?? held?.caseId ?? null
+      await recordForInbox(current?.id ?? null)
+      await tx.update(whatsappEvents).set({ consultationId: caseId, processedAt: new Date(), disposition }).where(eq(whatsappEvents.id, ledgerId))
+      return { wamid: msg.wamid, duplicate: false, outcome: 'staff_owned', consultationId: caseId, status: current?.status ?? held?.status ?? null, jobs: [], disposition, mediaFetchIds }
+    }
+
+    if (!current && held) {
+      await recordForInbox(null)
+      await tx.update(whatsappEvents).set({ consultationId: held.caseId, processedAt: new Date(), disposition }).where(eq(whatsappEvents.id, ledgerId))
+      return { wamid: msg.wamid, duplicate: false, outcome: 'released_held_media', consultationId: held.caseId, status: held.status, jobs: [], disposition, mediaFetchIds }
     }
 
     if (!current) {
@@ -303,6 +390,7 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
       .update(whatsappEvents)
       .set({ consultationId: current.id, processedAt: new Date(), disposition })
       .where(eq(whatsappEvents.id, ledgerId))
+    await recordForInbox(current.id)
 
     return {
       wamid: msg.wamid,
@@ -312,6 +400,7 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
       status: current.status,
       jobs,
       disposition,
+      ...(conv ? { mediaFetchIds } : {}),
     }
   })
 }

@@ -21,7 +21,22 @@ const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).
  * Doctor's voice explanation recorder. Nothing is uploaded until the doctor
  * presses "Save voice note"; a failure here never touches the prescription.
  */
-export function VoiceRecorder({ onSave, disabled, patientLabel }: { onSave: (blob: Blob) => Promise<void>; disabled?: boolean; patientLabel?: string }) {
+export function VoiceRecorder({
+  onSave,
+  disabled,
+  patientLabel,
+  recordLabel = '🎙 Record voice explanation',
+  saveLabel = 'Save voice note',
+  savingLabel = 'Saving…',
+}: {
+  onSave: (blob: Blob) => Promise<void>
+  disabled?: boolean
+  patientLabel?: string
+  /** Inbox chat reuses the recorder with its own wording */
+  recordLabel?: string
+  saveLabel?: string
+  savingLabel?: string
+}) {
   const [state, setState] = useState<'idle' | 'recording' | 'paused' | 'recorded' | 'saving'>('idle')
   const [seconds, setSeconds] = useState(0)
   const [blob, setBlob] = useState<Blob | null>(null)
@@ -158,7 +173,7 @@ export function VoiceRecorder({ onSave, disabled, patientLabel }: { onSave: (blo
     <div className="space-y-2" data-testid="voice-recorder">
       {patientLabel && <p className="text-sm">For: <b>{patientLabel}</b></p>}
       {state === 'idle' && (
-        <Button onClick={() => void start()} disabled={disabled} className="min-h-[44px]">🎙 Record voice explanation</Button>
+        <Button onClick={() => void start()} disabled={disabled} className="min-h-[44px]">{recordLabel}</Button>
       )}
       {(state === 'recording' || state === 'paused') && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2">
@@ -178,7 +193,7 @@ export function VoiceRecorder({ onSave, disabled, patientLabel }: { onSave: (blo
         <div className="space-y-2 rounded-lg border border-gray-200 p-2">
           <audio controls src={url} className="w-full" />
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => void save()} disabled={state === 'saving'} className="min-h-[44px]">{state === 'saving' ? 'Saving…' : 'Save voice note'}</Button>
+            <Button onClick={() => void save()} disabled={state === 'saving'} className="min-h-[44px]">{state === 'saving' ? savingLabel : saveLabel}</Button>
             <Button variant="secondary" onClick={() => (discard(), void start())} disabled={state === 'saving'} className="min-h-[44px]">Record again</Button>
             <ConfirmDeleteButton onConfirm={discard} disabled={state === 'saving'} question="Delete this recording?" />
           </div>

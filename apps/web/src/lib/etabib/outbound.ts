@@ -17,7 +17,7 @@
 import { db } from '@etabeeb/db'
 import { notificationOutbox, consultationCases, prescriptions, prescriptionItems, whatsappEvents } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
-import { and, eq, asc, inArray, lt, max, sql } from 'drizzle-orm'
+import { and, eq, asc, inArray, lt, max, notInArray, sql } from 'drizzle-orm'
 import { ETABIB_KEY_HEADER, getAdminWhatsapp, getDoctorWhatsapp, getOutboundConfig } from './config'
 import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatPrescriptionTextPs } from './messages.ps'
 import { consultationTimeBlockPs, consultationTimeLinePs } from './patient-time'
@@ -28,6 +28,7 @@ import { signedMediaUrl } from './media-links'
 import { JOB_INTENT, buildTemplatePayload, getApprovedTemplates, type TemplatePayload } from './templates'
 import type { Tx } from './transitions'
 import { mintPatientJoinLink } from './video'
+import { INBOX_JOB_TYPES, INBOX_JOB_TYPE_SET, botReplySuppressed, captureOutboundMessage, prepareInboxDispatch } from './inbox/dispatch'
 
 export const OUTBOUND_JOB_TYPES = [
   'ADMIN_NEW_CASE',
@@ -45,6 +46,12 @@ export const OUTBOUND_JOB_TYPES = [
   // Prescription stage: rendered image page(s) and the doctor's voice explanation
   'PRESCRIPTION_IMAGE',
   'PRESCRIPTION_VOICE',
+  // Shared inbox (feature flag): staff replies and handover notices to the patient
+  'INBOX_TEXT',
+  'INBOX_AUDIO',
+  'INBOX_IMAGE',
+  'INBOX_DOCUMENT',
+  'INBOX_NOTICE',
 ] as const
 export type OutboundJobType = (typeof OUTBOUND_JOB_TYPES)[number]
 
@@ -65,6 +72,11 @@ export const JOB_AUDIENCE: Readonly<Record<OutboundJobType, OutboundAudience>> =
   CONSULTATION_CANCELLED_DOCTOR: 'DOCTOR',
   PRESCRIPTION_IMAGE: 'PATIENT',
   PRESCRIPTION_VOICE: 'PATIENT',
+  INBOX_TEXT: 'PATIENT',
+  INBOX_AUDIO: 'PATIENT',
+  INBOX_IMAGE: 'PATIENT',
+  INBOX_DOCUMENT: 'PATIENT',
+  INBOX_NOTICE: 'PATIENT',
 }
 
 /** Media jobs WhatsApp can only deliver inside the patient's 24-hour window (no approved media template). */
@@ -95,6 +107,9 @@ export interface OutboundJobRefs {
   voiceNoteId?: string
   /** Job ids that must be handed to WhatsApp first (message order) */
   dependsOn?: string[]
+  /** Inbox jobs: the conversation and the stored message (content is never in the outbox) */
+  conversationId?: string
+  messageId?: string
 }
 
 export interface EnqueuedJob {
@@ -125,6 +140,8 @@ export async function enqueueOutboundJob(
     withVoice?: boolean
     voiceNoteId?: string
     dependsOn?: string[]
+    conversationId?: string
+    messageId?: string
   },
 ): Promise<EnqueuedJob> {
   const idempotencyKey = `${KEY_PREFIX}${input.type}:${input.dedupeKey}`
@@ -136,6 +153,8 @@ export async function enqueueOutboundJob(
     ...(input.withVoice ? { withVoice: true } : {}),
     ...(input.voiceNoteId ? { voiceNoteId: input.voiceNoteId } : {}),
     ...(input.dependsOn?.length ? { dependsOn: input.dependsOn } : {}),
+    ...(input.conversationId ? { conversationId: input.conversationId } : {}),
+    ...(input.messageId ? { messageId: input.messageId } : {}),
   }
   const inserted = await tx
     .insert(notificationOutbox)
@@ -192,9 +211,9 @@ export interface OutboundPayload {
    */
   to?: string
   /** `text` (free-form, 24-hour window), `template` (approved Meta template), or media (24-hour window). */
-  messageKind: 'text' | 'template' | 'image' | 'audio'
-  /** image/audio: short-lived signed HTTPS link WhatsApp fetches; caption (image) / voice flag (audio). */
-  media?: { link: string; caption?: string; voice?: boolean }
+  messageKind: 'text' | 'template' | 'image' | 'audio' | 'document'
+  /** media: short-lived signed HTTPS link WhatsApp fetches; caption (image/document) / voice flag (audio) / filename (document). */
+  media?: { link: string; caption?: string; voice?: boolean; filename?: string }
   /** Ready-to-send text: Pashto for patients, short English notice for staff (text kind only). */
   text?: string
   /** Strictly validated template (template kind only). Never built from browser input. */
@@ -444,6 +463,13 @@ async function buildTextPayload(
         payload: { ...base, ...(to ? { to } : {}), messageKind: 'audio', media: { link, voice: true }, data: { voiceNoteId: refs.voiceNoteId } },
       }
     }
+    case 'INBOX_TEXT':
+    case 'INBOX_AUDIO':
+    case 'INBOX_IMAGE':
+    case 'INBOX_DOCUMENT':
+    case 'INBOX_NOTICE':
+      // Built by inbox/dispatch.ts (ownership + window re-checked at dispatch)
+      return null
     case 'PRESCRIPTION_READY': {
       const prescriptionId = refs.prescriptionId ?? c.prescriptionId
       if (!prescriptionId) return null
@@ -590,6 +616,8 @@ export async function withdrawPendingJobsTx(tx: Tx, caseId: string): Promise<num
         eq(notificationOutbox.status, 'pending'),
         sql`${notificationOutbox.idempotencyKey} LIKE ${KEY_PREFIX + '%'}`,
         sql`(${notificationOutbox.templateVariables}::jsonb ->> 'consultationId') = ${caseId}`,
+        // Inbox chat replies belong to the conversation, not to the case lifecycle
+        notInArray(notificationOutbox.templateKey, [...INBOX_JOB_TYPES]),
       ),
     )
     .returning({ id: notificationOutbox.id })
@@ -633,6 +661,39 @@ export async function dispatchOutboundJobs(jobIds: string[]): Promise<DispatchRe
           continue
         }
       }
+      if (refs && INBOX_JOB_TYPE_SET.has(claimed.templateKey)) {
+        const decision = await prepareInboxDispatch(claimed, refs)
+        if (decision.action !== 'send') {
+          await db
+            .update(notificationOutbox)
+            .set({ status: decision.action === 'cancel' ? 'cancelled' : 'failed', lastError: decision.reason.slice(0, 200), processedAt: new Date() })
+            .where(eq(notificationOutbox.id, jobId))
+          results.push({ jobId, dispatched: false, reason: decision.reason.split(':')[0]! })
+          continue
+        }
+        const response = await fetch(config.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', [ETABIB_KEY_HEADER]: config.key },
+          body: JSON.stringify(decision.payload),
+          signal: AbortSignal.timeout(10_000),
+        })
+        if (!response.ok) {
+          await releaseJob(jobId, `http_${response.status}`)
+          results.push({ jobId, dispatched: false, reason: `http_${response.status}` })
+          continue
+        }
+        results.push({ jobId, dispatched: true })
+        continue
+      }
+      if (await botReplySuppressed(claimed.templateKey, claimed.recipientPhone)) {
+        // Shared inbox: a human owns this conversation — the bot stays silent
+        await db
+          .update(notificationOutbox)
+          .set({ status: 'cancelled', lastError: 'superseded: staff own the conversation', processedAt: new Date() })
+          .where(eq(notificationOutbox.id, jobId))
+        results.push({ jobId, dispatched: false, reason: 'staff_owned' })
+        continue
+      }
       if (refs && !CANCELLATION_JOB_TYPES.has(claimed.templateKey) && (await isCaseCancelled(refs.consultationId))) {
         // Race with cancellation: never send an obsolete message for a cancelled case
         await withdrawJob(jobId)
@@ -661,6 +722,8 @@ export async function dispatchOutboundJobs(jobIds: string[]): Promise<DispatchRe
         continue
       }
 
+      // Shared inbox: keep the bot's/system's message in the conversation history
+      await captureOutboundMessage(claimed, payload)
       const response = await fetch(config.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', [ETABIB_KEY_HEADER]: config.key },

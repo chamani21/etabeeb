@@ -6,6 +6,7 @@ import { checkMetaVerification, requireMetaSignature } from '@/lib/etabib/meta-s
 import { extractInboundMessages, processInboundMessage } from '@/lib/etabib/whatsapp'
 import { dispatchOutboundJobs, heldMediaJobsForCase } from '@/lib/etabib/outbound'
 import { applyDeliveryStatus, extractDeliveryStatuses } from '@/lib/etabib/delivery'
+import { requestMediaFetches } from '@/lib/etabib/inbox/media'
 
 // GET /api/hooks/whatsapp — Meta webhook verification, relayed by n8n (shared-key auth).
 // The verify token lives only in the app environment, never in n8n.
@@ -47,6 +48,10 @@ export async function POST(req: NextRequest) {
     // The patient wrote: Meta's 24-hour window is open — release prescription media held for it
     const patientCases = [...new Set(results.filter((r) => !r.duplicate && r.outcome !== 'ignored' && r.consultationId).map((r) => r.consultationId!))]
     for (const caseId of patientCases) await dispatchOutboundJobs(await heldMediaJobsForCase(caseId))
+    // Inbox: patient files are downloaded in the background (via n8n); the message itself is already stored
+    const mediaFetchIds = results.flatMap((r) => r.mediaFetchIds ?? [])
+    // Not awaited: the webhook is acknowledged without waiting (the scheduler retries anything missed)
+    if (mediaFetchIds.length > 0) void requestMediaFetches(mediaFetchIds).catch(() => undefined)
 
     return NextResponse.json({
       success: true,

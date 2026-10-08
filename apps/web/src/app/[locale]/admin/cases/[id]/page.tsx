@@ -8,6 +8,7 @@ import { Button, Card, Dl, Field, Notice, StatusBadge, inputCls, useAction } fro
 import { CancelConsultation, CancellationSummary } from '@/components/staff/CancelConsultation'
 import { cancellationReasonLabel } from '@/lib/etabib/cancellation'
 import { AdminPrescription } from '@/components/staff/rx/AdminPrescription'
+import { CaseChat } from '@/components/staff/inbox/CaseChat'
 
 const INTAKE_STATUSES = ['ADMIN_INTAKE', 'INTAKE_COMPLETE', 'AWAITING_PAYMENT', 'PAYMENT_RECEIVED', 'AWAITING_DOCTOR_APPROVAL', 'CONFIRMED']
 
@@ -92,6 +93,7 @@ export default function AdminCaseDetailPage({ params }: { params: { id: string }
       <NotesForm c={c} onDone={load} />
 
       <AdminPrescription caseId={c.id} />
+      <CaseChat caseId={c.id} />
 
       <OutboxCard caseId={c.id} outbox={data.outbox} onDone={load} />
 

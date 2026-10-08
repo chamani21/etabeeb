@@ -64,9 +64,19 @@ describe('Meta webhook extraction', () => {
   it('parses the full Meta body, the value object and the n8n body wrapper', () => {
     for (const payload of [full, { body: full }, { messages: [message] }]) {
       expect(extractInboundMessages(payload)).toEqual([
-        { wamid: 'wamid.TEST1', from: '+923001234567', type: 'text', text: 'salam' },
+        expect.objectContaining({ wamid: 'wamid.TEST1', from: '+923001234567', type: 'text', text: 'salam' }),
       ])
     }
+  })
+
+  it('keeps inbox metadata: media id (never a URL), caption, reply-to and provider time', () => {
+    const [m] = extractInboundMessages({
+      metadata: { phone_number_id: 'PNID' },
+      contacts: [{ wa_id: '923001234567', profile: { name: 'Syn' } }],
+      messages: [{ from: '923001234567', id: 'w9', timestamp: '1700000000', type: 'document', context: { id: 'wPrev' }, document: { id: 'MEDIA9', mime_type: 'application/pdf', filename: 'r.pdf', caption: 'report' } }],
+    })
+    expect(m).toMatchObject({ media: { id: 'MEDIA9', mimeType: 'application/pdf', filename: 'r.pdf', caption: 'report' }, replyTo: 'wPrev', profileName: 'Syn', businessPhoneNumberId: 'PNID' })
+    expect(m!.providerTimestamp?.toISOString()).toBe('2023-11-14T22:13:20.000Z')
   })
 
   it('reads interactive/button replies and tolerates media', () => {

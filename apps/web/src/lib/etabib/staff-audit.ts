@@ -16,6 +16,17 @@ export const STAFF_AUDIT_ACTIONS = [
   'PASSWORD_RESET_REJECTED',
   'ALLOWED_SENDER_CREATED',
   'ALLOWED_SENDER_UPDATED',
+  // Shared WhatsApp inbox (conversation ownership, files, case association)
+  'INBOX_TAKE_OVER',
+  'INBOX_TAKEN_BACK',
+  'INBOX_HANDOVER_REQUESTED',
+  'INBOX_HANDOVER_CANCELLED',
+  'INBOX_HANDOVER_ACCEPTED',
+  'INBOX_HANDOVER_DECLINED',
+  'INBOX_RETURNED_TO_ADMIN',
+  'INBOX_BOT_RESUMED',
+  'INBOX_CASE_LINKED',
+  'INBOX_FILE_UPDATED',
 ] as const
 export type StaffAuditAction = (typeof STAFF_AUDIT_ACTIONS)[number]
 

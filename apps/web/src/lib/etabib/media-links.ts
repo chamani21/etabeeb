@@ -7,10 +7,11 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { getAppUrl } from './config'
 
-export type MediaKind = 'rx-image' | 'voice'
+// wa-att: a file/voice note a STAFF member sends from the inbox (never a patient upload)
+export type MediaKind = 'rx-image' | 'voice' | 'wa-att'
 export interface MediaRef {
   kind: MediaKind
-  /** prescription id (rx-image) or voice note id (voice) */
+  /** prescription id (rx-image), voice note id (voice) or inbox attachment id (wa-att) */
   id: string
   /** 1-based page for rx-image */
   page?: number
@@ -47,7 +48,7 @@ export function verifyMediaToken(token: string): MediaRef | null {
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null
   try {
     const ref = JSON.parse(Buffer.from(body, 'base64url').toString()) as MediaRef
-    if (!['rx-image', 'voice'].includes(ref.kind) || typeof ref.id !== 'string' || typeof ref.exp !== 'number') return null
+    if (!['rx-image', 'voice', 'wa-att'].includes(ref.kind) || typeof ref.id !== 'string' || typeof ref.exp !== 'number') return null
     if (ref.exp < Math.floor(Date.now() / 1000)) return null
     return ref
   } catch {
@@ -59,6 +60,7 @@ export function verifyMediaToken(token: string): MediaRef | null {
 export function signedMediaUrl(ref: Omit<MediaRef, 'exp'>): string | null {
   const base = getAppUrl()
   if (!base) return null
+  if (ref.kind === 'wa-att') return `${base}/api/media/w/${signMediaToken(ref)}/file`
   const ext = ref.kind === 'voice' ? 'ogg' : 'png'
   return `${base}/api/media/w/${signMediaToken(ref)}/${ref.kind === 'voice' ? 'voice' : `page-${ref.page ?? 1}`}.${ext}`
 }

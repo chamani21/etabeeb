@@ -3,10 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
+import { InboxBadge } from './inbox/InboxBadge'
 
 export interface NavItem {
   href: string
   label: string
+  /** Live count badge (shared inbox) */
+  badge?: 'inbox'
 }
 
 /** Staff portal frame (English, LTR inside the RTL patient site). */
@@ -39,6 +42,7 @@ export function StaffShell({
                 className={`block px-4 py-2 text-sm ${active ? 'bg-white/15 text-[#D4AF37]' : 'hover:bg-white/10'}`}
               >
                 {item.label}
+                {item.badge === 'inbox' && <InboxBadge />}
               </Link>
             )
           })}
@@ -50,6 +54,7 @@ export function StaffShell({
             {nav.map((item) => (
               <Link key={item.href} href={item.href} className="text-emerald-800 underline">
                 {item.label}
+                {item.badge === 'inbox' && <InboxBadge />}
               </Link>
             ))}
           </nav>
