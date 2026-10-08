@@ -122,7 +122,7 @@ export function InboxPage({ role }: { role: 'ADMIN' | 'DOCTOR' }) {
         <div className={`${selected ? 'hidden md:block' : 'block'} h-full w-full md:w-80 md:flex-shrink-0 md:border-r md:border-gray-200`}>{list}</div>
         <div className={`${selected ? 'block' : 'hidden md:flex md:items-center md:justify-center'} h-full min-w-0 flex-1`}>
           {selected ? (
-            <Conversation key={selected} conversationId={selected} onBack={() => open(null)} />
+            <Conversation key={selected} conversationId={selected} onBack={() => open(null)} fill />
           ) : (
             <p className="text-sm text-gray-500">Select a conversation.</p>
           )}

@@ -24,9 +24,10 @@ export function usePoll(fn: () => Promise<void>, intervalMs: number, enabled = t
     [],
   )
 
-  const tick = useCallback(async () => {
+  const tick = useCallback(async (force = false) => {
     if (!enabled) return
-    if (document.hidden || !navigator.onLine) return // resumes on visibilitychange/online
+    // The first load always runs; later refreshes pause while hidden/offline (resume on visibilitychange/online)
+    if (!force && (document.hidden || !navigator.onLine)) return
     if (running.current) return
     running.current = true
     try {
@@ -36,13 +37,13 @@ export function usePoll(fn: () => Promise<void>, intervalMs: number, enabled = t
       failures.current += 1
     } finally {
       running.current = false
-      schedule(Math.min(60_000, intervalMs * 2 ** failures.current))
+      if (!document.hidden && navigator.onLine) schedule(Math.min(60_000, intervalMs * 2 ** failures.current))
     }
   }, [enabled, intervalMs, schedule])
 
   useEffect(() => {
     if (!enabled) return
-    void tick()
+    void tick(true)
     const wake = () => {
       if (!document.hidden && navigator.onLine) void tick()
     }
@@ -55,7 +56,7 @@ export function usePoll(fn: () => Promise<void>, intervalMs: number, enabled = t
     }
   }, [enabled, tick])
 
-  return useCallback(() => void tick(), [tick])
+  return useCallback(() => void tick(true), [tick])
 }
 
 /** Opaque per-draft key: a retried send after a network error reuses it (server-side idempotency). */

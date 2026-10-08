@@ -247,7 +247,7 @@ function FilesPanel({ view, onChanged, onClose }: { view: View; onChanged: () =>
 // ---------------------------------------------------------------- main
 type Timeline = ({ t: 'msg' } & Msg) | ({ t: 'note' } & Note)
 
-export function Conversation({ conversationId, onBack, compact = false }: { conversationId: string; onBack?: () => void; compact?: boolean }) {
+export function Conversation({ conversationId, onBack, compact = false, fill = false }: { conversationId: string; onBack?: () => void; compact?: boolean; fill?: boolean }) {
   const [view, setView] = useState<View | null>(null)
   const [older, setOlder] = useState<Msg[]>([])
   const [olderNotes, setOlderNotes] = useState<Note[]>([])
@@ -423,7 +423,7 @@ export function Conversation({ conversationId, onBack, compact = false }: { conv
       : null
 
   return (
-    <div className={`flex min-h-0 flex-col ${compact ? 'h-[70dvh]' : 'h-[calc(100dvh-7.5rem)] md:h-[calc(100dvh-8.5rem)]'}`}>
+    <div className={`flex min-h-0 flex-col ${compact ? 'h-[70dvh]' : fill ? 'h-full' : 'h-[calc(100dvh-7.5rem)] md:h-[calc(100dvh-8.5rem)]'}`}>
       {/* Header */}
       <div className="flex flex-wrap items-start gap-2 border-b border-gray-200 bg-white p-3">
         {onBack && (
