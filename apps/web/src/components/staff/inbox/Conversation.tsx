@@ -172,8 +172,8 @@ function FilesPanel({ view, onChanged, onClose }: { view: View; onChanged: () =>
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-gray-200 p-3">
         <h3 className="text-sm font-semibold">Patient files</h3>
-        <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] text-sm text-gray-600" aria-label="Close files">
-          ✕
+        <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] rounded border border-gray-300 px-3 text-sm text-gray-700" aria-label="Close files">
+          Close
         </button>
       </div>
       <label className="flex min-h-[44px] items-center gap-2 border-b border-gray-100 px-3 text-sm">
