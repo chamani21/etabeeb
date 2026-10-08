@@ -427,8 +427,8 @@ export function Conversation({ conversationId, onBack, compact = false, fill = f
       {/* Header */}
       <div className="flex flex-wrap items-start gap-2 border-b border-gray-200 bg-white p-3">
         {onBack && (
-          <button type="button" onClick={onBack} className="min-h-[44px] min-w-[44px] rounded border border-gray-300 px-2 text-sm md:hidden" aria-label="Back to conversations">
-            ←
+          <button type="button" onClick={onBack} className="min-h-[44px] min-w-[44px] rounded border border-gray-300 px-3 text-sm md:hidden" aria-label="Back to conversations">
+            ← Back
           </button>
         )}
         <div className="min-w-0 flex-1">

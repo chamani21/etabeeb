@@ -20,7 +20,7 @@ interface Row {
   unread: number
   lastMessageAt: string | null
   window: { open: boolean }
-  preview: { direction: string; senderRole: string; kind: string; text: string | null } | null
+  preview: { direction: string; senderRole: string; kind: string; historical: boolean; text: string | null } | null
 }
 
 const FILTERS: Array<{ id: string; label: string }> = [
@@ -105,7 +105,7 @@ export function InboxPage({ role }: { role: 'ADMIN' | 'DOCTOR' }) {
               {r.preview && (
                 <p className="w-full truncate text-xs text-gray-600" dir="auto">
                   {r.preview.direction === 'IN' ? '' : '↪ '}
-                  {r.preview.text ?? `[${r.preview.kind}]`}
+                  {r.preview.historical ? 'Earlier message (content not recorded)' : (r.preview.text ?? `[${r.preview.kind}]`)}
                 </p>
               )}
             </button>

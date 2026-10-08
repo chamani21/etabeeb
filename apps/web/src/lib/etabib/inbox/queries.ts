@@ -96,7 +96,7 @@ export async function listConversations(actor: InboxActor, filter: ListFilter = 
       lastMessageAt: c.lastMessageAt?.toISOString() ?? null,
       window: windowState(c.lastPatientMessageAt),
       preview: last
-        ? { direction: last.direction, senderRole: last.sender_role, kind: last.kind, text: last.historical && !last.body ? null : (last.body ?? null)?.slice(0, 90) ?? null }
+        ? { direction: last.direction, senderRole: last.sender_role, kind: last.kind, historical: Boolean(last.historical && !last.body), text: (last.body ?? null)?.slice(0, 90) ?? null }
         : null,
     }
   })

@@ -50,9 +50,9 @@ export function StaffShell({
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4">
-          <nav className="flex gap-3 text-sm md:hidden">
+          <nav className="flex min-w-0 flex-1 gap-3 overflow-x-auto whitespace-nowrap pr-2 text-sm md:hidden">
             {nav.map((item) => (
-              <Link key={item.href} href={item.href} className="text-emerald-800 underline">
+              <Link key={item.href} href={item.href} className="flex-shrink-0 text-emerald-800 underline">
                 {item.label}
                 {item.badge === 'inbox' && <InboxBadge />}
               </Link>
