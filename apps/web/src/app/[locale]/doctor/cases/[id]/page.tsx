@@ -10,6 +10,7 @@ import { cancellationReasonLabel } from '@/lib/etabib/cancellation'
 import dynamic from 'next/dynamic'
 import { DoctorPrescription } from '@/components/staff/rx/DoctorPrescription'
 import { CaseChat } from '@/components/staff/inbox/CaseChat'
+import type { CallMode } from '@/components/video/callController'
 
 const VideoRoom = dynamic(() => import('@/components/video/VideoRoom').then((m) => m.VideoRoom), { ssr: false })
 
@@ -151,7 +152,9 @@ function StartCard({ caseId, approvedTime, onDone }: { caseId: string; approvedT
 function DoctorVideoCard({ caseId, video }: { caseId: string; video: any }) {
   const [presence, setPresence] = useState<{ patient: boolean; doctor: boolean } | null>(null)
   const [call, setCall] = useState<{ serverUrl: string; participantToken: string } | null>(null)
-  const [state, setState] = useState<'idle' | 'incall' | 'left' | 'dropped'>('idle')
+  const [state, setState] = useState<'idle' | 'incall' | 'left' | 'dropped' | 'closed' | 'elsewhere'>('idle')
+  // Kept across rejoins: Audio Only stays on until the doctor turns it off
+  const [mode, setMode] = useState<CallMode>('auto')
   const { busy, error, run } = useAction()
   const poll = useCallback(async () => {
     try {
@@ -186,16 +189,26 @@ function DoctorVideoCard({ caseId, video }: { caseId: string; video: any }) {
           serverUrl={call.serverUrl}
           token={call.participantToken}
           lang="en"
+          role="doctor"
           audio
           video
+          initialMode={mode}
+          onModeChange={setMode}
           onLeave={() => (setCall(null), setState('left'), void poll())}
-          onDropped={() => (setCall(null), setState('dropped'), void poll())}
+          onDropped={(reason) => {
+            setCall(null)
+            setState(reason === 'ROOM_DELETED' || reason === 'ROOM_CLOSED' ? 'closed' : reason === 'DUPLICATE_IDENTITY' ? 'elsewhere' : 'dropped')
+            void poll()
+          }}
         />
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           <Button disabled={busy || !video.configured} onClick={() => void join()}>{state === 'idle' ? 'Join consultation' : 'Rejoin consultation'}</Button>
           {state === 'left' && <span className="text-sm text-gray-600">You left the call.</span>}
-          {state === 'dropped' && <span className="text-sm text-red-700">Connection lost — rejoin when ready.</span>}
+          {state === 'dropped' && <span className="text-sm text-red-700">Connection lost — the consultation is still open. Rejoin when ready.</span>}
+          {state === 'closed' && <span className="text-sm text-gray-700">The video room was closed. Refresh the page to see the consultation status.</span>}
+          {state === 'elsewhere' && <span className="text-sm text-amber-800">You joined this call from another tab or device.</span>}
+          {mode === 'audio' && <span className="text-xs text-amber-800">Audio only will stay on when you rejoin.</span>}
           <span className="text-xs text-gray-500">Joining does not start the consultation; use “Start consultation” when you begin.</span>
         </div>
       )}

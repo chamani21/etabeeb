@@ -9,8 +9,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { formatConsultationForPatient } from '@/lib/etabib/patient-time'
+import { VIDEO_LABELS } from '@/components/video/labels'
+import type { CallMode } from '@/components/video/callController'
+import { startTierFromHint, type VideoTier } from '@/components/video/networkPolicy'
 
 const VideoRoom = dynamic(() => import('@/components/video/VideoRoom').then((m) => m.VideoRoom), { ssr: false })
+const L = VIDEO_LABELS.ps
+
+/** Network Information API hint (Chrome/Android only); never blocks joining. */
+function networkHintTier(): VideoTier {
+  const conn = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection
+  return startTierFromHint(conn)
+}
 
 const T = {
   brand: 'ای طبیب',
@@ -79,15 +89,19 @@ async function post(path: string, token: string) {
 export default function ConsultPage({ params }: { params: { token: string } }) {
   const token = params.token
   const [access, setAccess] = useState<Access>({ status: 'loading' })
-  const [phase, setPhase] = useState<'prejoin' | 'joining' | 'incall' | 'left' | 'failed'>('prejoin')
+  const [phase, setPhase] = useState<'prejoin' | 'joining' | 'incall' | 'left' | 'failed' | 'elsewhere'>('prejoin')
   const [call, setCall] = useState<{ serverUrl: string; participantToken: string } | null>(null)
   const [camOn, setCamOn] = useState(true)
   const [micOn, setMicOn] = useState(true)
+  // Kept across retries/rejoins: a patient who chose Audio Only stays in it
+  const [mode, setMode] = useState<CallMode>('auto')
+  const [startTier, setStartTier] = useState<VideoTier>('low')
 
   const load = useCallback(async () => {
     const r = await post('/api/video/patient/access', token).catch(() => null)
     if (!r) return setAccess({ status: 'error' })
-    setAccess(r.ok ? (r.json as Access) : { status: 'invalid' })
+    // A gateway/server hiccup on a weak network is not an invalid link
+    setAccess(r.ok ? (r.json as Access) : r.status >= 500 || r.status === 429 ? { status: 'error' } : { status: 'invalid' })
   }, [token])
   useEffect(() => void load(), [load])
   useEffect(() => {
@@ -97,6 +111,7 @@ export default function ConsultPage({ params }: { params: { token: string } }) {
   }, [access.status, load])
 
   const join = async () => {
+    setStartTier(networkHintTier())
     setPhase('joining')
     const r = await post('/api/video/patient/token', token).catch(() => null)
     if (!r?.ok) {
@@ -126,7 +141,7 @@ export default function ConsultPage({ params }: { params: { token: string } }) {
 
         {access.status === 'loading' && <Box>{T.loading}</Box>}
         {access.status === 'invalid' && <Box kind="error">{T.invalid}</Box>}
-        {access.status === 'error' && <Box kind="error">{T.failed} <RetryButton onClick={() => void load()} /></Box>}
+        {access.status === 'error' && phase !== 'failed' && <Box kind="error">{T.failed} <RetryButton onClick={() => void load()} /></Box>}
         {access.status === 'revoked' && <Box kind="error">{T.revoked}</Box>}
         {access.status === 'expired' && <Box kind="error">{T.expired}</Box>}
         {access.status === 'ended' && <Box>{T.ended}</Box>}
@@ -150,7 +165,16 @@ export default function ConsultPage({ params }: { params: { token: string } }) {
         )}
 
         {access.status === 'ok' && phase === 'prejoin' && (
-          <PreJoin camOn={camOn} micOn={micOn} setCamOn={setCamOn} setMicOn={setMicOn} onJoin={() => void join()} />
+          <PreJoin
+            camOn={camOn}
+            micOn={micOn}
+            setCamOn={setCamOn}
+            setMicOn={setMicOn}
+            onJoin={(audioOnly) => {
+              setMode(audioOnly ? 'audio' : 'auto')
+              void join()
+            }}
+          />
         )}
         {access.status === 'ok' && phase === 'joining' && <Box>{T.loading}</Box>}
         {phase === 'incall' && call && (
@@ -160,8 +184,16 @@ export default function ConsultPage({ params }: { params: { token: string } }) {
             lang="ps"
             audio={micOn}
             video={camOn}
+            initialMode={mode}
+            startTier={startTier}
+            onModeChange={setMode}
             onLeave={() => (setCall(null), setPhase('left'))}
-            onDropped={() => (setCall(null), setPhase('failed'))}
+            onDropped={(reason) => {
+              setCall(null)
+              setPhase(reason === 'DUPLICATE_IDENTITY' ? 'elsewhere' : 'failed')
+              // A dropped call is never treated as finished: ask the server for the real status
+              void load()
+            }}
           />
         )}
         {phase === 'left' && (
@@ -170,10 +202,17 @@ export default function ConsultPage({ params }: { params: { token: string } }) {
             <div className="mt-3"><BigButton onClick={() => void (setPhase('prejoin'), load())}>{T.rejoin}</BigButton></div>
           </Box>
         )}
-        {phase === 'failed' && (
+        {phase === 'failed' && (access.status === 'ok' || access.status === 'error') && (
           <Box kind="error">
             {T.failed}
+            <p className="mt-2 text-sm">{L.droppedReassure}</p>
             <div className="mt-3"><BigButton onClick={() => void join()}>{T.retry}</BigButton></div>
+          </Box>
+        )}
+        {phase === 'elsewhere' && access.status === 'ok' && (
+          <Box kind="warning">
+            {L.openedElsewhere}
+            <div className="mt-3"><BigButton onClick={() => void join()}>{T.rejoin}</BigButton></div>
           </Box>
         )}
         <p className="text-center text-xs text-gray-500">{T.privacy}</p>
@@ -182,12 +221,16 @@ export default function ConsultPage({ params }: { params: { token: string } }) {
   )
 }
 
-function PreJoin({ camOn, micOn, setCamOn, setMicOn, onJoin }: { camOn: boolean; micOn: boolean; setCamOn: (v: boolean) => void; setMicOn: (v: boolean) => void; onJoin: () => void }) {
+function PreJoin({ camOn, micOn, setCamOn, setMicOn, onJoin }: { camOn: boolean; micOn: boolean; setCamOn: (v: boolean) => void; setMicOn: (v: boolean) => void; onJoin: (audioOnly: boolean) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [level, setLevel] = useState(0)
+  // Camera refused/missing/busy but the microphone works: offer an audio consultation
+  const [cameraBlocked, setCameraBlocked] = useState(false)
+  const [weakNetwork, setWeakNetwork] = useState(false)
+  useEffect(() => setWeakNetwork(networkHintTier() === 'paused'), [])
 
   const stop = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -196,23 +239,32 @@ function PreJoin({ camOn, micOn, setCamOn, setMicOn, onJoin }: { camOn: boolean;
 
   const start = useCallback(async () => {
     setError(null)
+    setCameraBlocked(false)
     if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') return setError(T.unsupported)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
+      // Same modest capture size as the call (≈360p): less CPU on low-cost phones
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 360 } }, audio: true })
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
       setReady(true)
     } catch (e) {
       const name = e instanceof DOMException ? e.name : ''
-      if (name === 'NotFoundError' || name === 'OverconstrainedError') return setError(T.noDevice)
-      if (name === 'NotAllowedError' || name === 'SecurityError') {
-        // Find out which permission was refused
-        const camOk = await navigator.mediaDevices.getUserMedia({ video: true }).then((s) => (s.getTracks().forEach((t) => t.stop()), true)).catch(() => false)
-        return setError(camOk ? T.micDenied : T.cameraDenied)
+      if (['NotAllowedError', 'SecurityError', 'NotFoundError', 'OverconstrainedError', 'NotReadableError'].includes(name)) {
+        // Is the microphone alone usable? Then the consultation can go ahead with audio only.
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null)
+        if (audioStream) {
+          streamRef.current = audioStream
+          setCameraBlocked(true)
+          setCamOn(false)
+          setReady(true)
+          return
+        }
+        if (name === 'NotFoundError' || name === 'OverconstrainedError') return setError(T.noDevice)
+        if (name === 'NotAllowedError' || name === 'SecurityError') return setError(T.micDenied)
       }
       setError(T.unsupported)
     }
-  }, [])
+  }, [setCamOn])
 
   useEffect(() => () => stop(), [])
 
@@ -254,7 +306,7 @@ function PreJoin({ camOn, micOn, setCamOn, setMicOn, onJoin }: { camOn: boolean;
           <div className="mt-3"><BigButton onClick={() => void start()}>{T.retry}</BigButton></div>
         </Box>
       )}
-      <div className={`relative mx-auto aspect-[3/4] w-full max-w-xs overflow-hidden rounded-lg bg-gray-900 sm:aspect-video sm:max-w-md ${ready ? '' : 'hidden'}`}>
+      <div className={`relative mx-auto aspect-[3/4] w-full max-w-xs overflow-hidden rounded-lg bg-gray-900 sm:aspect-video sm:max-w-md ${ready && !cameraBlocked ? '' : 'hidden'}`}>
         <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
         {!camOn && <div className="absolute inset-0 flex items-center justify-center text-white">{T.cameraOff}</div>}
       </div>
@@ -264,11 +316,28 @@ function PreJoin({ camOn, micOn, setCamOn, setMicOn, onJoin }: { camOn: boolean;
             <div className="text-sm">{micOn ? T.micOn : T.micOff} — {T.speakToTest}</div>
             <div className="h-2 w-full overflow-hidden rounded bg-gray-200" dir="ltr"><div className="h-full bg-emerald-600 transition-all" style={{ width: `${micOn ? level : 0}%` }} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleButton on={camOn} onClick={() => setCamOn(!camOn)}>{camOn ? T.turnCameraOff : T.turnCameraOn}</ToggleButton>
+          {cameraBlocked && <Box kind="warning">{L.cameraDeniedAudio}</Box>}
+          {weakNetwork && !cameraBlocked && <Box kind="warning">{L.weakNetworkHint}</Box>}
+          <div className={`grid gap-2 ${cameraBlocked ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {!cameraBlocked && <ToggleButton on={camOn} onClick={() => setCamOn(!camOn)}>{camOn ? T.turnCameraOff : T.turnCameraOn}</ToggleButton>}
             <ToggleButton on={micOn} onClick={() => setMicOn(!micOn)}>{micOn ? T.turnMicOff : T.turnMicOn}</ToggleButton>
           </div>
-          <BigButton onClick={() => (stop(), onJoin())}>{T.join}</BigButton>
+          {cameraBlocked ? (
+            <BigButton onClick={() => (stop(), onJoin(true))}>🎧 {L.joinAudioOnly}</BigButton>
+          ) : (
+            <>
+              <BigButton onClick={() => (stop(), onJoin(false))}>{T.join}</BigButton>
+              <button
+                type="button"
+                onClick={() => (stop(), onJoin(true))}
+                className="min-h-[48px] w-full rounded-xl border-2 border-[#0B3D2E] bg-white px-4 text-base font-semibold text-[#0B3D2E]"
+                data-testid="join-audio-only"
+              >
+                🎧 {L.joinAudioOnly}
+              </button>
+              <p className="text-center text-sm text-gray-600">{L.joinAudioOnlyHint}</p>
+            </>
+          )}
         </>
       )}
     </section>
