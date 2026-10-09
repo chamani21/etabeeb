@@ -142,8 +142,8 @@ describe.skipIf(!hasTestDb)('eTabib V1 — API', () => {
     })
   })
 
-  describe('WhatsApp patient flow (Pashto, name + phone only)', () => {
-    it('25–30. asks name, saves name, asks phone, saves phone, moves to ADMIN_INTAKE, stops asking', async () => {
+  describe('WhatsApp patient flow (Pashto, name only — WhatsApp number is the phone)', () => {
+    it('25–30. asks name, saves name + WhatsApp number as phone, moves to ADMIN_INTAKE, stops asking', async () => {
       const sender = fakePhone()
 
       // 25. new patient → case created + Pashto ask-name job
@@ -153,24 +153,19 @@ describe.skipIf(!hasTestDb)('eTabib V1 — API', () => {
       const caseId: string = first.body.results[0].consultationId
       expect(await jobsOfType('ASK_PATIENT_NAME')).toHaveLength(1)
 
-      // 26 + 27. name saved, phone requested
-      const second = await sendWhatsApp(sender, 'احمد خان')
-      expect(second.body.results[0].outcome).toBe('name_saved_asked_phone')
-      expect((await getCase(caseId)).patientName).toBe('احمد خان')
-      expect(await jobsOfType('ASK_PATIENT_PHONE')).toHaveLength(1)
-
-      // invalid phone → re-asked, no state change
-      const bad = await sendWhatsApp(sender, 'زه نه پوهېږم')
-      expect(bad.body.results[0].outcome).toBe('asked_phone_again')
+      // invalid name → re-asked, no state change
+      const bad = await sendWhatsApp(sender, '12345')
+      expect(bad.body.results[0].outcome).toBe('asked_name_again')
       expect((await getCase(caseId)).status).toBe('NEW')
 
-      // 28 + 29. phone saved (Pashto digits), case → ADMIN_INTAKE, admin notified
-      const third = await sendWhatsApp(sender, '۰۳۰۰۱۲۳۴۵۶۷')
-      expect(third.body.results[0]).toMatchObject({ outcome: 'phone_saved_admin_intake', status: 'ADMIN_INTAKE' })
+      // 26–29. name saved, WhatsApp number used as the phone (not asked), case → ADMIN_INTAKE, admin notified
+      const second = await sendWhatsApp(sender, 'احمد خان')
+      expect(second.body.results[0]).toMatchObject({ outcome: 'name_saved_admin_intake', status: 'ADMIN_INTAKE' })
       const c = await getCase(caseId)
-      expect(c.patientPhone).toBe('+923001234567')
-      expect(c.status).toBe('ADMIN_INTAKE')
+      expect(c.patientName).toBe('احمد خان')
+      expect(c.patientPhone).toBe(sender)
       expect(c.age).toBeNull()
+      expect(await jobsOfType('ASK_PATIENT_PHONE')).toHaveLength(0)
       const adminJobs = await jobsOfType('ADMIN_NEW_CASE')
       expect(adminJobs).toHaveLength(1)
       expect(adminJobs[0]!.recipientPhone).toBeNull() // admin recipient resolved by n8n
@@ -181,13 +176,12 @@ describe.skipIf(!hasTestDb)('eTabib V1 — API', () => {
       const later2 = await sendWhatsApp(sender, 'Hello?')
       expect(later1.body.results[0].outcome).toBe('already_acknowledged')
       expect(later2.body.results[0].outcome).toBe('already_acknowledged')
-      expect(await jobsOfType('ASK_PATIENT_NAME')).toHaveLength(1)
-      expect(await jobsOfType('ASK_PATIENT_PHONE')).toHaveLength(2) // ask + one invalid re-ask, nothing after
+      expect(await jobsOfType('ASK_PATIENT_NAME')).toHaveLength(2) // ask + one invalid re-ask
       expect(await jobsOfType('PATIENT_ACKNOWLEDGED')).toHaveLength(1) // exactly one waiting message
       expect(await jobsOfType('PATIENT_CASE_IN_PROGRESS')).toHaveLength(0) // none while the admin does intake
       expect((await getCase(caseId)).status).toBe('ADMIN_INTAKE')
       const eventTypes = (await eventsFor(caseId)).map((e) => e.eventType)
-      expect(eventTypes).toEqual(['CASE_CREATED', 'PATIENT_NAME_RECEIVED', 'PATIENT_PHONE_RECEIVED', 'ADMIN_INTAKE_REQUESTED'])
+      expect(eventTypes).toEqual(['CASE_CREATED', 'PATIENT_NAME_RECEIVED', 'ADMIN_INTAKE_REQUESTED'])
     })
 
     it('duplicate Meta delivery of the same wamid is acknowledged without reprocessing', async () => {
@@ -320,7 +314,6 @@ describe.skipIf(!hasTestDb)('eTabib V1 — API', () => {
       expect(events).toEqual([
         'CASE_CREATED',
         'PATIENT_NAME_RECEIVED',
-        'PATIENT_PHONE_RECEIVED',
         'ADMIN_INTAKE_REQUESTED',
         'ADMIN_INTAKE_COMPLETED',
         'PAYMENT_REQUESTED',
@@ -403,7 +396,7 @@ describe.skipIf(!hasTestDb)('eTabib V1 — API', () => {
         expect(init.headers['x-etabib-key']).toBe('test-outbound-key')
         const payload = JSON.parse(init.body)
         expect(payload).toMatchObject({ jobId: job!.id, type: 'ADMIN_NEW_CASE', audience: 'ADMIN', consultationId: id })
-        expect(payload.data).toMatchObject({ consultationId: id, patientName: 'Synthetic Patient', patientPhone: '+923001234567' })
+        expect(payload.data).toMatchObject({ consultationId: id, patientName: 'Synthetic Patient', patientPhone: expect.stringMatching(/^\+92300\d+$/) }) // the WhatsApp number
         expect(Object.keys(payload.data).sort()).toEqual(['consultationId', 'createdAt', 'patientName', 'patientPhone'])
 
         // Patient jobs carry Pashto text and the WhatsApp recipient

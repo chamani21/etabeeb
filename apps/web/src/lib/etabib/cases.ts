@@ -88,7 +88,16 @@ export async function submitAdminIntake(
       patientPhoneCorrected: Boolean(input.patientPhone && input.patientPhone !== current.patientPhone),
     }
 
-    if (current.status === 'ADMIN_INTAKE') {
+    if (current.status === 'NEW') {
+      // Staff took over before the bot finished (shared inbox): the admin completes the
+      // intake directly. Name is required; the phone defaults to the WhatsApp number.
+      const intakePatch = {
+        patientName: input.patientName ?? current.patientName,
+        patientPhone: input.patientPhone ?? current.patientPhone ?? current.whatsappPhone,
+      }
+      await transitionCase(tx, { caseId, to: 'ADMIN_INTAKE', expectedFrom: 'NEW', actor: admin, patch: intakePatch, metadata: { source: 'admin_completed_bot_intake' } })
+    }
+    if (current.status === 'ADMIN_INTAKE' || current.status === 'NEW') {
       await transitionCase(tx, { caseId, to: 'INTAKE_COMPLETE', expectedFrom: 'ADMIN_INTAKE', actor: admin, patch, metadata: corrected })
       const updated = await transitionCase(tx, { caseId, to: 'AWAITING_PAYMENT', expectedFrom: 'INTAKE_COMPLETE', actor: admin })
       return { case: updated, changed: true, jobs: [] }

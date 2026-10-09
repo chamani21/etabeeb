@@ -249,7 +249,7 @@ describe.skipIf(!hasTestDb)('eTabib V1 — database model', () => {
       expect(cases).toHaveLength(1)
       expect(cases[0]!.patientName).toBe('Synthetic Patient')
       expect(await jobsOfType('ASK_PATIENT_NAME')).toHaveLength(1)
-      expect(await jobsOfType('ASK_PATIENT_PHONE')).toHaveLength(1)
+      expect(await jobsOfType('ADMIN_NEW_CASE')).toHaveLength(1) // name → intake once, despite 5 deliveries
       const nameEvents = (await eventsFor(cases[0]!.id)).filter((e) => e.eventType === 'PATIENT_NAME_RECEIVED')
       expect(nameEvents).toHaveLength(1)
     })

@@ -11,7 +11,7 @@ import { db } from '@etabeeb/db'
 import { consultationCases, notificationOutbox, whatsappEvents } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
 import { and, eq, inArray, notInArray, sql } from 'drizzle-orm'
-import { normalizePhone, toAsciiDigits, waIdToE164 } from './phone'
+import { toAsciiDigits, waIdToE164 } from './phone'
 import { CLOSED_STATUSES, createCase, transitionCase, updateCaseFields, type Actor, type ConsultationStatus } from './transitions'
 import { enqueueOutboundJob, type EnqueuedJob } from './outbound'
 import { evaluateInboundSender, type InboundDisposition } from './inbound-policy'
@@ -167,8 +167,7 @@ export type IntakeOutcome =
   | 'ignored'
   | 'asked_name'
   | 'asked_name_again'
-  | 'name_saved_asked_phone'
-  | 'asked_phone_again'
+  | 'name_saved_admin_intake'
   | 'phone_saved_admin_intake'
   | 'case_in_progress'
   | 'already_acknowledged'
@@ -239,6 +238,14 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
       if (!conv) return
       const r = await recordInboundMessage(tx, conv, msg, caseId)
       mediaFetchIds.push(...r.fetchIds)
+    }
+
+    // Name collected → admin intake: notify the admin and acknowledge the patient (once per case)
+    const toAdminIntake = async (c: ConsultationCase): Promise<ConsultationCase> => {
+      const moved = await transitionCase(tx, { caseId: c.id, to: 'ADMIN_INTAKE', expectedFrom: 'NEW', actor: SYSTEM, metadata: meta })
+      jobs.push(await enqueueOutboundJob(tx, { type: 'ADMIN_NEW_CASE', consultationId: moved.id, dedupeKey: moved.id }))
+      jobs.push(await enqueueOutboundJob(tx, { type: 'PATIENT_ACKNOWLEDGED', consultationId: moved.id, dedupeKey: moved.id, recipientPhone: msg.from }))
+      return moved
     }
 
     const existing = await tx
@@ -348,22 +355,16 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
     } else if (!current.patientName) {
       const name = sanitizePatientName(msg.text)
       if (name) {
+        // The patient's WhatsApp number is their contact phone (not asked; the admin can correct it in intake)
         current = await updateCaseFields(tx, {
           caseId: current.id,
-          patch: { patientName: name },
+          patch: { patientName: name, ...(current.patientPhone ? {} : { patientPhone: msg.from }) },
           eventType: 'PATIENT_NAME_RECEIVED',
           actor: PATIENT,
-          metadata: meta,
+          metadata: { ...meta, phoneFromWhatsapp: !current.patientPhone },
         })
-        jobs.push(
-          await enqueueOutboundJob(tx, {
-            type: 'ASK_PATIENT_PHONE',
-            consultationId: current.id,
-            dedupeKey: msg.wamid,
-            recipientPhone: msg.from,
-          }),
-        )
-        outcome = 'name_saved_asked_phone'
+        current = await toAdminIntake(current)
+        outcome = 'name_saved_admin_intake'
       } else {
         jobs.push(
           await enqueueOutboundJob(tx, {
@@ -377,48 +378,18 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
         outcome = 'asked_name_again'
       }
     } else {
-      const phone = current.patientPhone ?? (msg.text ? normalizePhone(msg.text) : null)
-      if (phone) {
-        if (!current.patientPhone) {
-          current = await updateCaseFields(tx, {
-            caseId: current.id,
-            patch: { patientPhone: phone },
-            eventType: 'PATIENT_PHONE_RECEIVED',
-            actor: PATIENT,
-            metadata: meta,
-          })
-        }
-        current = await transitionCase(tx, {
+      // Older intakes that already have the name but no phone: use the WhatsApp number
+      if (!current.patientPhone) {
+        current = await updateCaseFields(tx, {
           caseId: current.id,
-          to: 'ADMIN_INTAKE',
-          expectedFrom: 'NEW',
-          actor: SYSTEM,
-          metadata: meta,
+          patch: { patientPhone: msg.from },
+          eventType: 'PATIENT_PHONE_RECEIVED',
+          actor: PATIENT,
+          metadata: { ...meta, phoneFromWhatsapp: true },
         })
-        jobs.push(
-          await enqueueOutboundJob(tx, { type: 'ADMIN_NEW_CASE', consultationId: current.id, dedupeKey: current.id }),
-        )
-        jobs.push(
-          await enqueueOutboundJob(tx, {
-            type: 'PATIENT_ACKNOWLEDGED',
-            consultationId: current.id,
-            dedupeKey: current.id,
-            recipientPhone: msg.from,
-          }),
-        )
-        outcome = 'phone_saved_admin_intake'
-      } else {
-        jobs.push(
-          await enqueueOutboundJob(tx, {
-            type: 'ASK_PATIENT_PHONE',
-            consultationId: current.id,
-            dedupeKey: msg.wamid,
-            recipientPhone: msg.from,
-            messageKey: 'invalid',
-          }),
-        )
-        outcome = 'asked_phone_again'
       }
+      current = await toAdminIntake(current)
+      outcome = 'phone_saved_admin_intake'
     }
 
     await tx

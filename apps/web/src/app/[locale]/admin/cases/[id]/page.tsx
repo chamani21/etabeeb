@@ -10,7 +10,7 @@ import { cancellationReasonLabel } from '@/lib/etabib/cancellation'
 import { AdminPrescription } from '@/components/staff/rx/AdminPrescription'
 import { CaseChat } from '@/components/staff/inbox/CaseChat'
 
-const INTAKE_STATUSES = ['ADMIN_INTAKE', 'INTAKE_COMPLETE', 'AWAITING_PAYMENT', 'PAYMENT_RECEIVED', 'AWAITING_DOCTOR_APPROVAL', 'CONFIRMED']
+const INTAKE_STATUSES = ['NEW', 'ADMIN_INTAKE', 'INTAKE_COMPLETE', 'AWAITING_PAYMENT', 'PAYMENT_RECEIVED', 'AWAITING_DOCTOR_APPROVAL', 'CONFIRMED']
 
 type Detail = {
   case: any

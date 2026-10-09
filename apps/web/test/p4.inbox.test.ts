@@ -199,6 +199,23 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
       void c
     })
 
+    it('taken over before the name was given: the admin completes the intake on the NEW case (phone defaults to WhatsApp)', async () => {
+      const phone = fakePhone()
+      await processInboundMessage(msg(phone, 'Salam')) // bot asked for the name; staff take over now
+      const c = await conv(phone)
+      await changeOwnership(c.id, A(), { action: 'take_over', expectedVersion: c.ownerVersion })
+      const [kase] = await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))
+      expect(kase!.status).toBe('NEW')
+      const { submitAdminIntake } = await import('@/lib/etabib/cases')
+      const r = await submitAdminIntake(kase!.id, { patientName: 'Synthetic Halfway', age: 30, sex: 'MALE', consultationFor: 'SELF', location: 'SYN', mainComplaint: 'SYN complaint', medicalHistory: null }, { type: 'ADMIN', id: admin.id })
+      expect(r.case.status).toBe('AWAITING_PAYMENT')
+      expect(r.case.patientPhone).toBe(phone)
+      expect(r.case.patientName).toBe('Synthetic Halfway')
+      // The bot stays silent while staff own the conversation
+      const after = await processInboundMessage(msg(phone, 'hello?'))
+      expect(after.outcome).toBe('staff_owned')
+    })
+
     it('return to bot is refused while an open consultation needs resolution (explains + names the case)', async () => {
       const { c, phone } = await adminOwned(fakePhone(), { intake: true }) // ADMIN_INTAKE
       const [kase] = await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))
@@ -224,9 +241,8 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
       const cases = await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))
       expect(cases).toHaveLength(2)
       expect(first.consultationId).not.toBe(old!.id)
-      await processInboundMessage(msg(phone, 'Synthetic Second', { providerTimestamp: later(3) }))
-      const third = await processInboundMessage(msg(phone, '03001234567', { providerTimestamp: later(4) }))
-      expect(third.outcome).toBe('phone_saved_admin_intake')
+      const third = await processInboundMessage(msg(phone, 'Synthetic Second', { providerTimestamp: later(3) }))
+      expect(third.outcome).toBe('name_saved_admin_intake')
       expect(third.consultationId).toBe(first.consultationId) // one case for the whole intake
       const adminJobs = (await jobsOf('ADMIN_NEW_CASE')).filter((j) => (j.templateVariables ?? '').includes(first.consultationId!))
       expect(adminJobs).toHaveLength(1)
@@ -248,7 +264,7 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
       const replay = await processInboundMessage(next)
       expect(replay.duplicate).toBe(true)
       const r2 = await processInboundMessage(msg(phone, 'Synthetic Restart', { providerTimestamp: new Date(Date.now() + 3000) }))
-      expect(r2.outcome).toBe('name_saved_asked_phone')
+      expect(r2.outcome).toBe('name_saved_admin_intake')
       expect(r2.consultationId).toBe(r1.consultationId)
       const [kase] = await db.select().from(consultationCases).where(eq(consultationCases.id, r1.consultationId!))
       expect(kase!.patientName).toBe('Synthetic Restart')
@@ -435,8 +451,7 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
     it('existing staff notices still go out while staff own the conversation', async () => {
       const phone = fakePhone()
       await processInboundMessage(msg(phone, 'Salam'))
-      await processInboundMessage(msg(phone, 'Synthetic Patient'))
-      const r = await processInboundMessage(msg(phone, '03001234567')) // → ADMIN_INTAKE + ADMIN_NEW_CASE
+      const r = await processInboundMessage(msg(phone, 'Synthetic Patient')) // name → ADMIN_INTAKE + ADMIN_NEW_CASE
       const c = await conv(phone)
       await changeOwnership(c.id, A(), { action: 'take_over', expectedVersion: c.ownerVersion })
       const adminJob = r.jobs.find((j) => j.type === 'ADMIN_NEW_CASE')!

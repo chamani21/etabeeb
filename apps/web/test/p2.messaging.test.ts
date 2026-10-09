@@ -82,26 +82,24 @@ describe.skipIf(!hasTestDb)('patient + staff WhatsApp sequence', () => {
     for (const k of ['ETABIB_REPRESENTATIVE_WHATSAPP', 'ETABIB_N8N_OUTBOUND_URL', 'ETABIB_N8N_OUTBOUND_KEY', 'NEXT_PUBLIC_APP_URL', 'ETABIB_WHATSAPP_INBOUND_ENABLED', 'ETABIB_INBOUND_MODE']) delete process.env[k]
   })
 
-  it('exact sequence: name only → phone only → one registration message with the clean help link; admin notified at once', async () => {
+  it('exact sequence: name only (WhatsApp number is the phone) → one registration message with the clean help link; admin notified at once', async () => {
     const from = fakePhone()
     await say(from, 'Salam')
-    await say(from, 'احمد خان')
-    const phoneWamid = `wamid.SEQ.${Date.now()}`
-    await say(from, '03001234567', phoneWamid)
-    // duplicate Meta delivery of the phone message + the patient repeating it
-    await say(from, '03001234567', phoneWamid)
+    const nameWamid = `wamid.SEQ.${Date.now()}`
+    await say(from, 'احمد خان', nameWamid)
+    // duplicate Meta delivery of the name message + the patient writing again
+    await say(from, 'احمد خان', nameWamid)
     await say(from, '03001234567')
 
     const patient = sent().filter((m) => m.audience === 'PATIENT')
-    expect(patient.map((m) => m.type)).toEqual(['ASK_PATIENT_NAME', 'ASK_PATIENT_PHONE', 'PATIENT_ACKNOWLEDGED'])
-    const [m1, m2, m3] = patient.map((m) => m.text as string)
+    expect(patient.map((m) => m.type)).toEqual(['ASK_PATIENT_NAME', 'PATIENT_ACKNOWLEDGED'])
+    const [m1, m2] = patient.map((m) => m.text as string)
     expect(m1).toBe('السلام علیکم، eTabeeb ته ښه راغلاست.\n\nد آنلاین مشورې لپاره مهرباني وکړئ د ناروغ نوم ولیکئ.')
-    expect(m2).toBe('مننه احمد خان.\n\nاوس مهرباني وکړئ د اړیکې لپاره د ناروغ د موبایل شمېره ولیکئ.\n\nد پاکستان بېلګه:\n0300 0000000\nیا\n+92 300 0000000\n\nد افغانستان بېلګه:\n070 000 0000\nیا\n+93 70 000 0000')
-    expect(m3).toBe(
+    expect(m2).toBe(
       'مننه احمد خان.\n\nستاسو د آنلاین مشورې غوښتنه ثبت شوه.\n\nزموږ استازی به ډېر ژر له تاسو سره اړیکه ونیسي.\n\nکه کومه پوښتنه لرئ:\n' + HELP,
     )
-    expect(m1).not.toContain('شمېره') // message 1 asks the name only
-    expect(m2).not.toContain('نوم') // message 2 asks the phone only
+    expect(m1).not.toContain('شمېره') // the phone number is never asked
+    expect(await jobsOfType('ASK_PATIENT_PHONE')).toHaveLength(0)
 
     // admin notice dispatched together with the acknowledgement (same inbound message)
     const kinds = sent().map((m) => m.type)
@@ -115,7 +113,7 @@ describe.skipIf(!hasTestDb)('patient + staff WhatsApp sequence', () => {
     const jobs = await db.select().from(notificationOutbox).where(like(notificationOutbox.idempotencyKey, 'etabib:%')).orderBy(asc(notificationOutbox.createdAt))
     await dispatchOutboundJobs(jobs.map((j) => j.id))
     const patient = sent().filter((m) => m.audience === 'PATIENT')
-    expect(patient.length).toBeGreaterThanOrEqual(4)
+    expect(patient.length).toBeGreaterThanOrEqual(3)
     for (const m of patient) {
       const text = m.text as string
       expect(text).toMatch(/[؀-ۿ]/)
