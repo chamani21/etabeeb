@@ -61,7 +61,7 @@ services:
       - etabeeb-uploads:/app/private-uploads
 
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/etabeeb/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

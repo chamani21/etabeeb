@@ -100,7 +100,7 @@ docker run -d --name etabeeb-blue \
   etabeeb-web:latest
 
 # Smoke test
-curl -sf http://localhost:3001/api/health && echo "HEALTHY"
+curl -sf http://127.0.0.1:3001/etabeeb/api/health && echo "HEALTHY"
 ```
 
 ### 6. Switch traffic and start with restart policy
@@ -199,7 +199,9 @@ docker compose -f compose.production.yml up -d etabeeb-web
 
 ## Health Check Endpoint
 
-`GET /api/health` → `200 OK` `{"status":"ok","timestamp":"..."}`
+`GET /etabeeb/api/health` → `200 OK` when the application and database are available.
+The container probe uses `127.0.0.1` because the Next.js server listens on IPv4; inside the
+container, `localhost` resolves to IPv6 first and can report a false connection refusal.
 
 ---
 
