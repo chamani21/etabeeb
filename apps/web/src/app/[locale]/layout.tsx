@@ -6,7 +6,7 @@ import type { Metadata } from 'next'
 
 interface LocaleLayoutProps {
   children: React.ReactNode
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }
 
 export function generateStaticParams() {
@@ -14,8 +14,9 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({
-  params: { locale },
+  params,
 }: LocaleLayoutProps): Promise<Metadata> {
+  const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'meta' })
   return {
     title: t('title'),
@@ -30,8 +31,9 @@ export async function generateMetadata({
 
 export default async function LocaleLayout({
   children,
-  params: { locale },
+  params,
 }: LocaleLayoutProps) {
+  const { locale } = await params
   if (!locales.includes(locale as Locale)) notFound()
 
   // Enable static rendering

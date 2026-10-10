@@ -6,10 +6,11 @@ import { practitioners, patients, users, appointments } from '@etabeeb/db/schema
 import { eq, inArray, desc } from 'drizzle-orm'
 
 export default async function DoctorPatientsPage({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }) {
+  const { locale } = await params
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect(`/${locale}/login`)
   if (session.user.role !== 'practitioner' && session.user.role !== 'administrator') {

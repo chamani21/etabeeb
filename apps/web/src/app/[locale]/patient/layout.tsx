@@ -6,11 +6,12 @@ import { SignOutButton } from '@/components/sign-out-button'
 
 export default async function PatientLayout({
   children,
-  params: { locale },
+  params,
 }: {
   children: React.ReactNode
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }) {
+  const { locale } = await params
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     redirect(`/${locale}/login`)

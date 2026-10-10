@@ -7,8 +7,9 @@ import { eq, and, gte, lt, or } from 'drizzle-orm'
 // GET /api/doctors/[id]/slots?date=2026-09-22 — Get available slots for a doctor
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const url = new URL(req.url)
     const dateStr = url.searchParams.get('date')
@@ -32,7 +33,7 @@ export async function GET(
     const [practitioner] = await db
       .select()
       .from(practitioners)
-      .where(eq(practitioners.publicId, params.id))
+      .where(eq(practitioners.publicId, id))
       .limit(1)
 
     if (!practitioner) {
@@ -61,7 +62,7 @@ export async function GET(
     const isUnavailable = exceptions.some(e => !e.isAvailable)
     if (isUnavailable) {
       return NextResponse.json({
-        doctorId: params.id,
+        doctorId: id,
         date: dateStr,
         slots: [],
         message: 'Doctor is not available on this date',
@@ -84,7 +85,7 @@ export async function GET(
 
     if (rules.length === 0) {
       return NextResponse.json({
-        doctorId: params.id,
+        doctorId: id,
         date: dateStr,
         slots: [],
         message: 'No availability rules set for this day',
@@ -188,7 +189,7 @@ export async function GET(
     }))
 
     return NextResponse.json({
-      doctorId: params.id,
+      doctorId: id,
       doctorName: practitioner.displayName,
       date: dateStr,
       slots: availableSlots,

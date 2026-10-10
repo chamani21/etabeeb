@@ -7,10 +7,11 @@ import { eq, and, gte, lt, desc, count } from 'drizzle-orm'
 import Link from 'next/link'
 
 export default async function DoctorDashboard({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }) {
+  const { locale } = await params
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect(`/${locale}/login`)
   if (session.user.role !== 'practitioner' && session.user.role !== 'administrator') {

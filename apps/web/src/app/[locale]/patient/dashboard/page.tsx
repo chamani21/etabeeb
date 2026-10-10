@@ -7,10 +7,11 @@ import { eq, and, gte, desc, lt } from 'drizzle-orm'
 import Link from 'next/link'
 
 export default async function PatientDashboard({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }) {
+  const { locale } = await params
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     redirect(`/${locale}/login`)

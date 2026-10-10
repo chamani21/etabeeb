@@ -6,13 +6,14 @@ import { eq } from 'drizzle-orm'
 // GET /api/prescriptions/verify/[token] — Public prescription verification
 export async function GET(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
+    const { token } = await params
     const results = await db
       .select()
       .from(prescriptions)
-      .where(eq(prescriptions.verificationToken, params.token))
+      .where(eq(prescriptions.verificationToken, token))
       .limit(1)
 
     const prescription = results[0]

@@ -3,7 +3,7 @@ import { unstable_setRequestLocale } from 'next-intl/server'
 import { PublicLandingPage } from '../../components/public-site/PublicLandingPage'
 
 interface HomePageProps {
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }
 
 export const metadata: Metadata = {
@@ -12,7 +12,8 @@ export const metadata: Metadata = {
     'ای طبیب د کوژک اسپیشلسټ کلینک، چمن یو خدمت دی. له ډاکټر جلال الدین سره په پښتو د انلاین طبي مشورې لپاره په واټس‌اپ اړیکه ونیسئ.',
 }
 
-export default function HomePage({ params: { locale } }: HomePageProps) {
+export default async function HomePage({ params }: HomePageProps) {
+  const { locale } = await params
   unstable_setRequestLocale(locale)
   return <PublicLandingPage />
 }
