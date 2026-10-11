@@ -17,6 +17,7 @@ import { enqueueOutboundJob, type EnqueuedJob } from './outbound'
 import { evaluateInboundSender, type InboundDisposition } from './inbound-policy'
 import { ensureConversation, isInboxEnabled } from './inbox/core'
 import { recordInboundMessage } from './inbox/inbound'
+import { releaseIdleStaffConversation } from './inbox/ownership'
 
 export interface InboundMedia {
   /** Meta media id (the download URL is resolved later, never stored) */
@@ -232,7 +233,7 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
 
     // Shared inbox (feature flag): every processed message is stored durably in
     // the contact's conversation; a human owner suppresses the bot's replies.
-    const conv = isInboxEnabled() ? await ensureConversation(tx, msg.from, msg.profileName) : null
+    let conv = isInboxEnabled() ? await ensureConversation(tx, msg.from, msg.profileName) : null
     const mediaFetchIds: string[] = []
     const recordForInbox = async (caseId: string | null) => {
       if (!conv) return
@@ -275,6 +276,9 @@ export async function processInboundMessage(msg: InboundMessage): Promise<Inboun
             )
             .limit(1)
         )[0]
+
+    // Returning patient: an idle staff-owned chat with no open case goes back to the bot
+    if (conv && conv.owner !== 'BOT' && !current) conv = (await releaseIdleStaffConversation(tx, conv)) ?? conv
 
     if (conv && conv.owner !== 'BOT') {
       // Staff own this conversation: store only. No case is created, no intake

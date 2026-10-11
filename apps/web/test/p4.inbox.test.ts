@@ -14,7 +14,7 @@ import path from 'path'
 import { NextRequest } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-helpers'
 import { db } from '@etabeeb/db'
-import { consultationCases, notificationOutbox, waAttachments, waConversations, waHandoverRequests, waInternalNotes, waMessages, whatsappEvents } from '@etabeeb/db/schema'
+import { consultationCases, staffAuditEvents, notificationOutbox, waAttachments, waConversations, waHandoverRequests, waInternalNotes, waMessages, whatsappEvents } from '@etabeeb/db/schema'
 import { and, eq, sql } from 'drizzle-orm'
 import { processInboundMessage, type InboundMessage } from '@/lib/etabib/whatsapp'
 import { applyOutboundResult, cancelConsultation } from '@/lib/etabib/cases'
@@ -214,6 +214,43 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
       // The bot stays silent while staff own the conversation
       const after = await processInboundMessage(msg(phone, 'hello?'))
       expect(after.outcome).toBe('staff_owned')
+    })
+
+    it('returning patient: idle staff-owned chat with no open case goes back to the bot and starts a new intake', async () => {
+      const { c, phone } = await adminOwned(fakePhone(), { intake: true })
+      const [old] = await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))
+      await cancelConsultation(old!.id, { reason: 'PATIENT_REQUESTED' }, { type: 'ADMIN', id: admin.id })
+      // within 24 h of staff activity: still staff-owned, no new case
+      const soon = await processInboundMessage(msg(phone, 'hello again'))
+      expect(soon.outcome).toBe('staff_owned')
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(Date.now() + 25 * 3600_000))
+      try {
+        const r = await processInboundMessage(msg(phone, 'I need a new appointment'))
+        expect(r.outcome).toBe('asked_name')
+        expect(r.consultationId).not.toBe(old!.id)
+        const after = await conv(phone)
+        expect(after.owner).toBe('BOT')
+        expect(after.ownerVersion).toBe(c.ownerVersion + 1)
+        const audits = await db.select().from(staffAuditEvents).where(and(eq(staffAuditEvents.targetId, c.id), eq(staffAuditEvents.actorType, 'SYSTEM')))
+        expect(audits.map((x) => x.action)).toContain('INBOX_BOT_RESUMED')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('an open consultation keeps the chat with staff even when idle', async () => {
+      const { c, phone } = await adminOwned(fakePhone(), { intake: true }) // open ADMIN_INTAKE case
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(Date.now() + 48 * 3600_000))
+      try {
+        const r = await processInboundMessage(msg(phone, 'any update?'))
+        expect(r.outcome).toBe('staff_owned')
+        expect((await conv(phone)).owner).toBe('ADMIN')
+      } finally {
+        vi.useRealTimers()
+      }
+      void c
     })
 
     it('return to bot is refused while an open consultation needs resolution (explains + names the case)', async () => {

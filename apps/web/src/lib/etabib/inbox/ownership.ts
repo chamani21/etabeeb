@@ -13,9 +13,9 @@
  * replies written under an older version are cancelled here and re-checked at
  * dispatch. Typing a message never changes ownership.
  */
-import { and, desc, eq, inArray, notInArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, notInArray, sql } from 'drizzle-orm'
 import { db } from '@etabeeb/db'
-import { consultationCases, users, waAttachments, waConversations, waHandoverRequests, waInternalNotes, waMessages } from '@etabeeb/db/schema'
+import { consultationCases, staffAuditEvents, users, waAttachments, waConversations, waHandoverRequests, waInternalNotes, waMessages } from '@etabeeb/db/schema'
 import { EtabibError } from '../errors'
 import { getV1DoctorUserId } from '../config'
 import { enqueueOutboundJob } from '../outbound'
@@ -126,6 +126,41 @@ async function isActiveAdmin(tx: Tx, userId: string | null): Promise<boolean> {
   if (!userId) return false
   const [u] = await tx.select({ active: users.isActive }).from(users).where(eq(users.id, userId)).limit(1)
   return Boolean(u?.active)
+}
+
+/** A staff-owned chat with no open case and no staff activity for this long is released to the bot. */
+export const STAFF_IDLE_RELEASE_MS = 24 * 3600_000
+
+/**
+ * Returning patient: when a patient writes to a staff-owned conversation that has
+ * NO open case and no staff activity (message, note, takeover/handover) for 24 h,
+ * the conversation goes back to the bot so the message starts a new appointment
+ * request. Open consultations and active staff chats are never affected.
+ * Runs inside the inbound transaction; returns the updated conversation or null.
+ */
+export async function releaseIdleStaffConversation(tx: Tx, conv: Conversation, now = new Date()): Promise<Conversation | null> {
+  if (conv.owner === 'BOT') return null
+  if (await openCaseForContact(tx, conv.contactPhone)) return null
+  const [pending] = await tx.select({ id: waHandoverRequests.id }).from(waHandoverRequests).where(and(eq(waHandoverRequests.conversationId, conv.id), eq(waHandoverRequests.status, 'PENDING'))).limit(1)
+  if (pending) return null
+  const [row] = await tx.execute<{ last: string | null }>(sql`
+    SELECT greatest(
+      (SELECT max(created_at) FROM ${waMessages} WHERE conversation_id = ${conv.id} AND sender_role IN ('ADMIN', 'DOCTOR')),
+      (SELECT max(created_at) FROM ${waInternalNotes} WHERE conversation_id = ${conv.id}),
+      (SELECT max(created_at) FROM ${staffAuditEvents} WHERE target_type = 'wa_conversation' AND target_id = ${conv.id})
+    ) AS last`)
+  const last = row?.last ? new Date(row.last) : null
+  if (last && now.getTime() - last.getTime() < STAFF_IDLE_RELEASE_MS) return null
+  const version = conv.ownerVersion + 1
+  const [updated] = await tx
+    .update(waConversations)
+    .set({ owner: 'BOT', ownerUserId: null, ownerVersion: version, updatedAt: now })
+    .where(and(eq(waConversations.id, conv.id), eq(waConversations.ownerVersion, conv.ownerVersion)))
+    .returning()
+  if (!updated) return null
+  await cancelStaleStaffReplies(tx, conv.id, version)
+  await recordStaffAudit({ action: 'INBOX_BOT_RESUMED', actorType: 'SYSTEM', targetType: 'wa_conversation', targetId: conv.id, metadata: { auto: true, previousOwner: conv.owner } }, tx)
+  return updated
 }
 
 export interface ResumeBlocker {
