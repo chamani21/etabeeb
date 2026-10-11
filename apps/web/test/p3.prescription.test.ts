@@ -350,7 +350,7 @@ describe.skipIf(!hasTestDb)('prescription stage', () => {
       const msgs = n8n()
       expect(msgs.map((m) => m.type)).toEqual(['PRESCRIPTION_IMAGE', 'PRESCRIPTION_VOICE'])
       expect(msgs[0]).toMatchObject({ messageKind: 'image', audience: 'PATIENT' })
-      expect(msgs[0].media.caption).toContain('د ډاکټر د لارښوونو غږیز پیغام هم درته استول کېږي')
+      expect(msgs[0].media.caption).toContain('🔊 د ډاکټر غږیزه لارښوونه هم درته استول کېږي.')
       expect(msgs[1]).toMatchObject({ messageKind: 'audio', media: { voice: true } })
       expect(msgs[1].media.link).toMatch(/\/api\/media\/w\/[^/]+\/voice\.ogg$/)
       await applyOutboundResult({ jobId: voice!.id, success: true, status: 'sent', wamid: 'wamid.SYN.VOICE' })
