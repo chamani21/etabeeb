@@ -53,7 +53,7 @@ Required variables:
 
 | Variable | Description |
 |---|---|
-| `NEXT_PUBLIC_APP_URL` | `https://etabeeb.com` |
+| `NEXT_PUBLIC_APP_URL` | `https://etabeeb.online/etabeeb` |
 | `NEXTAUTH_URL` | `https://etabeeb.online/etabeeb` |
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
 | `DATABASE_URL` | `postgresql://user:pass@localhost:5432/etabeeb` |

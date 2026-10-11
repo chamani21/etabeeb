@@ -12,7 +12,7 @@ services:
     env_file:
       - /opt/kozhak/etabeeb/shared/runtime.env
     environment:
-      NEXT_PUBLIC_APP_URL: https://etabeeb.com
+      NEXT_PUBLIC_APP_URL: https://etabeeb.online/etabeeb
     volumes:
       - etabeeb_uploads:/app/private-uploads
     healthcheck:
