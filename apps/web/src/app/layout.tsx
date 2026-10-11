@@ -32,12 +32,28 @@ const notoSerif = Noto_Serif({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://etabeeb.online'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://etabeeb.com'),
   title: {
     default: 'ای طبیب — آنلاین طبي مشوره',
     template: '%s | ای طبیب',
   },
   description: 'ای طبیب — د آنلاین طبي مشورې پلیټفارم | Kozhak Specialist Clinic',
+  alternates: {
+    canonical: '/etabeeb',
+  },
+  openGraph: {
+    type: 'website',
+    url: '/etabeeb',
+    siteName: 'eTabeeb',
+    title: 'ای طبیب — آنلاین طبي مشوره',
+    description: 'ای طبیب — د آنلاین طبي مشورې پلیټفارم | Kozhak Specialist Clinic',
+    locale: 'ps_AF',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'ای طبیب — آنلاین طبي مشوره',
+    description: 'ای طبیب — د آنلاین طبي مشورې پلیټفارم | Kozhak Specialist Clinic',
+  },
   manifest: '/manifest.json',
   robots: {
     index: true,
