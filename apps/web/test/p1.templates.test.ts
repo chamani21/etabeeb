@@ -163,7 +163,9 @@ describe.skipIf(!hasTestDb)('template transport', () => {
     const [p] = sent()
     expect(p.messageKind).toBe('image')
     expect(p.media.link).toMatch(/^https:\/\/staging\.example\.test\/api\/media\/w\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\/page-1\.png$/)
-    expect(p.media.caption).toContain('ستاسو د نن ورځې د طبي مشورې نسخه چمتو شوه.')
+    expect(p.media.caption).toMatch(/^💊 \*ستاسو نسخه چمتو شوه\.\*/)
+    expect(p.media.caption).toContain('روغ او جوړ اوسئ 🌿')
+    expect(p.media.caption!.length).toBeLessThanOrEqual(1024) // WhatsApp caption limit
     expect(JSON.stringify(p)).not.toMatch(/Paracetamol|genericName/)
     delete process.env.NEXT_PUBLIC_APP_URL
   })

@@ -5,9 +5,9 @@
  */
 export const HANDOVER_NOTICES_PS = {
   /** BOT → ADMIN */
-  staffJoined: 'ستاسو پیغام د eTabeeb همکار ته ورسېد. ستاسو پوښتنو ته به همدلته ځواب درکړل شي.',
+  staffJoined: '👤 د eTabeeb همکار اوس په دې چټ کې دی.\n\nخپلې پوښتنې همدلته ولیکئ؛ ځواب به همدلته درکړل شي.',
   /** ADMIN → DOCTOR (after the doctor accepted) */
-  doctorJoined: 'اوس ډاکټر صاحب ستاسو خبرې اترې ګوري. خپلې پوښتنې همدلته ولیکئ.',
+  doctorJoined: '👨‍⚕️ ډاکټر صاحب اوس ستاسو خبرې اترې ګوري.\n\nخپلې پوښتنې همدلته ولیکئ.',
   /** DOCTOR → ADMIN */
-  backToStaff: 'ستاسو خبرې اترې بېرته د eTabeeb همکار ته وسپارل شوې. همدلته به درسره اړیکه ونیول شي.',
+  backToStaff: '👤 ستاسو خبرې اترې بېرته د eTabeeb همکار ته وسپارل شوې.\n\nهمدلته به درسره اړیکه ونیول شي.',
 } as const

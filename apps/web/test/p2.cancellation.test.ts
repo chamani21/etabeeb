@@ -236,9 +236,9 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
       const [patient] = sentOfType('CONSULTATION_CANCELLED_PATIENT')
       const [admin] = sentOfType('CONSULTATION_CANCELLED_ADMIN')
       expect(patient.to).toBe((await getCase(id)).whatsappPhone)
-      expect(patient.text).toContain('ستاسو د eTabeeb آنلاین مشوره لغوه شوه')
-      expect(patient.text).toContain('د لغوه کېدو لامل: ډاکټر په دې وخت کې شتون نه لري')
-      expect(patient.text).toContain('\nhttps://staging.example.test/help')
+      expect(patient.text).toContain('❌ *ستاسو آنلاین مشوره لغوه شوه.*')
+      expect(patient.text).toContain('لامل: ډاکټر په دې وخت کې شتون نه لري')
+      expect(patient.text).toContain('همدې چټ ته پیغام ولیکئ') // help is this chat (single eTabeeb number)
       expect(patient.text).not.toContain('wa.me')
       expect(admin.to).toBe('+923009990001')
       expect(admin.text).toContain('eTabeeb — Consultation cancelled by doctor')
@@ -336,14 +336,14 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
       expect(representativeChatTarget()).toMatch(/^https:\/\/wa\.me\/923009990001\?text=/)
     })
 
-    it('patient acknowledgement carries the representative link', async () => {
+    it('patient acknowledgement: one message, help stays in this chat (no other number)', async () => {
       await caseAt('ADMIN_INTAKE', { adminId, doctorId })
       const [ack] = await jobsOfType('PATIENT_ACKNOWLEDGED')
       await dispatchOutboundJobs([ack!.id])
       const [m] = sentOfType('PATIENT_ACKNOWLEDGED')
       expect(m.text).toContain('ستاسو د آنلاین مشورې غوښتنه ثبت شوه.')
-      expect(m.text).toContain('\nhttps://staging.example.test/help')
-      expect(m.text).not.toContain('wa.me')
+      expect(m.text).toContain('د همدې WhatsApp چټ له لارې')
+      expect(m.text).not.toMatch(/wa\.me|\/help/)
     })
 
     it('doctor approval request: lock-screen safe summary + direct review link, no complaint/history', async () => {
@@ -363,8 +363,9 @@ describe.skipIf(!hasTestDb)('messaging UX + consultation cancellation', () => {
       const [job] = await jobsOfType('CONSULTATION_CONFIRMED_PATIENT')
       await dispatchOutboundJobs([job!.id])
       const [m] = sentOfType('CONSULTATION_CONFIRMED_PATIENT')
-      expect(m.text).toContain('ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه.')
-      expect(m.text).toMatch(/د مشورې لینک:\nhttps:\/\/staging\.example\.test\/consult\/[A-Za-z0-9_-]{43}\n\nمرستې لپاره:\nhttps:\/\/staging\.example\.test\/help$/)
+      expect(m.text).toContain('✅ *ستاسو آنلاین طبي مشوره تایید شوه*')
+      expect(m.text).toContain('👨‍⚕️ ډاکټر: ډاکټر جلال الدین')
+      expect(m.text).toMatch(/🎥 \*مشوره پیل کړئ\*\nhttps:\/\/staging\.example\.test\/consult\/[A-Za-z0-9_-]{43}\n\nکه پوښتنه لرئ، همدې چټ ته پیغام ولیکئ\.$/)
       const [s] = await db.select().from(consultationVideoSessions).where(eq(consultationVideoSessions.consultationId, id))
       expect(JSON.stringify(m)).not.toContain(s!.roomName)
       expect(JSON.stringify(m)).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}|livekit|APItestkey/i)

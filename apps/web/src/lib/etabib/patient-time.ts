@@ -47,7 +47,8 @@ export function formatConsultationForPatient(ts: Date): { pakistan: LocalDateTim
 /** Multi-line Pashto block for free-form messages and the patient page. */
 export function consultationTimeBlockPs(ts: Date): string {
   const t = formatConsultationForPatient(ts)
-  return `🇵🇰 د پاکستان وخت:\n${t.pakistan.date} — ${t.pakistan.time}\n\n🇦🇫 د افغانستان وخت:\n${t.afghanistan.date} — ${t.afghanistan.time}`
+  // Each country's own date: around midnight the two dates can differ
+  return `📅 *د مشورې نېټه او وخت:*\n🇵🇰 پاکستان: ${t.pakistan.date} — ${t.pakistan.time}\n🇦🇫 افغانستان: ${t.afghanistan.date} — ${t.afghanistan.time}`
 }
 
 /** Single-line form for WhatsApp template variables (Meta forbids newlines in parameters). */

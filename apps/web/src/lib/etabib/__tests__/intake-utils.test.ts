@@ -116,10 +116,11 @@ describe('Pashto patient messages', () => {
     PATIENT_MESSAGES_PS.invalidName,
     PATIENT_MESSAGES_PS.askPhone('احمد'),
     PATIENT_MESSAGES_PS.invalidPhone,
-    PATIENT_MESSAGES_PS.acknowledged('احمد', 'https://etabeeb.example/help'),
-    PATIENT_MESSAGES_PS.caseInProgress('https://etabeeb.example/help'),
-    PATIENT_MESSAGES_PS.consultationConfirmed(consultationTimeBlockPs(new Date('2026-10-06T12:00:00Z')), 'https://example.test/x', 'https://wa.me/920000000000'),
-    PATIENT_MESSAGES_PS.consultationCancelled({ name: 'احمد', sex: 'MALE', reason: CANCELLATION_REASON_PS.DOCTOR_UNAVAILABLE!, helpUrl: 'https://wa.me/920000000000' }),
+    PATIENT_MESSAGES_PS.acknowledged('احمد'),
+    PATIENT_MESSAGES_PS.caseInProgress,
+    PATIENT_MESSAGES_PS.consultationConfirmed(consultationTimeBlockPs(new Date('2026-10-06T12:00:00Z')), 'https://example.test/x'),
+    PATIENT_MESSAGES_PS.consultationCancelled({ reason: CANCELLATION_REASON_PS.DOCTOR_UNAVAILABLE! }),
+    PATIENT_MESSAGES_PS.prescriptionImageCaption({ withVoice: true, pages: 2 }),
     ...Object.values(CANCELLATION_REASON_PS),
     PATIENT_MESSAGES_PS.prescriptionReady,
   ]
@@ -130,9 +131,27 @@ describe('Pashto patient messages', () => {
     }
   })
   it('do not ask clinical questions in the acknowledgement', () => {
-    // (the representative link's own query string is not a question)
-    expect(PATIENT_MESSAGES_PS.acknowledged('احمد', 'https://etabeeb.example/help')).not.toMatch(/\?|؟/)
-    expect(PATIENT_MESSAGES_PS.acknowledged(null, null)).not.toMatch(/\?|؟|https?:/)
+    expect(PATIENT_MESSAGES_PS.acknowledged('احمد')).not.toMatch(/\?|؟|https?:/)
+    expect(PATIENT_MESSAGES_PS.acknowledged(null)).toMatch(/^مننه ✅/)
+  })
+  it('follow the WhatsApp formatting standard', () => {
+    const FLAGS = /🇵🇰|🇦🇫/g
+    const EMOJI = /\p{Extended_Pictographic}/u
+    for (const t of texts.filter((x) => x.length > 60)) {
+      const graphemes = [...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(t.replace(FLAGS, ''))].map((g) => g.segment)
+      expect(graphemes.filter((g) => EMOJI.test(g)).length).toBeLessThanOrEqual(4) // 👨‍⚕️ counts as one
+      expect(t).not.toMatch(/\*\*/) // WhatsApp bold is *single* asterisks
+      expect(t).not.toMatch(/ډېر ژر|سمدستي/) // no promise of an immediate reply
+      expect(t).not.toMatch(/wa\.me|\/help/) // the help channel is this chat, not another number
+      expect(t).not.toMatch(/\n{3,}/) // short paragraphs, no empty gaps
+    }
+    // Bold markers are balanced
+    for (const t of texts) expect(((t.match(/\*/g) ?? []).length) % 2).toBe(0)
+  })
+  it('one acknowledgement per event: registration and later "in progress" say different things', () => {
+    expect(PATIENT_MESSAGES_PS.acknowledged('احمد')).toContain('ثبت شوه')
+    expect(PATIENT_MESSAGES_PS.caseInProgress).toContain('همدلته')
+    expect(PATIENT_MESSAGES_PS.caseInProgress).not.toContain('مننه')
   })
   it('shows consultation times for Pakistan AND Afghanistan from one timestamp (timezone database)', () => {
     // Pakistan 5:00 PM → Afghanistan 4:30 PM
@@ -153,7 +172,9 @@ describe('Pashto patient messages', () => {
   })
   it('renders the Pashto block (messages) and a single-line form (template variables)', () => {
     const ts = new Date('2026-10-06T12:00:00Z')
-    expect(consultationTimeBlockPs(ts)).toBe('🇵🇰 د پاکستان وخت:\n06 اکتوبر 2026 — 5:00 ماښام\n\n🇦🇫 د افغانستان وخت:\n06 اکتوبر 2026 — 4:30 ماښام')
+    expect(consultationTimeBlockPs(ts)).toBe('📅 *د مشورې نېټه او وخت:*\n🇵🇰 پاکستان: 06 اکتوبر 2026 — 5:00 ماښام\n🇦🇫 افغانستان: 06 اکتوبر 2026 — 4:30 ماښام')
+    // Around midnight each country shows its own date
+    expect(consultationTimeBlockPs(new Date('2026-10-06T19:15:00Z'))).toContain('🇵🇰 پاکستان: 07 اکتوبر 2026 — 12:15 شپه\n🇦🇫 افغانستان: 06 اکتوبر 2026 — 11:45 شپه')
     expect(consultationTimeLinePs(ts)).toBe('پاکستان: 06 اکتوبر 2026، 5:00 ماښام | افغانستان: 06 اکتوبر 2026، 4:30 ماښام')
     expect(consultationTimeLinePs(ts)).not.toMatch(/[\n\t]| {5,}/) // valid WhatsApp template parameter
   })

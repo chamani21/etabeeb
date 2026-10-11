@@ -9,50 +9,53 @@
 const PHONE_EXAMPLES_PS =
   '\n\nد پاکستان بېلګه:\n0300 0000000\nیا\n+92 300 0000000\n\nد افغانستان بېلګه:\n070 000 0000\nیا\n+93 70 000 0000'
 
+/**
+ * WhatsApp formatting standard (patient messages): short paragraphs, *single
+ * asterisks* for bold, 1–4 meaningful emojis, 🇵🇰/🇦🇫 for the two local times,
+ * "eTabeeb" as the brand. With the shared inbox the patient's help channel is THIS
+ * chat (the one eTabeeb number), so messages say "write here" instead of linking
+ * to another number. No message promises an immediate reply or a fixed time.
+ */
+const REPLY_HERE = 'که پوښتنه لرئ، همدې چټ ته پیغام ولیکئ.'
+
 export const PATIENT_MESSAGES_PS = {
   /** MESSAGE 1 — first contact: welcome + ask for the patient's name only. */
-  askName: 'السلام علیکم، eTabeeb ته ښه راغلاست.\n\nد آنلاین مشورې لپاره مهرباني وکړئ د ناروغ نوم ولیکئ.',
+  askName: 'السلام علیکم 👋\n\n*eTabeeb* ته ښه راغلاست.\n\nد آنلاین طبي مشورې د پیل لپاره، مهرباني وکړئ د ناروغ نوم ولیکئ.',
   /** Name was not usable (empty, digits only, media, …). */
-  invalidName: 'بښنه غواړو، نوم مو سم ترلاسه نه شو. مهرباني وکړئ یوازې د ناروغ نوم ولیکئ.',
-  /** MESSAGE 2 — ask for the contact phone only. */
+  invalidName: 'بښنه غواړو 🙏 نوم مو سم ترلاسه نه شو.\n\nمهرباني وکړئ یوازې د ناروغ نوم ولیکئ، لکه: احمد خان',
+  /** Legacy (the WhatsApp number is now the patient phone; not asked any more). */
   askPhone: (name: string) =>
     `مننه ${name}.\n\nاوس مهرباني وکړئ د اړیکې لپاره د ناروغ د موبایل شمېره ولیکئ.` + PHONE_EXAMPLES_PS,
-  /** Phone was not a valid number. */
+  /** Legacy (see askPhone). */
   invalidPhone: 'بښنه غواړو، دا شمېره سمه نه ده. مهرباني وکړئ د پاکستان یا افغانستان د موبایل سمه شمېره ولیکئ.' + PHONE_EXAMPLES_PS,
-  /** MESSAGE 3 — name + phone received: registered, a representative takes over. Automated questions stop. */
-  acknowledged: (name: string | null, helpUrl: string | null) =>
-    `مننه${name ? ` ${name}` : ''}.\n\nستاسو د آنلاین مشورې غوښتنه ثبت شوه.\n\nزموږ استازی به ډېر ژر له تاسو سره اړیکه ونیسي.` +
-    helpBlock('که کومه پوښتنه لرئ:', helpUrl),
+  /** MESSAGE 2 — name received: request registered (the ONE acknowledgement); staff continue in this chat. */
+  acknowledged: (name: string | null) =>
+    `مننه${name ? `، ${name}` : ''} ✅\n\nستاسو د آنلاین مشورې غوښتنه ثبت شوه.\n\n` +
+    'د eTabeeb همکار به د همدې WhatsApp چټ له لارې له تاسو سره اړیکه ونیسي او د مشورې راتلونکی ګام به درته وښيي.',
   /** Patient writes again at a later stage (sent at most once per stage). */
-  caseInProgress: (helpUrl: string | null) =>
-    'ستاسو غوښتنه زموږ له ټیم سره ده. زموږ استازی به ډېر ژر له تاسو سره اړیکه ونیسي.' + helpBlock('که کومه پوښتنه لرئ:', helpUrl),
-  /** MESSAGE 4 — confirmed by Dr. Jalaluddin: time, secure eTabeeb link (never a raw video token), help. */
-  consultationConfirmed: (timeBlock: string, link: string | null, helpUrl: string | null = null) =>
-    `ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه.\n\nستاسو د آنلاین مشورې وخت:\n\n${timeBlock}\n\n` +
-    (link ? `د مشورې لینک:\n${link}` : 'د مشورې لینک به وروسته درته ولیږل شي.') +
-    helpBlock('مرستې لپاره:', helpUrl),
+  caseInProgress: '✅ ستاسو غوښتنه ثبت او زموږ همکار ته ولېږل شوه.\n\nراتلونکی پیغام به همدلته ترلاسه کړئ.',
+  /** MESSAGE 3 — confirmed by Dr. Jalaluddin: both local times, secure eTabeeb link (never a raw video token). */
+  consultationConfirmed: (timeBlock: string, link: string | null) =>
+    '✅ *ستاسو آنلاین طبي مشوره تایید شوه*\n\n👨‍⚕️ ډاکټر: ډاکټر جلال الدین\n\n' +
+    `${timeBlock}\n\n` +
+    (link ? `کله چې د مشورې وخت راورسیږي، لاندې لینک کېکاږئ:\n\n🎥 *مشوره پیل کړئ*\n${link}` : '🎥 د مشورې لینک به وروسته همدلته درته ولېږل شي.') +
+    `\n\n${REPLY_HERE}`,
   /** Consultation cancelled (reason is a fixed Pashto label — never staff notes). */
-  consultationCancelled: (d: { name: string | null; sex: 'MALE' | 'FEMALE' | null; reason: string; helpUrl: string | null }) =>
-    `${d.sex === 'MALE' ? 'محترم' : d.sex === 'FEMALE' ? 'محترمه' : 'محترم/محترمه'}${d.name ? ` ${d.name}` : ''}،` +
-    '\n\nستاسو د eTabeeb آنلاین مشوره لغوه شوه.\n\n' +
-    `د لغوه کېدو لامل: ${d.reason}` +
-    helpBlock('که غواړئ بله مشوره وټاکئ یا کومه پوښتنه لرئ:', d.helpUrl),
-  /** Caption of the prescription image (first page): ready + optional voice note + help. */
-  prescriptionImageCaption: (d: { withVoice: boolean; pages: number; helpUrl: string | null }) =>
-    'ستاسو د نن ورځې د طبي مشورې نسخه چمتو شوه.' +
+  consultationCancelled: (d: { reason: string }) =>
+    `❌ *ستاسو آنلاین مشوره لغوه شوه.*\n\nلامل: ${d.reason}\n\n` +
+    'که غواړئ بله مشوره واخلئ یا له همکار سره خبرې وکړئ، همدې چټ ته پیغام ولیکئ.',
+  /** Caption of the prescription image (first page): ready + optional voice note + how to ask (no completion claim). */
+  prescriptionImageCaption: (d: { withVoice: boolean; pages: number }) =>
+    '💊 *ستاسو نسخه چمتو شوه.*' +
     (d.pages > 1 ? ` (۱/${toPashtoDigits(d.pages)})` : '') +
-    (d.withVoice ? '\n\nد ډاکټر د لارښوونو غږیز پیغام هم درته استول کېږي.' : '') +
-    helpBlock('که د نسخې یا درملو په اړه کومه پوښتنه لرئ:', d.helpUrl),
-  /** MESSAGE 5 — prescription delivery (the document itself is attached by the sender). */
-  prescriptionReady: 'ستاسو نسخه چمتو ده او له دې پیغام سره درلېږل کېږي. د ښه روغتیا هیله لرو.',
+    '\n\nمهرباني وکړئ درمل د نسخې له لارښوونو سره سم وکاروئ.' +
+    (d.withVoice ? '\n\n🔊 د ډاکټر غږیزه لارښوونه هم درته استول کېږي.' : '') +
+    '\n\nکه د نسخې په اړه پوښتنه لرئ، همدې چټ ته پیغام ولیکئ.\n\nروغ او جوړ اوسئ 🌿',
+  /** Legacy text prescription header (the document itself is attached by the sender). */
+  prescriptionReady: '💊 *ستاسو نسخه چمتو شوه.*\n\nمهرباني وکړئ درمل د نسخې له لارښوونو سره سم وکاروئ.\n\nروغ او جوړ اوسئ 🌿',
 } as const
 
 const toPashtoDigits = (n: number) => String(n).replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]!)
-
-/** Short help line + clean help link on its own line; omitted when no representative is configured. */
-function helpBlock(label: string, helpUrl: string | null): string {
-  return helpUrl ? `\n\n${label}\n${helpUrl}` : ''
-}
 
 /** Patient-safe Pashto label for each cancellation reason code. */
 export const CANCELLATION_REASON_PS: Readonly<Record<string, string>> = {

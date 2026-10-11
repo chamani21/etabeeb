@@ -347,9 +347,9 @@ async function buildTextPayload(
         },
       }
     case 'PATIENT_ACKNOWLEDGED':
-      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.acknowledged(c.patientName, representativeHelpUrl()) } }
+      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.acknowledged(c.patientName) } }
     case 'PATIENT_CASE_IN_PROGRESS':
-      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.caseInProgress(representativeHelpUrl()) } }
+      return { templateValues: null, payload: { ...base, ...(to ? { to } : {}), text: PATIENT_MESSAGES_PS.caseInProgress } }
     case 'ADMIN_NEW_CASE': {
       // Action links: chat with the patient's WhatsApp number, open the case (login returns there)
       const caseUrl = adminCaseUrl(c.id)
@@ -400,7 +400,6 @@ async function buildTextPayload(
         text: PATIENT_MESSAGES_PS.consultationConfirmed(
           c.doctorApprovedTime ? consultationTimeBlockPs(c.doctorApprovedTime) : '',
           link,
-          helpUrl,
         ),
         data: { approvedTime: iso(c.doctorApprovedTime), hasVideoLink: Boolean(video) },
         },
@@ -423,7 +422,7 @@ async function buildTextPayload(
         payload: {
           ...base,
           ...(to ? { to } : {}),
-          text: PATIENT_MESSAGES_PS.consultationCancelled({ name: c.patientName, sex: c.sex, reason, helpUrl }),
+          text: PATIENT_MESSAGES_PS.consultationCancelled({ reason }),
           data: { reason: c.cancellationReason },
         },
       }
@@ -464,7 +463,7 @@ async function buildTextPayload(
       const link = signedMediaUrl({ kind: 'rx-image', id: rxId, page })
       if (!link) return null
       const pages = refs.pages ?? 1
-      const caption = page === 1 ? PATIENT_MESSAGES_PS.prescriptionImageCaption({ withVoice: Boolean(refs.withVoice), pages, helpUrl: representativeHelpUrl() }) : `(${page}/${pages})`
+      const caption = page === 1 ? PATIENT_MESSAGES_PS.prescriptionImageCaption({ withVoice: Boolean(refs.withVoice), pages }) : `(${page}/${pages})`
       return {
         templateValues: page === 1 ? [c.patientName ?? '-'] : null,
         payload: { ...base, ...(to ? { to } : {}), messageKind: 'image', media: { link, caption }, data: { prescriptionId: rxId, page, pages } },

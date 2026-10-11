@@ -412,6 +412,24 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
   })
 
   // ------------------------------------------------------------------
+  describe('help link (single eTabeeb number)', () => {
+    it('with the inbox on and no representative configured, /help opens the eTabeeb chat itself, never a staff phone', async () => {
+      const { representativeChatTarget } = await import('@/lib/etabib/links')
+      delete process.env.ETABIB_REPRESENTATIVE_WHATSAPP
+      process.env.ETABIB_WHATSAPP_DISPLAY_NUMBER = '+92 310 0006526'
+      try {
+        expect(representativeChatTarget()).toMatch(/^https:\/\/wa\.me\/923100006526\?text=/)
+        expect(representativeChatTarget()).not.toContain('9990001') // the admin's own number
+        process.env.ETABIB_REPRESENTATIVE_WHATSAPP = '+923009990009'
+        expect(representativeChatTarget()).toMatch(/^https:\/\/wa\.me\/923009990009/) // explicit setting wins
+      } finally {
+        delete process.env.ETABIB_REPRESENTATIVE_WHATSAPP
+        delete process.env.ETABIB_WHATSAPP_DISPLAY_NUMBER
+      }
+    })
+  })
+
+  // ------------------------------------------------------------------
   describe('staff WhatsApp notices', () => {
     it('handover request notifies the doctor, return notifies the admin: link only, staff numbers, once each', async () => {
       const { c } = await adminOwned()

@@ -47,9 +47,16 @@ export function getDoctorWhatsapp(): string | null {
   return readEnv('ETABIB_DOCTOR_WHATSAPP')
 }
 
-/** Human representative patients can chat with; staging may fall back to the admin number. */
+/**
+ * Where /help sends a patient. With the shared inbox, staff answer inside the one
+ * eTabeeb chat, so the default is the eTabeeb business number itself (never a
+ * staff member's personal number); otherwise the configured representative/admin.
+ */
 export function getRepresentativeWhatsapp(): string | null {
-  return readEnv('ETABIB_REPRESENTATIVE_WHATSAPP') ?? readEnv('ETABIB_ADMIN_WHATSAPP')
+  const explicit = readEnv('ETABIB_REPRESENTATIVE_WHATSAPP')
+  if (explicit) return explicit
+  if (readEnv('ETABIB_INBOX_ENABLED')?.toLowerCase() === 'true') return readEnv('ETABIB_WHATSAPP_DISPLAY_NUMBER') ?? readEnv('ETABIB_ADMIN_WHATSAPP')
+  return readEnv('ETABIB_ADMIN_WHATSAPP')
 }
 
 export function getMetaAppSecret(): string | null {
