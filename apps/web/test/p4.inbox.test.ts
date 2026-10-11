@@ -430,6 +430,58 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
   })
 
   // ------------------------------------------------------------------
+  describe('release safety: /help prefill and active-case routing', () => {
+    it('the /help prefilled greeting never restarts registration or duplicates an active case (bot-owned)', async () => {
+      const { REPRESENTATIVE_PREFILL_PS } = await import('@/lib/etabib/links')
+      const phone = fakePhone()
+      await processInboundMessage(msg(phone, 'Salam'))
+      await processInboundMessage(msg(phone, 'Synthetic Help')) // → ADMIN_INTAKE
+      const r = await processInboundMessage(msg(phone, REPRESENTATIVE_PREFILL_PS))
+      expect(['already_acknowledged', 'case_in_progress']).toContain(r.outcome)
+      expect(r.jobs.filter((j) => j.type === 'ASK_PATIENT_NAME')).toHaveLength(0)
+      expect(await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))).toHaveLength(1)
+      const [kase] = await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))
+      expect(kase!.patientName).toBe('Synthetic Help') // never overwritten by the greeting
+    })
+
+    it('during an active staff-owned case (incl. a pending doctor handover) patient messages reach the same conversation, unchanged ownership', async () => {
+      const { REPRESENTATIVE_PREFILL_PS } = await import('@/lib/etabib/links')
+      const { c, phone } = await adminOwned(fakePhone(), { intake: true })
+      await changeOwnership(c.id, A(), { action: 'request_doctor', expectedVersion: c.ownerVersion, summary: 'SYN' })
+      const before = await conv(phone)
+      const r1 = await processInboundMessage(msg(phone, REPRESENTATIVE_PREFILL_PS))
+      const r2 = await processInboundMessage(msg(phone, 'question for staff'))
+      expect([r1.outcome, r2.outcome]).toEqual(['staff_owned', 'staff_owned'])
+      const after = await conv(phone)
+      expect([after.owner, after.ownerUserId, after.ownerVersion]).toEqual([before.owner, before.ownerUserId, before.ownerVersion])
+      expect((await db.select().from(waHandoverRequests).where(eq(waHandoverRequests.conversationId, c.id)))[0]!.status).toBe('PENDING')
+      const inbound = (await messagesOf(c.id)).filter((m) => m.direction === 'IN' && !m.historical)
+      expect(inbound.map((m) => m.body)).toEqual(expect.arrayContaining([REPRESENTATIVE_PREFILL_PS, 'question for staff']))
+      expect(inbound.every((m) => m.caseLink === 'AUTO' && m.caseId)).toBe(true) // linked to the active case
+      expect(await db.select().from(consultationCases).where(eq(consultationCases.whatsappPhone, phone))).toHaveLength(1)
+      // The admin still owns it and can reply; the doctor cannot until accepting
+      await expect(sendText(c.id, A(), { body: 'ok', clientRequestKey: key(), expectedVersion: after.ownerVersion })).resolves.toBeTruthy()
+      await expect(sendText(c.id, D(), { body: 'x', clientRequestKey: key(), expectedVersion: after.ownerVersion })).rejects.toMatchObject({ code: 'not_owner' })
+    })
+
+    it('confirmed consultation message: valid link, both countries, clean Pashto', async () => {
+      const { id } = await caseAt('CONFIRMED', { adminId: admin.id, doctorId: doctor.id })
+      const [job] = await jobsOf('CONSULTATION_CONFIRMED_PATIENT')
+      await dispatchOutboundJobs([job!.id])
+      const m = n8nBodies().find((b) => b.type === 'CONSULTATION_CONFIRMED_PATIENT')
+      const text: string = m.text
+      const link = text.match(/https:\/\/staging\.example\.test\/consult\/([A-Za-z0-9_-]{43})/)
+      expect(link).toBeTruthy()
+      const { POST: access } = await import('@/app/api/video/patient/access/route')
+      const res = await access(jsonRequest('/x', { token: link![1] }))
+      expect((await res.json()).status).not.toBe('invalid') // the link in the message opens this consultation
+      expect(text).toMatch(/🇵🇰 پاکستان: \d{2} \S+ \d{4} — \d{1,2}:\d{2} \S+\n🇦🇫 افغانستان: \d{2} \S+ \d{4} — \d{1,2}:\d{2} \S+/)
+      expect(text).not.toMatch(/\uFFFD|undefined|null|NaN|\{\{|\}\}/)
+      expect(text).not.toContain(id)
+    })
+  })
+
+  // ------------------------------------------------------------------
   describe('staff WhatsApp notices', () => {
     it('handover request notifies the doctor, return notifies the admin: link only, staff numbers, once each', async () => {
       const { c } = await adminOwned()
