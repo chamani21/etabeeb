@@ -101,13 +101,12 @@ const config: Config = {
       },
       fontFamily: {
         // RTL — Naskh (body workhorse for Pashto, Dari, Urdu)
-        naskh: ['var(--font-noto-naskh-arabic)', 'Scheherazade New', 'serif'],
-        // RTL — Nastaliq (display/doctor names)
-        nastaliq: ['var(--font-noto-nastaliq-urdu)', 'Gulzar', 'serif'],
-        // LTR — Serif headlines
-        serif: ['var(--font-noto-serif)', 'Georgia', 'serif'],
-        // LTR — Data, credentials, numbers
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        naskh: ['var(--font-noto-naskh-arabic)', 'serif'],
+        // Script fallback for the legacy Nastaliq utility; use the bundled Naskh face.
+        nastaliq: ['var(--font-noto-naskh-arabic)', 'serif'],
+        // System UI keeps Latin text lightweight; Naskh covers Arabic-script glyphs.
+        serif: ['Georgia', 'var(--font-noto-naskh-arabic)', 'serif'],
+        sans: ['system-ui', 'Arial', 'var(--font-noto-naskh-arabic)', 'sans-serif'],
       },
       fontSize: {
         // RTL scale

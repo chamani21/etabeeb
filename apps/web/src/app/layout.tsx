@@ -1,34 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter, Noto_Naskh_Arabic, Noto_Nastaliq_Urdu, Noto_Serif } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 import { Providers } from '../components/providers'
 
-// Self-hosted via next/font (no CDN dependency for low-bandwidth regions)
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-})
-
-const notoNaskhArabic = Noto_Naskh_Arabic({
-  subsets: ['arabic'],
-  weight: ['400', '500', '600', '700'],
+// Keep the Pashto font in the release image so builds need no Google Fonts access.
+const notoNaskhArabic = localFont({
+  src: './fonts/NotoNaskhArabic.ttf',
+  weight: '400',
   display: 'swap',
   variable: '--font-noto-naskh-arabic',
-})
-
-const notoNastaliqUrdu = Noto_Nastaliq_Urdu({
-  subsets: ['arabic'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  variable: '--font-noto-nastaliq-urdu',
-})
-
-const notoSerif = Noto_Serif({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  display: 'swap',
-  variable: '--font-noto-serif',
 })
 
 export const metadata: Metadata = {
@@ -71,7 +51,7 @@ export default function RootLayout({
     <html
       lang="ps"
       dir="rtl"
-      className={`${inter.variable} ${notoNaskhArabic.variable} ${notoNastaliqUrdu.variable} ${notoSerif.variable}`}
+      className={notoNaskhArabic.variable}
       suppressHydrationWarning
     >
       <body className="bg-surface text-on-surface font-sans antialiased">
