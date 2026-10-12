@@ -7,7 +7,7 @@
  *
  *   ETABIB_PRIVATE_STORAGE_DIR  default /app/private-uploads (the private Docker volume)
  */
-import { mkdir, readFile, writeFile, stat } from 'fs/promises'
+import { mkdir, readFile, writeFile, stat, rm } from 'fs/promises'
 import { tmpdir } from 'os'
 import path from 'path'
 
@@ -44,6 +44,11 @@ export async function fileExists(key: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/** Remove a file that was never referenced (e.g. a rejected recording). Missing files are ignored. */
+export async function removeFile(key: string): Promise<void> {
+  await rm(resolveKey(key), { force: true })
 }
 
 /** Absolute path for tools that need one (ffmpeg). */

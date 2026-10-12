@@ -12,6 +12,7 @@ const notFound = () => new NextResponse('Not found', { status: 404, headers: { '
 // GET /api/media/w/<signed token>/<name> — media WhatsApp (Meta) fetches for a
 // prescription message. Valid only with an unexpired HMAC-signed token naming one
 // finalized prescription page, one voice note or one staff-sent inbox file. No listing, no guessing.
+// <name> is cosmetic (voice notes use voice.ogg; older inbox links end in /file) and is not trusted.
 export async function GET(_req: NextRequest, { params }: { params: { token: string; name: string } }) {
   const ref = verifyMediaToken(params.token)
   if (!ref) return notFound()
@@ -38,7 +39,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
   if (!key) return notFound()
   const data = await getFile(key)
   if (!data) return notFound()
-  return new NextResponse(new Uint8Array(data), {
-    headers: { 'content-type': type, 'content-length': String(data.length), 'cache-control': 'private, no-store', 'x-robots-tag': 'noindex' },
-  })
+  const headers: Record<string, string> = { 'content-type': type, 'content-length': String(data.length), 'cache-control': 'private, no-store', 'x-robots-tag': 'noindex' }
+  if (type === 'audio/ogg') headers['content-disposition'] = 'inline; filename="voice.ogg"'
+  return new NextResponse(new Uint8Array(data), { headers })
 }

@@ -3,16 +3,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, Notice } from '@/components/staff/ui'
 import { ConfirmDeleteButton } from './ConfirmDeleteButton'
+import { VoiceCapture, type CaptureFailure } from './voice-capture'
 
 const MAX_SECONDS = 5 * 60
 
-/** Best container the browser can record: WebM/Opus (Chrome, Android, Firefox) or MP4/AAC (iPhone Safari). */
-function pickMimeType(): string | undefined {
-  if (typeof MediaRecorder === 'undefined') return undefined
-  for (const t of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/ogg;codecs=opus']) {
-    if (MediaRecorder.isTypeSupported?.(t)) return t
-  }
-  return undefined
+const FAILURE_TEXT: Record<CaptureFailure, string> = {
+  permission: 'Microphone permission was denied. Allow the microphone for this site in the browser settings, then try again.',
+  no_microphone: 'No microphone was found on this device.',
+  start_failed: 'The microphone could not be started.',
+  interrupted: 'Recording was interrupted. Please record again.',
+  empty: 'Nothing was recorded. Please try again.',
 }
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
@@ -37,29 +37,63 @@ export function VoiceRecorder({
   saveLabel?: string
   savingLabel?: string
 }) {
-  const [state, setState] = useState<'idle' | 'recording' | 'paused' | 'recorded' | 'saving'>('idle')
+  const [state, setState] = useState<'idle' | 'starting' | 'recording' | 'paused' | 'recorded' | 'saving'>('idle')
   const [seconds, setSeconds] = useState(0)
   const [blob, setBlob] = useState<Blob | null>(null)
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const rec = useRef<MediaRecorder | null>(null)
-  const stream = useRef<MediaStream | null>(null)
-  const chunks = useRef<Blob[]>([])
+  const capture = useRef<VoiceCapture | null>(null)
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
   const supported = typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia)
 
-  const stopTracks = () => {
-    stream.current?.getTracks().forEach((t) => t.stop())
-    stream.current = null
-  }
   const clearTimer = () => {
     if (timer.current) clearInterval(timer.current)
     timer.current = null
   }
+  // Counts recorded seconds; stops the recording at the limit (also after Resume)
+  const startTimer = () => {
+    clearTimer()
+    timer.current = setInterval(() => {
+      setSeconds((x) => {
+        if (x + 1 >= MAX_SECONDS) capture.current?.stop()
+        return x + 1
+      })
+    }, 1000)
+  }
+  const session = () => {
+    if (!capture.current) {
+      capture.current = new VoiceCapture(
+        { getUserMedia: (c) => navigator.mediaDevices.getUserMedia(c), MediaRecorder },
+        {
+          onRecording: () => {
+            setSeconds(0)
+            setState('recording')
+            startTimer()
+          },
+          onRecorded: (b) => {
+            clearTimer()
+            setBlob(b)
+            setUrl((old) => {
+              if (old) URL.revokeObjectURL(old)
+              return URL.createObjectURL(b)
+            })
+            setState('recorded')
+          },
+          onFailed: (reason) => {
+            clearTimer()
+            setError(FAILURE_TEXT[reason])
+            setState('idle')
+          },
+        },
+      )
+    }
+    return capture.current
+  }
+  // Unmount: stop the recorder and release the microphone
   useEffect(
     () => () => {
       clearTimer()
-      stopTracks()
+      capture.current?.dispose()
     },
     [], // eslint-disable-line react-hooks/exhaustive-deps
   )
@@ -76,78 +110,26 @@ export function VoiceRecorder({
   }, [state])
 
   const start = async () => {
+    const c = session()
+    if (c.busy) return // double tap while the microphone is opening
     setError(null)
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
-      stream.current = s
-      const mimeType = pickMimeType()
-      const r = new MediaRecorder(s, mimeType ? { mimeType } : undefined)
-      chunks.current = []
-      r.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.current.push(e.data)
-      }
-      r.onstop = () => {
-        clearTimer()
-        stopTracks()
-        const b = new Blob(chunks.current, { type: r.mimeType || mimeType || 'audio/webm' })
-        if (b.size === 0) {
-          setError('Nothing was recorded. Please try again.')
-          setState('idle')
-          return
-        }
-        setBlob(b)
-        setUrl((old) => {
-          if (old) URL.revokeObjectURL(old)
-          return URL.createObjectURL(b)
-        })
-        setState('recorded')
-      }
-      r.onerror = () => {
-        setError('Recording was interrupted. Please record again.')
-        clearTimer()
-        stopTracks()
-        setState('idle')
-      }
-      rec.current = r
-      r.start(1000)
-      setSeconds(0)
-      setState('recording')
-      timer.current = setInterval(() => {
-        setSeconds((x) => {
-          if (x + 1 >= MAX_SECONDS && rec.current && rec.current.state !== 'inactive') rec.current.stop()
-          return x + 1
-        })
-      }, 1000)
-    } catch (e) {
-      const name = e instanceof DOMException ? e.name : ''
-      setError(
-        name === 'NotAllowedError' || name === 'SecurityError'
-          ? 'Microphone permission was denied. Allow the microphone for this site in the browser settings, then try again.'
-          : name === 'NotFoundError' || name === 'OverconstrainedError'
-            ? 'No microphone was found on this device.'
-            : 'The microphone could not be started.',
-      )
-      stopTracks()
-      setState('idle')
-    }
+    setState('starting')
+    const r = await c.start()
+    if (r === 'busy' || r === 'cancelled') setState((s) => (s === 'starting' ? 'idle' : s))
   }
   const pause = () => {
-    if (rec.current?.state === 'recording' && typeof rec.current.pause === 'function') {
-      rec.current.pause()
+    if (capture.current?.pause()) {
       clearTimer()
       setState('paused')
     }
   }
   const resume = () => {
-    if (rec.current?.state === 'paused') {
-      rec.current.resume()
+    if (capture.current?.resume()) {
       setState('recording')
-      timer.current = setInterval(() => setSeconds((x) => x + 1), 1000)
+      startTimer()
     }
   }
-  const stop = () => {
-    if (rec.current && rec.current.state !== 'inactive') rec.current.stop()
-  }
+  const stop = () => capture.current?.stop()
   const discard = () => {
     setBlob(null)
     if (url) URL.revokeObjectURL(url)
@@ -172,8 +154,10 @@ export function VoiceRecorder({
   return (
     <div className="space-y-2" data-testid="voice-recorder">
       {patientLabel && <p className="text-sm">For: <b>{patientLabel}</b></p>}
-      {state === 'idle' && (
-        <Button onClick={() => void start()} disabled={disabled} className="min-h-[44px]">{recordLabel}</Button>
+      {(state === 'idle' || state === 'starting') && (
+        <Button onClick={() => void start()} disabled={disabled || state === 'starting'} className="min-h-[44px]" data-testid="voice-record">
+          {state === 'starting' ? 'Starting microphone…' : recordLabel}
+        </Button>
       )}
       {(state === 'recording' || state === 'paused') && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2">

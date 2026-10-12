@@ -13,7 +13,7 @@ import { db } from '@etabeeb/db'
 import { waAttachments, waConversations, waInternalNotes, waMessages } from '@etabeeb/db/schema'
 import { EtabibError } from '../errors'
 import { enqueueOutboundJob, type OutboundJobType } from '../outbound'
-import { putFile, storagePath, getFile } from '../storage'
+import { putFile, storagePath, getFile, removeFile } from '../storage'
 import type { Tx } from '../transitions'
 import { caseLinkFor, latestCaseForContact, openCaseForContact, touchConversation, windowState, type Conversation } from './core'
 import { STAFF_SEND_TYPES, WA_IMAGE_MAX_BYTES, MAX_STAFF_FILE_BYTES, acceptContent, sanitizeFilename, sha256 } from './media'
@@ -133,7 +133,7 @@ export async function sendAudio(conversationId: string, actor: InboxActor, input
   const dup = await existingByKey(conversationId, input.clientRequestKey)
   if (dup) return dup
   const conv = await precheck(actor, conversationId, input.expectedVersion)
-  const { AudioError, VOICE_INPUT_TYPES, VOICE_MAX_BYTES, VOICE_MAX_SECONDS, VOICE_MIN_SECONDS, baseMime, probeDurationMs, transcodeToVoiceOgg } = await import('../rx/audio')
+  const { AudioError, VOICE_INPUT_TYPES, VOICE_MAX_BYTES, baseMime, prepareVoiceNote } = await import('../rx/audio')
   const mime = baseMime(input.mimeType)
   const ext = VOICE_INPUT_TYPES[mime]
   if (!ext) throw new EtabibError('invalid_audio', 'Unsupported audio format', 400)
@@ -144,11 +144,10 @@ export async function sendAudio(conversationId: string, actor: InboxActor, input
   await putFile(originalKey, input.data)
   let durationMs: number
   try {
-    durationMs = await probeDurationMs(storagePath(originalKey))
-    if (durationMs < VOICE_MIN_SECONDS * 1000) throw new AudioError('audio_too_short', 'The recording is too short')
-    if (durationMs > VOICE_MAX_SECONDS * 1000 + 999) throw new AudioError('audio_too_long', 'The recording is longer than 5 minutes')
-    await transcodeToVoiceOgg(storagePath(originalKey), storagePath(deliveryKey))
+    ;({ durationMs } = await prepareVoiceNote(storagePath(originalKey), storagePath(deliveryKey)))
   } catch (error) {
+    // Nothing references a rejected recording: do not leave it behind
+    await Promise.all([removeFile(originalKey), removeFile(deliveryKey)]).catch(() => undefined)
     if (error instanceof AudioError) throw new EtabibError(error.code, error.message, 400)
     throw error
   }

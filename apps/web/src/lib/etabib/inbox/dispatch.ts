@@ -79,9 +79,12 @@ export async function prepareInboxDispatch(job: ClaimedJob, refs: OutboundJobRef
   }
   const [att] = await db.select().from(waAttachments).where(and(eq(waAttachments.messageId, msg.id), eq(waAttachments.conversationId, conv.id))).limit(1)
   if (!att || !att.storageKey || att.fetchStatus !== 'STORED') return { action: 'fail', reason: 'payload_unavailable' }
-  const link = signedMediaUrl({ kind: 'wa-att', id: att.id })
+  const isVoice = job.templateKey === 'INBOX_AUDIO'
+  // A voice note is only ever sent as its OGG/Opus rendition
+  if (isVoice && !att.deliveryKey) return { action: 'fail', reason: 'payload_unavailable' }
+  const link = signedMediaUrl({ kind: 'wa-att', id: att.id }, { name: isVoice ? 'voice.ogg' : 'file' })
   if (!link) return { action: 'fail', reason: 'payload_unavailable' }
-  if (job.templateKey === 'INBOX_AUDIO') return { action: 'send', payload: { ...base, messageKind: 'audio', media: { link, voice: true } } }
+  if (isVoice) return { action: 'send', payload: { ...base, messageKind: 'audio', media: { link, voice: true } } }
   if (job.templateKey === 'INBOX_IMAGE') return { action: 'send', payload: { ...base, messageKind: 'image', media: { link, ...(msg.body ? { caption: msg.body.slice(0, 1024) } : {}) } } }
   return {
     action: 'send',

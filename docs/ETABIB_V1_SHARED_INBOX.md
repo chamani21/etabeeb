@@ -89,8 +89,19 @@ case that reached the doctor (awaiting approval or later). Other ids answer 404.
 - Staff files are streamed only to authorized staff (`private, no-store`, `nosniff`).
   WhatsApp fetches staff-sent files/voice notes through the existing short-lived HMAC
   media links; patient uploads are never public-linkable.
-- Recorded audio: MediaRecorder (WebM/Opus or iPhone MP4/AAC) → FFmpeg → OGG/Opus mono
-  48 kHz (original kept) → WhatsApp voice note. Nothing is sent until “Send voice message”.
+- Recorded audio: MediaRecorder (WebM/Opus or iPhone MP4/AAC) → server validation → FFmpeg →
+  OGG/Opus mono 48 kHz **24 kbps** (~180 KB/min; original kept) → WhatsApp voice note. Nothing is
+  sent until “Send voice message”. Doctor prescription voice notes use the same pipeline.
+  - One recording at a time: the Record button is disabled while the microphone opens, each
+    recording keeps its own chunks, and every microphone stream/recorder is released on stop,
+    error or leaving the page (a double tap once produced two interleaved recordings in one file).
+  - Uploads are rejected (nothing queued, nothing kept on disk) when empty, undecodable, cut off
+    (`audio_truncated`), or containing two recordings mixed (`audio_malformed`: a timestamp jump
+    back > 250 ms). Small timestamp jitter is accepted. The OGG rendition is checked (Opus, mono,
+    48 kHz, same length) before the message is queued.
+  - WhatsApp fetches inbox voice notes at `…/api/media/w/<token>/voice.ogg` (as prescription voice
+    notes always have), served as `audio/ogg` with `filename="voice.ogg"`. Links issued before
+    this change end in `/file` and keep working (the last path segment is not trusted).
 - No OCR, transcription, AI analysis or automatic deletion.
 
 ## Configuration

@@ -569,8 +569,8 @@ export async function addVoiceNote(
   doctor: Doctor,
   upload: { data: Buffer; mimeType: string },
 ): Promise<typeof prescriptionVoiceNotes.$inferSelect> {
-  const { AudioError, VOICE_INPUT_TYPES, VOICE_MAX_BYTES, VOICE_MAX_SECONDS, VOICE_MIN_SECONDS, baseMime, probeDurationMs, transcodeToVoiceOgg } = await import('./audio')
-  const { storagePath } = await import('../storage')
+  const { AudioError, VOICE_INPUT_TYPES, VOICE_MAX_BYTES, baseMime, prepareVoiceNote } = await import('./audio')
+  const { storagePath, removeFile } = await import('../storage')
   const mime = baseMime(upload.mimeType)
   const ext = VOICE_INPUT_TYPES[mime]
   if (!ext) throw new EtabibError('invalid_audio', 'Unsupported audio format', 400)
@@ -585,11 +585,10 @@ export async function addVoiceNote(
   await putFile(originalKey, upload.data)
   let durationMs: number
   try {
-    durationMs = await probeDurationMs(storagePath(originalKey))
-    if (durationMs < VOICE_MIN_SECONDS * 1000) throw new AudioError('audio_too_short', 'The recording is too short')
-    if (durationMs > VOICE_MAX_SECONDS * 1000 + 999) throw new AudioError('audio_too_long', 'The recording is longer than 5 minutes')
-    await transcodeToVoiceOgg(storagePath(originalKey), storagePath(audioKey))
+    ;({ durationMs } = await prepareVoiceNote(storagePath(originalKey), storagePath(audioKey)))
   } catch (error) {
+    // Nothing references a rejected recording: do not leave it behind
+    await Promise.all([removeFile(originalKey), removeFile(audioKey)]).catch(() => undefined)
     if (error instanceof AudioError) throw new EtabibError(error.code, error.message, 400)
     throw error
   }

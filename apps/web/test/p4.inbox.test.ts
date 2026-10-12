@@ -8,9 +8,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 vi.mock('@/lib/auth-helpers', () => ({ getCurrentUser: vi.fn() }))
 
 import { spawnSync } from 'child_process'
-import { mkdtempSync, readFileSync } from 'fs'
-import { tmpdir } from 'os'
-import path from 'path'
+import { createHash } from 'crypto'
+import { existsSync, readdirSync } from 'fs'
 import { NextRequest } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-helpers'
 import { db } from '@etabeeb/db'
@@ -33,6 +32,8 @@ import { GET as viewRoute } from '@/app/api/inbox/conversations/[id]/route'
 import { GET as attachmentRoute } from '@/app/api/inbox/attachments/[id]/route'
 import { GET as mediaRoute } from '@/app/api/media/w/[token]/[name]/route'
 import { hasTestDb, resetDb, createStaffUser, fakePhone, jsonRequest, caseAt, HOOK_KEY } from './helpers'
+import { chromeWebm, cutOff, interleavedWebm, probeFile, safariMp4 } from './audio-fixtures'
+import { getFile, storagePath } from '@/lib/etabib/storage'
 
 const N8N_URL = 'https://n8n.example.test/webhook/outbound'
 const MEDIA_URL = 'https://n8n.example.test/webhook/etabib-media'
@@ -652,17 +653,74 @@ describe.skipIf(!hasTestDb)('shared WhatsApp inbox', () => {
       expect(served.headers.get('content-type')).toBe('image/png')
     })
 
-    it.skipIf(!hasFfmpeg)('recorded audio is converted to OGG/Opus and sent as a voice note', async () => {
+    it.skipIf(!hasFfmpeg)('recorded audio is converted to OGG/Opus and sent as a voice note at a …/voice.ogg link', async () => {
       const { c } = await adminOwned()
-      const dir = mkdtempSync(path.join(tmpdir(), 'inbox-voice-'))
-      const out = path.join(dir, 'rec.webm')
-      spawnSync(process.env.FFMPEG_PATH || 'ffmpeg', ['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2', '-c:a', 'libopus', out])
-      const r = await sendAudio(c.id, A(), { data: readFileSync(out), mimeType: 'audio/webm;codecs=opus', clientRequestKey: key(), expectedVersion: c.ownerVersion })
+      const upload = chromeWebm(3)
+      const r = await sendAudio(c.id, A(), { data: upload, mimeType: 'audio/webm;codecs=opus', clientRequestKey: key(), expectedVersion: c.ownerVersion })
       const [att] = await db.select().from(waAttachments).where(eq(waAttachments.messageId, r.messageId))
-      expect(att!.deliveryKey).toMatch(/\.ogg$/)
-      expect(att!.durationMs).toBeGreaterThan(1500)
+      // the row describes the original (staff playback); deliveryKey is the WhatsApp rendition of the SAME recording
+      expect(att!.storageKey).toBe(`inbox/${c.id}/${att!.id}-original.webm`)
+      expect(att!.deliveryKey).toBe(`inbox/${c.id}/${att!.id}.ogg`)
+      expect(att!.mimeType).toBe('audio/webm')
+      expect(att!.sizeBytes).toBe(upload.length)
+      expect(att!.sha256).toBe(createHash('sha256').update(upload).digest('hex'))
+      expect(att!.durationMs).toBeGreaterThan(2700)
+      expect((await getFile(att!.storageKey!))!.equals(upload)).toBe(true)
+      expect((await readAttachment(A(), att!.id)).contentType).toBe('audio/webm')
+      const rendition = probeFile(storagePath(att!.deliveryKey!))
+      expect(rendition).toMatchObject({ codec: 'opus', channels: 1, sampleRate: 48000, format: 'ogg' })
+      expect(Math.abs(rendition.durationMs - att!.durationMs!)).toBeLessThan(300)
+
       await dispatchOutboundJobs([r.jobId!])
-      expect(n8nBodies().find((b) => b.type === 'INBOX_AUDIO')).toMatchObject({ messageKind: 'audio', media: { voice: true } })
+      const body = n8nBodies().find((b) => b.type === 'INBOX_AUDIO')
+      expect(body).toMatchObject({ messageKind: 'audio', media: { voice: true } })
+      expect(body.media.link).toMatch(/^https:\/\/staging\.example\.test\/api\/media\/w\/[A-Za-z0-9_.-]+\/voice\.ogg$/)
+      // passes the n8n Outbound Sender media-link check (same rule as the workflow's okMediaLink)
+      expect(/^[A-Za-z0-9_.\/-]+$/.test(String(body.media.link).split('/api/media/w/')[1]!)).toBe(true)
+
+      // What WhatsApp downloads: the OGG rendition, byte for byte — through the new link and through old /file links
+      const token = String(body.media.link).split('/api/media/w/')[1]!.split('/')[0]!
+      const ogg = (await getFile(att!.deliveryKey!))!
+      for (const name of ['voice.ogg', 'file']) {
+        const served = await mediaRoute(new NextRequest(body.media.link), { params: { token, name } })
+        expect(served.status).toBe(200)
+        expect(served.headers.get('content-type')).toBe('audio/ogg')
+        expect(served.headers.get('content-disposition')).toBe('inline; filename="voice.ogg"')
+        expect(served.headers.get('content-length')).toBe(String(ogg.length))
+        expect(Buffer.from(await served.arrayBuffer()).equals(ogg)).toBe(true)
+      }
+    })
+
+    it.skipIf(!hasFfmpeg)('iPhone Safari MP4/AAC recordings are sent as the same OGG/Opus voice note', async () => {
+      const { c } = await adminOwned()
+      const r = await sendAudio(c.id, A(), { data: safariMp4(3), mimeType: 'audio/mp4', clientRequestKey: key(), expectedVersion: c.ownerVersion })
+      const [att] = await db.select().from(waAttachments).where(eq(waAttachments.messageId, r.messageId))
+      expect(att!.storageKey).toMatch(/-original\.m4a$/)
+      expect(probeFile(storagePath(att!.deliveryKey!))).toMatchObject({ codec: 'opus', channels: 1, sampleRate: 48000, format: 'ogg' })
+    })
+
+    it.skipIf(!hasFfmpeg)('a damaged recording (double tap / cut off / not audio) is refused: nothing queued, nothing left on disk', async () => {
+      const { c } = await adminOwned()
+      const before = (await messagesOf(c.id)).length
+      for (const [data, code] of [
+        [interleavedWebm(4), 'audio_malformed'],
+        [cutOff(chromeWebm(4)), 'audio_truncated'],
+        [Buffer.from('not audio at all'), 'invalid_audio'],
+      ] as const) {
+        await expect(sendAudio(c.id, A(), { data, mimeType: 'audio/webm', clientRequestKey: key(), expectedVersion: c.ownerVersion })).rejects.toMatchObject({ code, httpStatus: 400 })
+      }
+      expect(await messagesOf(c.id)).toHaveLength(before)
+      expect(await jobsOf('INBOX_AUDIO')).toHaveLength(0)
+      expect(existsSync(storagePath(`inbox/${c.id}`)) ? readdirSync(storagePath(`inbox/${c.id}`)) : []).toEqual([])
+    })
+
+    it('an inbox voice job whose OGG rendition is missing is never sent', async () => {
+      const { c } = await adminOwned()
+      const r = await sendFile(c.id, A(), { data: PNG, mimeType: 'image/png', filename: null, caption: null, clientRequestKey: key(), expectedVersion: c.ownerVersion })
+      // simulate an audio message row without a rendition
+      await db.update(notificationOutbox).set({ templateKey: 'INBOX_AUDIO' }).where(eq(notificationOutbox.id, r.jobId!))
+      await dispatchOutboundJobs([r.jobId!])
+      expect(n8nBodies().filter((b) => b.type === 'INBOX_AUDIO')).toHaveLength(0)
     })
   })
 

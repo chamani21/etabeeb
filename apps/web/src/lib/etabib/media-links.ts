@@ -56,11 +56,18 @@ export function verifyMediaToken(token: string): MediaRef | null {
   }
 }
 
+/**
+ * Last path segment of an inbox file link. Voice notes end in .ogg (as the
+ * doctor's prescription voice notes always have): WhatsApp clients rely on it.
+ * The media route ignores the name, so older `/file` links keep working.
+ */
+export type WaAttachmentLinkName = 'voice.ogg' | 'file'
+
 /** Public HTTPS URL WhatsApp fetches (null when the app URL is not configured). */
-export function signedMediaUrl(ref: Omit<MediaRef, 'exp'>): string | null {
+export function signedMediaUrl(ref: Omit<MediaRef, 'exp'>, opts: { name?: WaAttachmentLinkName } = {}): string | null {
   const base = getAppUrl()
   if (!base) return null
-  if (ref.kind === 'wa-att') return `${base}/api/media/w/${signMediaToken(ref)}/file`
+  if (ref.kind === 'wa-att') return `${base}/api/media/w/${signMediaToken(ref)}/${opts.name ?? 'file'}`
   const ext = ref.kind === 'voice' ? 'ogg' : 'png'
   return `${base}/api/media/w/${signMediaToken(ref)}/${ref.kind === 'voice' ? 'voice' : `page-${ref.page ?? 1}`}.${ext}`
 }
