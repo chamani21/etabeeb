@@ -9,7 +9,7 @@
  *   FFMPEG_PATH / FFPROBE_PATH   binaries (default: ffmpeg / ffprobe on PATH)
  */
 import { execFile } from 'child_process'
-import { stat } from 'fs/promises'
+import { open, stat } from 'fs/promises'
 import { promisify } from 'util'
 
 const run = promisify(execFile)
@@ -55,7 +55,7 @@ export class AudioError extends Error {
  */
 const BACKWARD_JUMP_SECONDS = 0.25
 /** Demuxer messages that mean the upload ends mid-structure. */
-const TRUNCATED_RE = /ended prematurely|truncat|partial file|unexpected end|moov atom not found/i
+const TRUNCATED_RE = /ended prematurely|partial file|unexpected end of|moov atom not found/i
 /** Decoder messages that mean damaged audio data (timestamp-only warnings are not counted). */
 const DECODE_ERROR_RE = /error while decoding|invalid data|corrupt|error parsing|decode error|invalid packet/i
 const TIMESTAMP_ONLY_RE = /\b(dts|pts|timestamps?)\b/i
@@ -68,14 +68,26 @@ type ProbeJson = {
   format?: { format_name?: string; duration?: string }
 }
 
+/** Starts like a WebM/Matroska (EBML) or MP4 (ftyp) container: only then can an unreadable file be a cut-off recording. */
+async function looksLikeRecording(file: string): Promise<boolean> {
+  const fh = await open(file, 'r').catch(() => null)
+  if (!fh) return false
+  try {
+    const head = Buffer.alloc(12)
+    await fh.read(head, 0, 12, 0)
+    return head.subarray(0, 4).equals(Buffer.from('1a45dfa3', 'hex')) || head.subarray(4, 8).toString('latin1') === 'ftyp'
+  } finally {
+    await fh.close()
+  }
+}
+
 async function probe(file: string, packets: boolean): Promise<{ json: ProbeJson; stderr: string }> {
   const entries = 'stream=index,codec_type,codec_name,channels,sample_rate:format=format_name,duration' + (packets ? ':packet=stream_index,pts_time' : '')
   try {
     const { stdout, stderr } = await run(ffprobe(), ['-v', 'error', '-print_format', 'json', '-show_entries', entries, file], { timeout: 30_000, maxBuffer: 64 * 1024 * 1024 })
     return { json: JSON.parse(stdout) as ProbeJson, stderr }
   } catch (error) {
-    const stderr = stderrOf(error)
-    if (TRUNCATED_RE.test(stderr)) throw new AudioError('audio_truncated', 'The recording is incomplete (upload cut off). Please record again.')
+    if (TRUNCATED_RE.test(stderrOf(error)) && (await looksLikeRecording(file))) throw new AudioError('audio_truncated', 'The recording is incomplete (upload cut off). Please record again.')
     throw new AudioError('invalid_audio', 'The recording could not be read')
   }
 }
