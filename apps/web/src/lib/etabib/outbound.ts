@@ -19,15 +19,16 @@ import { notificationOutbox, consultationCases, prescriptions, prescriptionItems
 import type { ConsultationCase } from '@etabeeb/db'
 import { and, eq, asc, inArray, lt, max, notInArray, sql } from 'drizzle-orm'
 import { ETABIB_KEY_HEADER, getAdminWhatsapp, getDoctorWhatsapp, getOutboundConfig } from './config'
-import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, formatPrescriptionTextPs } from './messages.ps'
+import { CANCELLATION_REASON_PS, PATIENT_MESSAGES_PS, VIDEO_JOIN_MESSAGES_PS, formatPrescriptionTextPs } from './messages.ps'
 import { consultationTimeBlockPs, consultationTimeLinePs } from './patient-time'
 import { STAFF_MESSAGES, clinicTime } from './messages.staff'
 import { cancellationReasonLabel } from './cancellation'
 import { adminCaseUrl, adminInboxUrl, doctorCaseUrl, doctorInboxUrl, patientWhatsAppUrl, representativeHelpUrl } from './links'
 import { signedMediaUrl } from './media-links'
-import { JOB_INTENT, buildTemplatePayload, getApprovedTemplates, type TemplatePayload } from './templates'
+import { JOB_INTENT, TEMPLATE_DEFINITIONS, buildTemplatePayload, getApprovedTemplates, type TemplatePayload } from './templates'
 import type { Tx } from './transitions'
-import { mintPatientJoinLink } from './video'
+import { doctorDisplayName, mintPatientJoinLink } from './video'
+import { JOIN_NOTICE_JOB_TYPES, joinNoticeGate, type JoinNoticeJobType } from './video-join'
 import { INBOX_JOB_TYPES, INBOX_JOB_TYPE_SET, botReplySuppressed, captureOutboundMessage, prepareInboxDispatch } from './inbox/dispatch'
 
 export const OUTBOUND_JOB_TYPES = [
@@ -57,6 +58,9 @@ export const OUTBOUND_JOB_TYPES = [
   // Shared inbox: staff notices on their configured WhatsApp numbers
   'STAFF_HANDOVER_REQUEST',
   'STAFF_HANDOVER_RETURNED',
+  // Room-join notices (verified LiveKit participant_joined): doctor joined → patient, patient joined → doctor
+  'VIDEO_DOCTOR_JOINED_PATIENT',
+  'VIDEO_PATIENT_JOINED_DOCTOR',
 ] as const
 export type OutboundJobType = (typeof OUTBOUND_JOB_TYPES)[number]
 
@@ -85,6 +89,8 @@ export const JOB_AUDIENCE: Readonly<Record<OutboundJobType, OutboundAudience>> =
   INBOX_INVITE: 'PATIENT',
   STAFF_HANDOVER_REQUEST: 'DOCTOR',
   STAFF_HANDOVER_RETURNED: 'ADMIN',
+  VIDEO_DOCTOR_JOINED_PATIENT: 'PATIENT',
+  VIDEO_PATIENT_JOINED_DOCTOR: 'DOCTOR',
 }
 
 /** Media jobs WhatsApp can only deliver inside the patient's 24-hour window (no approved media template). */
@@ -500,6 +506,28 @@ async function buildTextPayload(
       const templateValues = [name ?? '-', chatUrl]
       return { templateValues, payload: { ...base, ...(to ? { to } : {}), text, data: { conversationId: refs.conversationId } } }
     }
+    case 'VIDEO_DOCTOR_JOINED_PATIENT': {
+      // The patient's own secure link (same room, expiry and restrictions as the confirmation
+      // link, which keeps working); minted only now, so the raw token exists only in this message.
+      const video = await mintPatientJoinLink(c.id, undefined, { keepExisting: { jobId: job.id } })
+      if (!video) return null
+      const doctorName = await doctorDisplayName()
+      return {
+        // proposed etabib_doctor_joined_ps: {{1}} doctor, {{2}} consultation link
+        templateValues: [doctorName, video.url],
+        payload: { ...base, ...(to ? { to } : {}), text: VIDEO_JOIN_MESSAGES_PS.patientDoctorJoined({ doctorName, link: video.url }), data: { joinedRole: 'DOCTOR' } },
+      }
+    }
+    case 'VIDEO_PATIENT_JOINED_DOCTOR': {
+      // The doctor's authenticated dashboard page (login returns there); no token in the link
+      const caseUrl = doctorCaseUrl(c.id)
+      const patientName = c.patientName ?? '-'
+      return {
+        // proposed etabib_patient_joined_ps: {{1}} patient, {{2}} dashboard link
+        templateValues: [patientName, caseUrl],
+        payload: { ...base, ...(to ? { to } : {}), text: VIDEO_JOIN_MESSAGES_PS.doctorPatientJoined({ patientName, link: caseUrl }), data: { consultationId: c.id, joinedRole: 'PATIENT' } },
+      }
+    }
     case 'PRESCRIPTION_READY': {
       const prescriptionId = refs.prescriptionId ?? c.prescriptionId
       if (!prescriptionId) return null
@@ -580,6 +608,32 @@ async function recipientWindowOpen(phone: string): Promise<boolean> {
 async function windowOpen(caseId: string): Promise<boolean> {
   const last = await lastPatientMessageAt(caseId)
   return Boolean(last && Date.now() - last.getTime() <= WINDOW_MS)
+}
+
+/**
+ * Room-join notices: re-check the room (video-join.ts), then make sure WhatsApp
+ * allows the message. Free-form text only reaches a recipient who wrote to
+ * eTabeeb in the last 24 hours; otherwise the approved template is required and,
+ * if it is not configured yet, the notice is NOT sent (never a non-compliant send).
+ */
+async function joinNoticeHold(
+  job: { templateKey: JoinNoticeJobType; recipientPhone: string | null },
+  refs: OutboundJobRefs,
+): Promise<{ action: 'hold' | 'cancel' | 'fail'; reason: string } | null> {
+  const gate = await joinNoticeGate(refs.consultationId, job.templateKey)
+  if (gate.action !== 'send') return gate
+  let to: string | null
+  if (job.templateKey === 'VIDEO_PATIENT_JOINED_DOCTOR') {
+    to = getDoctorWhatsapp()
+  } else {
+    const [c] = await db.select({ w: consultationCases.whatsappPhone, p: consultationCases.patientPhone }).from(consultationCases).where(eq(consultationCases.id, refs.consultationId)).limit(1)
+    to = job.recipientPhone ?? c?.w ?? c?.p ?? null
+  }
+  if (!to) return { action: 'fail', reason: 'no_recipient: WhatsApp number not configured' }
+  if (await recipientWindowOpen(to)) return null
+  const intent = JOB_INTENT[job.templateKey]!
+  if (getApprovedTemplates()[intent]) return null
+  return { action: 'fail', reason: `template_required: 24-hour window closed and ${TEMPLATE_DEFINITIONS[intent].proposedName} is not approved/configured` }
 }
 
 async function mediaHoldReason(job: { createdAt: Date; templateKey: string }, refs: OutboundJobRefs): Promise<string | null> {
@@ -714,6 +768,19 @@ export async function dispatchOutboundJobs(jobIds: string[]): Promise<DispatchRe
         }
         results.push({ jobId, dispatched: true })
         continue
+      }
+      if (refs && JOIN_NOTICE_JOB_TYPES.has(claimed.templateKey)) {
+        const hold = await joinNoticeHold(claimed as { templateKey: JoinNoticeJobType; recipientPhone: string | null }, refs)
+        if (hold) {
+          // hold = pending (no attempt counted); cancel/fail = final, reason kept for the case page
+          await db
+            .update(notificationOutbox)
+            .set(hold.action === 'hold' ? { status: 'pending', lastError: hold.reason } : { status: hold.action === 'cancel' ? 'cancelled' : 'failed', lastError: hold.reason.slice(0, 200), processedAt: new Date() })
+            .where(and(eq(notificationOutbox.id, jobId), eq(notificationOutbox.status, 'processing')))
+          if (hold.action === 'fail') console.warn(`[etabib:outbound] job ${jobId} (${claimed.templateKey}) not sent: ${hold.reason.split(':')[0]}`)
+          results.push({ jobId, dispatched: false, reason: hold.reason.split(':')[0]! })
+          continue
+        }
       }
       if (await botReplySuppressed(claimed.templateKey, claimed.recipientPhone)) {
         // Shared inbox: a human owns this conversation — the bot stays silent

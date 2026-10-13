@@ -21,11 +21,11 @@
  *    links are revoked and no new tokens are issued.
  */
 import { createHash, randomBytes } from 'crypto'
-import { AccessToken, RoomServiceClient, WebhookReceiver } from 'livekit-server-sdk'
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk'
 import { db } from '@etabeeb/db'
-import { consultationCases, consultationJoinTokens, consultationVideoSessions, practitioners } from '@etabeeb/db/schema'
+import { caseEvents, consultationCases, consultationJoinTokens, consultationVideoSessions, practitioners } from '@etabeeb/db/schema'
 import type { ConsultationCase } from '@etabeeb/db'
-import { and, eq, gt, isNull, sql } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
 import { getLiveKitConfig, getV1DoctorUserId, getVideoWindows } from './config'
 import { EtabibError } from './errors'
 import { consultationUrl, representativeHelpUrl } from './links'
@@ -104,18 +104,54 @@ async function revokeActiveLinks(tx: Tx, session: VideoSession, c: ConsultationC
   return revoked.length
 }
 
+/** Revoke links an earlier dispatch attempt of the same outbox job minted (never the patient's other links). */
+async function revokeLinksOfJob(tx: Tx, session: VideoSession, c: ConsultationCase, actor: Actor, jobId: string): Promise<void> {
+  const rows = await tx
+    .select({ tokenId: sql<string>`${caseEvents.metadata} ->> 'joinTokenId'` })
+    .from(caseEvents)
+    .where(and(eq(caseEvents.consultationId, c.id), eq(caseEvents.eventType, 'VIDEO_LINK_CREATED'), sql`${caseEvents.metadata} ->> 'outboxJobId' = ${jobId}`))
+  const ids = rows.map((r) => r.tokenId).filter(Boolean)
+  if (ids.length === 0) return
+  const revoked = await tx
+    .update(consultationJoinTokens)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(consultationJoinTokens.sessionId, session.id), inArray(consultationJoinTokens.id, ids), isNull(consultationJoinTokens.revokedAt)))
+    .returning({ id: consultationJoinTokens.id })
+  if (revoked.length > 0) {
+    await recordCaseEvent(tx, {
+      caseId: c.id,
+      eventType: 'VIDEO_LINK_REVOKED',
+      oldStatus: c.status,
+      newStatus: c.status,
+      actor,
+      metadata: { videoSessionId: session.id, count: revoked.length, reason: 'join_notice_retry' },
+    })
+  }
+}
+
 /**
  * Mint a fresh patient link (revoking older ones). Used at dispatch time of the
  * patient confirmation message, so only the link actually being sent is valid.
  * Returns null when the case has no (active) video session.
  */
-export async function mintPatientJoinLink(caseId: string, actor: Actor = SYSTEM): Promise<{ url: string; expiresAt: Date } | null> {
+export async function mintPatientJoinLink(
+  caseId: string,
+  actor: Actor = SYSTEM,
+  opts: { keepExisting?: { jobId: string } } = {},
+): Promise<{ url: string; expiresAt: Date } | null> {
   return db.transaction(async (tx) => {
     const [c] = await tx.select().from(consultationCases).where(eq(consultationCases.id, caseId)).limit(1).for('update')
     if (!c || (c.status !== 'CONFIRMED' && c.status !== 'IN_CONSULTATION')) return null
     const session = await sessionForCase(tx, caseId)
     if (!session || session.status === 'ENDED' || session.status === 'EXPIRED') return null
-    await revokeActiveLinks(tx, session, c, actor, 'superseded')
+    if (opts.keepExisting) {
+      // Room-join notice: the patient's earlier link keeps working (same room, expiry and
+      // restrictions). Only a link minted by an earlier attempt of THIS job is revoked,
+      // so dispatch retries never leave extra valid links behind.
+      await revokeLinksOfJob(tx, session, c, actor, opts.keepExisting.jobId)
+    } else {
+      await revokeActiveLinks(tx, session, c, actor, 'superseded')
+    }
     const token = randomBytes(32).toString('base64url')
     const expiresAt = new Date(session.scheduledAt.getTime() + getVideoWindows().linkTtlHours * 3600_000)
     const [row] = await tx
@@ -128,7 +164,12 @@ export async function mintPatientJoinLink(caseId: string, actor: Actor = SYSTEM)
       oldStatus: c.status,
       newStatus: c.status,
       actor,
-      metadata: { videoSessionId: session.id, joinTokenId: row!.id, expiresAt: expiresAt.toISOString() },
+      metadata: {
+        videoSessionId: session.id,
+        joinTokenId: row!.id,
+        expiresAt: expiresAt.toISOString(),
+        ...(opts.keepExisting ? { reason: 'join_notice', outboxJobId: opts.keepExisting.jobId } : {}),
+      },
     })
     return { url: patientJoinUrl(token), expiresAt }
   })
@@ -236,7 +277,7 @@ async function resolveLink(rawToken: string): Promise<{ status: PatientAccessSta
   return { status: 'ok', link }
 }
 
-async function doctorDisplayName(): Promise<string> {
+export async function doctorDisplayName(): Promise<string> {
   const doctorId = getV1DoctorUserId()
   if (doctorId) {
     const [p] = await db.select({ ps: practitioners.displayNamePashto }).from(practitioners).where(eq(practitioners.userId, doctorId)).limit(1)
@@ -374,57 +415,4 @@ export async function getRoomPresence(caseId: string): Promise<{ patient: boolea
   }
 }
 
-// ------------------------------------------------------------------
-// LiveKit webhooks → audit events (participant joined/left, room finished)
-// ------------------------------------------------------------------
-
-export async function handleLiveKitWebhook(rawBody: string, authHeader: string | null): Promise<{ handled: boolean }> {
-  const cfg = getLiveKitConfig()
-  if (!cfg) throw new EtabibError('video_not_configured', 'Video is not configured', 503)
-  let event
-  try {
-    event = await new WebhookReceiver(cfg.apiKey, cfg.apiSecret).receive(rawBody, authHeader ?? undefined)
-  } catch (error) {
-    // Reason only (no header, token or body) so a misconfigured LiveKit webhook is diagnosable.
-    const e = error as { code?: unknown; claim?: unknown; message?: unknown }
-    const reason = !authHeader ? 'missing_authorization' : [e.code, e.claim, e.message].filter((v) => typeof v === 'string').join(' ').slice(0, 160)
-    console.warn(`[etabib:video/livekit-webhook] rejected: ${reason || 'unknown'}`)
-    throw new EtabibError('unauthorized', 'Unauthorized', 401)
-  }
-  const roomName = event.room?.name
-  console.info(`[etabib:video/livekit-webhook] event=${event.event} ours=${roomName?.startsWith('etb-') ? 'maybe' : 'no'}`)
-  if (!roomName) return { handled: false }
-  return db.transaction(async (tx) => {
-    const [session] = await tx.select().from(consultationVideoSessions).where(eq(consultationVideoSessions.roomName, roomName)).limit(1).for('update')
-    if (!session) return { handled: false } // not one of ours
-    const [c] = await tx.select().from(consultationCases).where(eq(consultationCases.id, session.consultationId)).limit(1)
-    if (!c) return { handled: false }
-    const now = new Date()
-    const identity = event.participant?.identity ?? ''
-    const role = identity.startsWith('patient-') ? 'PATIENT' : identity.startsWith('doctor-') ? 'DOCTOR' : null
-    const base = { caseId: c.id, oldStatus: c.status, newStatus: c.status, metadata: { videoSessionId: session.id } }
-
-    if ((event.event === 'participant_joined' || event.event === 'participant_left') && role) {
-      const joined = event.event === 'participant_joined'
-      await recordCaseEvent(tx, {
-        ...base,
-        eventType: `${role}_VIDEO_${joined ? 'JOINED' : 'LEFT'}` as 'PATIENT_VIDEO_JOINED',
-        actor: { type: role, id: null },
-      })
-      const patch: Partial<VideoSession> = { lastActivityAt: now, updatedAt: now }
-      if (joined && role === 'PATIENT' && !session.patientJoinedAt) patch.patientJoinedAt = now
-      if (joined && role === 'DOCTOR' && !session.doctorJoinedAt) patch.doctorJoinedAt = now
-      if (joined && session.status !== 'ENDED') {
-        patch.status = 'IN_PROGRESS'
-        if (!session.startedAt) patch.startedAt = now
-      }
-      await tx.update(consultationVideoSessions).set(patch).where(eq(consultationVideoSessions.id, session.id))
-      return { handled: true }
-    }
-    if (event.event === 'room_finished') {
-      await tx.update(consultationVideoSessions).set({ lastActivityAt: now, updatedAt: now }).where(eq(consultationVideoSessions.id, session.id))
-      return { handled: true }
-    }
-    return { handled: false }
-  })
-}
+// LiveKit webhooks (audit + room-join notices): see video-webhook.ts

@@ -146,6 +146,8 @@ export async function captureOutboundMessage(job: { id: string; templateKey: str
         : payload.messageKind === 'template'
           ? `[${payload.template?.name ?? 'template'}] ${(payload.template?.components ?? []).flatMap((c) => (c.type === 'body' ? c.parameters.map((p) => p.text) : [])).join(' · ')}`
           : (payload.media?.caption ?? null)
+    // The patient's consultation token stays only in the WhatsApp message itself, not in the inbox history
+    const stored = job.templateKey === 'VIDEO_DOCTOR_JOINED_PATIENT' ? body?.replace(/\/consult\/[A-Za-z0-9_-]{20,}/g, '/consult/…') : body
     const kind = payload.messageKind === 'image' || payload.messageKind === 'audio' ? payload.messageKind : payload.messageKind === 'template' ? 'template' : 'text'
     await db.transaction(async (tx) => {
       const [conv] = await tx.select().from(waConversations).where(eq(waConversations.contactPhone, payload.to!)).limit(1)
@@ -158,13 +160,13 @@ export async function captureOutboundMessage(job: { id: string; templateKey: str
           direction: 'OUT',
           senderRole: BOT_TYPES.has(job.templateKey) ? 'BOT' : 'SYSTEM',
           kind,
-          body: body?.slice(0, 4096) ?? null,
+          body: stored?.slice(0, 4096) ?? null,
           outboxJobId: job.id,
           caseId,
           caseLink: caseId ? 'AUTO' : 'NEEDED',
           createdAt: job.createdAt,
         })
-        .onConflictDoUpdate({ target: waMessages.outboxJobId, targetWhere: sql`outbox_job_id IS NOT NULL`, set: { body: body?.slice(0, 4096) ?? null, kind } })
+        .onConflictDoUpdate({ target: waMessages.outboxJobId, targetWhere: sql`outbox_job_id IS NOT NULL`, set: { body: stored?.slice(0, 4096) ?? null, kind } })
       await touchConversation(tx, conv.id, job.createdAt)
     })
   } catch (error) {

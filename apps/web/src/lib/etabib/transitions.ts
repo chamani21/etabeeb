@@ -93,6 +93,9 @@ export const CASE_EVENT_TYPES = [
   'DOCTOR_VIDEO_JOINED',
   'DOCTOR_VIDEO_LEFT',
   'VIDEO_SESSION_ENDED',
+  // Room-join WhatsApp notices (verified LiveKit participant_joined; one decision per role)
+  'VIDEO_JOIN_NOTICE_QUEUED',
+  'VIDEO_JOIN_NOTICE_SKIPPED',
   // Explicit terminal cancellation (cancelCase only)
   'CONSULTATION_CANCELLED',
   // Prescription stage (rx/service): drafting, locking, rendering, delivery — never change status by themselves

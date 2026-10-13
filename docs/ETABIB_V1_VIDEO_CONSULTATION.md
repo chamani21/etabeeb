@@ -52,7 +52,39 @@ Admins cannot obtain room tokens.
 
 `VIDEO_SESSION_CREATED`, `VIDEO_LINK_CREATED`, `VIDEO_LINK_REVOKED`,
 `PATIENT_VIDEO_JOINED/LEFT`, `DOCTOR_VIDEO_JOINED/LEFT` (from signed LiveKit
-webhooks), `VIDEO_SESSION_ENDED`.
+webhooks; metadata: LiveKit event id and participant sid), `VIDEO_SESSION_ENDED`,
+`VIDEO_JOIN_NOTICE_QUEUED/SKIPPED` (room-join notices, with the reason when skipped).
+
+## Room-join notices (WhatsApp)
+
+Doctor enters the room → the patient gets a Pashto WhatsApp notice with their
+consultation link; patient enters → the doctor gets one on `ETABIB_DOCTOR_WHATSAPP`
+with the dashboard case link (login required). Code: `lib/etabib/video-webhook.ts`,
+`video-join.ts`, outbox types `VIDEO_DOCTOR_JOINED_PATIENT` / `VIDEO_PATIENT_JOINED_DOCTOR`.
+
+- **Trigger:** only a signed LiveKit `participant_joined` (never room creation, page
+  opens, token requests or failed connections) for a CONFIRMED / IN_CONSULTATION case.
+- **Who counts:** the identity the server issued for this room (`patient-<session>` /
+  `doctor-<V1 doctor>`) **and** the role in the server-signed token metadata, and a
+  standard participant (agents, recorders, SIP ignored). Prefix-only identities are audited but never notify.
+- **Once:** one decision per role per consultation (queued or skipped). Reconnects,
+  refreshes and LiveKit retries (same event id → ignored) send nothing more. Webhooks of
+  a room are serialized (case → session row lock).
+- **No needless message:** skipped if the recipient is already in the room; at dispatch
+  it is re-checked (recipient joined meanwhile, the person who joined left, case closed
+  → withdrawn). Cancelling a case withdraws a queued notice.
+- **Doctor early:** doctors may enter 60 min early but the patient link opens 15 min
+  before; the notice then waits (`waiting_for_patient_join_window`, not an attempt) and
+  goes out with the scheduler (every 5 min) once the link works.
+- **Patient link:** minted at dispatch with the same session, expiry and restrictions as
+  the confirmation link, which keeps working. A link minted by a failed attempt of the
+  same job is revoked on retry. The token never appears in audit metadata or the inbox history.
+- **WhatsApp rules:** text inside the recipient's 24-hour window; otherwise the approved
+  template (`etabib_doctor_joined_ps` / `etabib_patient_joined_ps`), and if it is not
+  configured the job fails as `template_required` instead of a non-compliant send.
+- **Never blocking:** the webhook answers after the DB commit; dispatch runs afterwards
+  and failures stay in the outbox (retried by the scheduler, visible to the admin).
+- Stale webhooks (> 5 min old, e.g. a retry backlog) are audited but never notify.
 
 ## LiveKit setup (per environment)
 

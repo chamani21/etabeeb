@@ -37,6 +37,8 @@ export const MESSAGE_INTENTS = [
   'STAFF_HANDOVER_REQUEST',
   'STAFF_HANDOVER_RETURNED',
   'PATIENT_REPLY_INVITE',
+  'PATIENT_DOCTOR_JOINED',
+  'DOCTOR_PATIENT_JOINED',
 ] as const
 export type MessageIntent = (typeof MESSAGE_INTENTS)[number]
 
@@ -56,6 +58,8 @@ export const JOB_INTENT: Readonly<Partial<Record<OutboundJobType, MessageIntent>
   STAFF_HANDOVER_REQUEST: 'STAFF_HANDOVER_REQUEST',
   STAFF_HANDOVER_RETURNED: 'STAFF_HANDOVER_RETURNED',
   INBOX_INVITE: 'PATIENT_REPLY_INVITE',
+  VIDEO_DOCTOR_JOINED_PATIENT: 'PATIENT_DOCTOR_JOINED',
+  VIDEO_PATIENT_JOINED_DOCTOR: 'DOCTOR_PATIENT_JOINED',
 }
 
 export interface TemplateDefinition {
@@ -165,6 +169,20 @@ export const TEMPLATE_DEFINITIONS: Readonly<Record<MessageIntent, TemplateDefini
     params: ['name'],
     body: 'محترم/محترمه {{1}}،\n\nستاسو د eTabeeb مشورې په اړه له تاسو سره خبرو ته اړتیا لرو.\n\nمهرباني وکړئ همدې پیغام ته ځواب راکړئ، ترڅو خبرې درسره دوام ورکړو.\n\nمننه.',
     approved: true, wired: true,
+  },
+  // Room-join notices. Meta does not allow a body to end with a variable, so the
+  // template adds a closing line after the link (the free-form text has none).
+  PATIENT_DOCTOR_JOINED: {
+    intent: 'PATIENT_DOCTOR_JOINED', proposedName: 'etabib_doctor_joined_ps', language: 'ps_AF', audience: 'PATIENT', category: 'UTILITY',
+    params: ['doctorName', 'link'],
+    body: '🟢 ډاکټر ستاسو د آنلاین مشورې خونې ته داخل شو.\n\n👨‍⚕️ {{1}} ستاسو په تمه دی.\n\n🎥 د مشورې لپاره لاندې لینک کېکاږئ:\n{{2}}\n\neTabeeb',
+    approved: false, wired: true,
+  },
+  DOCTOR_PATIENT_JOINED: {
+    intent: 'DOCTOR_PATIENT_JOINED', proposedName: 'etabib_patient_joined_ps', language: 'ps_AF', audience: 'DOCTOR', category: 'UTILITY',
+    params: ['patientName', 'link'],
+    body: '🟢 ناروغ د آنلاین مشورې خونې ته داخل شو.\n\n👤 ناروغ: {{1}}\n\nناروغ اوس ستاسو په تمه دی.\n\n🎥 مشوره پرانیزئ:\n{{2}}\n\neTabeeb',
+    approved: false, wired: true,
   },
 }
 

@@ -55,6 +55,18 @@ export const PATIENT_MESSAGES_PS = {
   prescriptionReady: '💊 *ستاسو نسخه چمتو شوه.*\n\nمهرباني وکړئ درمل د نسخې له لارښوونو سره سم وکاروئ.\n\nروغ او جوړ اوسئ 🌿',
 } as const
 
+/**
+ * Room-join notices (sent when a verified LiveKit participant_joined arrives).
+ * patientDoctorJoined → the patient (eTabeeb number); doctorPatientJoined → the
+ * doctor's configured WhatsApp number. Text exactly as specified by eTabeeb.
+ */
+export const VIDEO_JOIN_MESSAGES_PS = {
+  patientDoctorJoined: (d: { doctorName: string; link: string }) =>
+    `🟢 ډاکټر ستاسو د آنلاین مشورې خونې ته داخل شو.\n\n👨‍⚕️ ${d.doctorName} ستاسو په تمه دی.\n\n🎥 د مشورې لپاره لاندې لینک کېکاږئ:\n${d.link}`,
+  doctorPatientJoined: (d: { patientName: string; link: string }) =>
+    `🟢 ناروغ د آنلاین مشورې خونې ته داخل شو.\n\n👤 ناروغ: ${d.patientName}\n\nناروغ اوس ستاسو په تمه دی.\n\n🎥 مشوره پرانیزئ:\n${d.link}`,
+} as const
+
 const toPashtoDigits = (n: number) => String(n).replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]!)
 
 /** Patient-safe Pashto label for each cancellation reason code. */

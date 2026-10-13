@@ -56,6 +56,26 @@ time "2026-10-05 12:00 (Pakistan time)", link "https://staging-v1.etabeeb.online
 help "https://wa.me/923000000000?text=…", reason "د وخت ټاکلو ستونزه",
 intake form "https://staging-v1.etabeeb.online/admin/cases/1a2b3c4d-…".
 
+### Room-join notices (new — submit for approval)
+
+Sent when a verified LiveKit `participant_joined` arrives (see
+`ETABIB_V1_VIDEO_CONSULTATION.md` → Room-join notices). Inside the recipient's 24-hour
+window the exact Pashto text is sent as a normal message. **Outside it the notice is not
+sent at all until the template below is approved and mapped** (job `failed`,
+`template_required: …`) — no non-compliant free-form send is attempted.
+Meta does not accept a body that ends with a variable, so each template adds a closing
+`eTabeeb` line after the link (the free-form text has none).
+
+| Intent | Proposed name | Language | Audience | Body (variables in order) |
+|---|---|---|---|---|
+| `PATIENT_DOCTOR_JOINED` | `etabib_doctor_joined_ps` | `ps_AF` | patient | 🟢 ډاکټر ستاسو د آنلاین مشورې خونې ته داخل شو.⏎⏎👨‍⚕️ {{1}} ستاسو په تمه دی.⏎⏎🎥 د مشورې لپاره لاندې لینک کېکاږئ:⏎{{2}}⏎⏎eTabeeb |
+| `DOCTOR_PATIENT_JOINED` | `etabib_patient_joined_ps` | `ps_AF` | doctor | 🟢 ناروغ د آنلاین مشورې خونې ته داخل شو.⏎⏎👤 ناروغ: {{1}}⏎⏎ناروغ اوس ستاسو په تمه دی.⏎⏎🎥 مشوره پرانیزئ:⏎{{2}}⏎⏎eTabeeb |
+
+Samples: {{1}} "ډاکټر جلال الدین" / "Test Patient"; {{2}}
+"https://app.etabeeb.online/consult/…" / "https://app.etabeeb.online/doctor/cases/1a2b3c4d-…".
+After approval add to `ETABIB_WA_TEMPLATES`:
+`"PATIENT_DOCTOR_JOINED":{"name":"etabib_doctor_joined_ps","language":"ps_AF"},"DOCTOR_PATIENT_JOINED":{"name":"etabib_patient_joined_ps","language":"ps_AF"}`.
+
 ### Verify before submitting
 
 1. **Pashto language code.** `ps_AF` is the proposed code. Confirm Pashto is offered in
