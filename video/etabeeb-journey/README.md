@@ -47,7 +47,7 @@ SHA-256 of the copied doctor photos (identical to the sources):
 ## Missing or unverified, and how each is handled
 
 - **Official eTabeeb logo:** supplied and used (see the manifest).
-- **WhatsApp number:** **+92 310 3336526**, as supplied by the client. It is shown on the end card. Note that it differs from the numbers in `README.md` and the public HTML pages, which may need updating.
+- **WhatsApp number:** **+92 310 0006526**, as supplied by the client. It is shown on the end card. Note that it differs from the numbers in `README.md` and the public HTML pages, which may need updating.
 - **Doctor qualifications:** the doctor profile page lists credentials, ratings and a licence ID, but it is a generated design mock-up, so none of them are verified. Only the name «ډاکټر جلال الدین / Dr. Jalaluddin» is shown.
 - **Call modes:** the V1 backend uses an external https consultation link (`docs/ETABIB_V1_BACKEND.md` §9) and doesn't specify the modes. The video says "online consultation" and doesn't claim audio-or-video. The UI shows only a neutral room with mic and camera controls.
 - **Prescription format:** there is no PDF renderer yet (§11; only a `pdf_key` column exists). The attachment is shown as a generic document «سند», with no format named. The preview is marked «نمونه» (sample), contains no medicines, doses or patient data, and has an empty verification-code box.
