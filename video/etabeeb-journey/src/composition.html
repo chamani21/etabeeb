@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="ps" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>eTabeeb Journey</title>
+<style>
+@font-face{font-family:Naskh;src:url(../assets/fonts/noto-naskh-arabic-arabic-400-normal.woff2) format("woff2");font-weight:400}
+@font-face{font-family:Naskh;src:url(../assets/fonts/noto-naskh-arabic-arabic-700-normal.woff2) format("woff2");font-weight:700}
+@font-face{font-family:Inter;src:url(../assets/fonts/inter-latin-400-normal.woff2) format("woff2");font-weight:400}
+@font-face{font-family:Inter;src:url(../assets/fonts/inter-latin-600-normal.woff2) format("woff2");font-weight:600}
+@font-face{font-family:Inter;src:url(../assets/fonts/inter-latin-800-normal.woff2) format("woff2");font-weight:800}
+:root{
+  --primary:#00523a; --primary-c:#006d4e; --forest:#0B3D2E; --gold:#cca72f; --ivory:#F8F5ED;
+  --surface:#e6fff6; --muted:#5D6F69; --out:#d9fdd3; --in:#ffffff; --wall:#efe7dc;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
+body{font-family:Naskh,Inter,sans-serif;color:#10231d}
+.lat{font-family:Inter,sans-serif}
+#stage{position:absolute;inset:0;overflow:hidden;background:#000}
+.layer{position:absolute;inset:0;opacity:0}
+
+/* ---------- outdoor ---------- */
+#outdoor svg.land{position:absolute;inset:0;width:1080px;height:1920px}
+#outdoor .cam{position:absolute;inset:0;transform-origin:540px 1150px}
+
+/* ---------- admin ---------- */
+#admin{background:linear-gradient(180deg,#e9f3ef,#d7ebe3)}
+#admin .cam{position:absolute;inset:0;transform-origin:540px 700px}
+.panel{position:absolute;left:70px;top:170px;width:940px;background:#fff;border-radius:34px;box-shadow:0 30px 70px rgba(11,61,46,.18);overflow:hidden}
+.panel .bar{height:96px;background:var(--forest);display:flex;align-items:center;gap:18px;padding:0 34px;color:#fff;font-size:36px;font-weight:700}
+.panel .bar .dots{margin-inline-start:auto;display:flex;gap:10px}
+.panel .bar .dots i{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.35);display:block}
+.panel .body{padding:34px 40px 40px}
+.case{display:flex;align-items:center;gap:22px;padding-bottom:26px;border-bottom:2px solid #e3ece8}
+.case .av{width:96px;height:96px;border-radius:50%;background:#e8dccb;overflow:hidden;flex:none}
+.case .nm{font-size:38px;font-weight:700}
+.case .sub{font-size:28px;color:var(--muted)}
+.pill{margin-inline-start:auto;padding:8px 24px;border-radius:999px;font-size:28px;font-weight:700;background:#fff4d6;color:#6b5400;white-space:nowrap}
+.pill.ok{background:#d6f5e6;color:#005139}
+.steps{margin-top:26px;display:flex;flex-direction:column;gap:18px}
+.step{display:flex;align-items:center;gap:22px;font-size:36px;padding:16px 22px;border-radius:20px;background:#f5f8f7}
+.step .ck{width:54px;height:54px;border-radius:50%;border:4px solid #c3d0cb;flex:none;display:flex;align-items:center;justify-content:center}
+.step .ck svg{width:34px;height:34px;opacity:0}
+.step.done .ck{background:var(--primary-c);border-color:var(--primary-c)}
+.step.done .ck svg{opacity:1}
+.sent{margin-top:26px;display:flex;align-items:center;gap:18px;font-size:32px;color:#005139;background:#e3f7ee;border-radius:20px;padding:18px 24px;opacity:0}
+.side-tag{position:absolute;left:70px;top:1180px;width:940px;text-align:center;font-size:30px;color:var(--muted)}
+
+/* ---------- phone ---------- */
+#phone{background:radial-gradient(1200px 1400px at 50% 40%,#2c5a4b 0%,#123a2f 55%,#0a241d 100%)}
+#phone .cam{position:absolute;inset:0;transform-origin:540px 620px}
+.device{position:absolute;left:200px;top:96px;width:680px;height:1300px;border-radius:96px;background:#16191a;padding:16px;
+  box-shadow:0 0 0 3px #3b4245 inset,0 40px 90px rgba(0,0,0,.55)}
+.device:before{content:"";position:absolute;right:-6px;top:300px;width:6px;height:130px;border-radius:4px;background:#2a2f31}
+.device:after{content:"";position:absolute;left:-6px;top:260px;width:6px;height:90px;border-radius:4px;background:#2a2f31}
+.screen{position:relative;width:648px;height:1268px;border-radius:80px;overflow:hidden;background:var(--wall)}
+.island{position:absolute;top:18px;left:50%;width:180px;height:50px;margin-left:-90px;border-radius:30px;background:#000;z-index:20}
+.sbar{position:absolute;top:0;left:0;right:0;height:84px;display:flex;align-items:center;justify-content:space-between;padding:20px 62px 0;font-family:Inter;font-weight:600;font-size:26px;z-index:19;direction:ltr;color:#fff}
+.sbar.dark{color:#10231d}
+.sbar .ic{display:flex;gap:10px;align-items:center}
+.scr{position:absolute;inset:0;opacity:0}
+
+/* chat */
+.chat .hdr{position:absolute;top:0;left:0;right:0;height:196px;background:var(--primary-c);display:flex;align-items:flex-end;gap:16px;padding:0 24px 22px;color:#fff;z-index:5}
+.chat .hdr .av{width:84px;height:84px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;border:3px solid var(--gold)}
+.chat .hdr .av span{font-size:30px;font-weight:700;color:var(--forest);line-height:1}
+.chat .hdr .nm{font-size:34px;font-weight:700;line-height:1.25}
+.chat .hdr .nm b{font-family:Inter;font-weight:600;font-size:26px;opacity:.85;margin-inline-start:8px}
+.chat .hdr .st{font-size:24px;opacity:.85;line-height:1.3}
+.chat .hdr .more{margin-inline-start:auto;margin-bottom:22px}
+.chat .wall{position:absolute;top:196px;bottom:118px;left:0;right:0;overflow:hidden;
+  background-color:var(--wall);
+  background-image:radial-gradient(rgba(11,61,46,.06) 2px,transparent 2.5px),radial-gradient(rgba(204,167,47,.07) 2px,transparent 2.5px);
+  background-size:46px 46px,46px 46px;background-position:0 0,23px 23px}
+.msgs{position:absolute;left:0;right:0;bottom:0;padding:0 22px 18px;display:flex;flex-direction:column}
+.day{align-self:center;background:#fff;border-radius:14px;font-size:22px;padding:4px 18px;color:var(--muted);margin:16px 0 10px;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.mw{overflow:visible;position:relative}
+.m{position:relative;max-width:84%;padding:14px 22px 12px;border-radius:24px;font-size:33px;line-height:1.62;box-shadow:0 1.5px 1px rgba(0,0,0,.10);margin-top:12px;transform-origin:bottom}
+.m .tx{white-space:pre-line}
+.m.in{align-self:flex-start;background:var(--in);border-start-start-radius:6px;margin-inline-end:auto}
+.m.out{align-self:flex-end;background:var(--out);border-start-end-radius:6px;margin-inline-start:auto}
+.mw.in{display:flex;justify-content:flex-start}
+.mw.out{display:flex;justify-content:flex-end}
+.m .meta{display:flex;justify-content:flex-end;gap:6px;align-items:center;font-family:Inter;font-size:19px;color:#6b7c76;margin-top:2px;direction:ltr}
+.m .meta{justify-content:flex-start}
+.m .ltr{direction:ltr;unicode-bidi:isolate;font-family:Inter;letter-spacing:2px;font-size:31px}
+.m .slot{display:inline-flex;align-items:center;gap:10px;margin-top:8px;padding:6px 16px;border-radius:14px;background:#eef6f2;font-size:29px;color:#005139}
+.m .link{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:31px;color:#0a6fb5;font-weight:700;position:relative}
+.m .link u{text-decoration-thickness:2px;text-underline-offset:6px}
+.m.doc{padding:12px}
+.docbox{display:flex;align-items:center;gap:18px;background:#f2f4f3;border-radius:18px;padding:18px 20px;width:420px;position:relative}
+.docbox .ico{width:66px;height:80px;border-radius:10px;background:#fff;border:2px solid #cfd8d4;display:flex;align-items:center;justify-content:center;flex:none}
+.docbox .t1{font-size:31px;font-weight:700;line-height:1.4}
+.docbox .t2{font-size:23px;color:var(--muted)}
+.typing{align-self:flex-start;background:#fff;border-radius:24px;border-start-start-radius:6px;padding:20px 26px;display:flex;gap:10px;margin-top:12px;box-shadow:0 1.5px 1px rgba(0,0,0,.10)}
+.typing i{width:14px;height:14px;border-radius:50%;background:#9aaaa4;display:block}
+.inbar{position:absolute;left:0;right:0;bottom:0;height:118px;background:#f0ebe3;display:flex;align-items:flex-start;gap:14px;padding:14px 18px 0}
+.inbar .field{flex:1;height:72px;background:#fff;border-radius:36px;display:flex;align-items:center;padding:0 26px;font-size:30px;color:#94a19c;gap:14px;overflow:hidden;white-space:nowrap}
+.inbar .field .txt{color:#10231d}
+.inbar .field .caret{width:3px;height:36px;background:var(--primary-c)}
+.inbar .btn{width:72px;height:72px;border-radius:50%;background:var(--primary-c);display:flex;align-items:center;justify-content:center;flex:none}
+
+/* waiting room */
+.wait{background:var(--ivory)}
+.wait .url{position:absolute;top:84px;left:22px;right:22px;height:64px;border-radius:32px;background:#e9e4d8;display:flex;align-items:center;justify-content:center;gap:12px;font-size:27px;color:#3f4943}
+.wait .card{position:absolute;top:200px;left:34px;right:34px;background:#fff;border-radius:40px;padding:46px 34px 40px;text-align:center;box-shadow:0 20px 50px rgba(11,61,46,.12)}
+.wait .brand{font-size:30px;color:var(--primary);font-weight:700}
+.wait h2{font-size:44px;font-weight:700;margin:6px 0 24px}
+.wait .ph{width:250px;height:250px;border-radius:50%;margin:0 auto;padding:7px;background:linear-gradient(135deg,var(--primary),var(--gold))}
+.wait .ph img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;background:#fff}
+.wait .dn{font-size:42px;font-weight:700;margin-top:22px}
+.wait .dl{font-family:Inter;font-size:26px;color:var(--muted);margin-top:-4px}
+.wait .status{margin:30px auto 0;display:inline-flex;align-items:center;gap:14px;font-size:31px;padding:12px 28px;border-radius:999px;background:#fff6dc;color:#5b4800}
+.wait .status.ok{background:#d6f5e6;color:#005139}
+.wait .dotz{display:inline-flex;gap:8px}
+.wait .dotz i{width:11px;height:11px;border-radius:50%;background:currentColor;display:block}
+.wait .perms{display:flex;justify-content:center;gap:22px;margin-top:30px;font-size:27px;color:var(--muted)}
+.wait .perms span{display:inline-flex;align-items:center;gap:8px;background:#f2f5f4;padding:10px 20px;border-radius:16px}
+.wait .join{position:absolute;left:60px;right:60px;top:1060px;height:110px;border-radius:55px;background:var(--primary-c);color:#fff;font-size:40px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:16px}
+.wait .join.off{background:#b9c6c1}
+
+/* call */
+.call{background:#0e1d18}
+.call .top{position:absolute;top:96px;left:0;right:0;text-align:center;color:#d6efe5;font-size:28px}
+.call .doc{position:absolute;top:150px;left:20px;right:20px;height:600px;border-radius:36px;overflow:hidden;background:#d9d9d6}
+.call .doc img{width:100%;height:100%;object-fit:cover;object-position:50% 30%;display:block}
+.call .doc .nm{position:absolute;bottom:22px;right:22px;background:rgba(10,30,24,.78);color:#fff;border-radius:18px;padding:8px 22px;font-size:32px;font-weight:700}
+.call .doc .nm small{display:block;font-family:Inter;font-weight:400;font-size:21px;opacity:.85;margin-top:-4px}
+.call .doc .tag{position:absolute;top:20px;left:20px;background:rgba(255,255,255,.88);color:#10231d;border-radius:14px;padding:4px 16px;font-size:23px}
+.call .me{position:absolute;top:770px;left:24px;width:190px;height:236px;border-radius:26px;overflow:hidden;background:#cfe0d8;border:3px solid #2f5246}
+.call .me svg{width:100%;height:100%}
+.call .me .lb{position:absolute;bottom:8px;right:10px;background:rgba(10,30,24,.75);color:#fff;font-size:22px;border-radius:10px;padding:0 12px}
+.call .chips{position:absolute;top:770px;right:24px;width:400px;display:flex;flex-direction:column;gap:10px}
+.chip{display:flex;align-items:center;gap:14px;background:#fff;border-radius:20px;padding:5px 18px;font-size:29px;font-weight:700;color:#0b3d2e;opacity:0}
+.chip .ci{width:48px;height:48px;border-radius:14px;background:#e3f4ec;display:flex;align-items:center;justify-content:center;flex:none}
+.call .ctrls{position:absolute;bottom:40px;left:0;right:0;display:flex;justify-content:center;gap:36px}
+.call .ctrls div{width:92px;height:92px;border-radius:50%;background:#2b3e38;display:flex;align-items:center;justify-content:center}
+.call .ctrls .end{background:#d93a33}
+
+/* doc viewer */
+.viewer{background:#1f2624}
+.viewer .vh{position:absolute;top:84px;left:0;right:0;height:90px;display:flex;align-items:center;gap:18px;padding:0 30px;color:#fff;font-size:32px;font-weight:700}
+.page{position:absolute;top:196px;left:34px;right:34px;height:900px;background:#fff;border-radius:10px;padding:36px 34px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.page .ph{display:flex;align-items:center;justify-content:space-between;border-bottom:4px solid var(--primary-c);padding-bottom:14px}
+.page .ph .b1{font-size:40px;font-weight:700;color:var(--forest);line-height:1.2}
+.page .ph .b2{font-family:Inter;font-size:22px;color:var(--muted)}
+.page .dr{font-size:30px;font-weight:700;text-align:left;line-height:1.3}
+.page .dr small{display:block;font-family:Inter;font-size:20px;font-weight:400;color:var(--muted)}
+.page .row{display:flex;gap:16px;align-items:center;font-size:28px;margin-top:20px;color:#3f4943}
+.page .row .ln{flex:1;height:3px;background:repeating-linear-gradient(90deg,#c8d2ce 0 12px,transparent 12px 20px)}
+.page .rx{font-family:Inter;font-weight:800;font-size:64px;color:var(--primary-c);margin-top:24px}
+.page .bars{display:flex;flex-direction:column;gap:22px;margin-top:10px}
+.page .bars i{display:block;height:22px;border-radius:11px;background:#e5ebe8}
+.page .foot{position:absolute;bottom:30px;left:34px;right:34px;display:flex;justify-content:space-between;align-items:flex-end;font-size:24px;color:var(--muted)}
+.page .qr{width:110px;height:110px;border:3px dashed #b5c2bd;border-radius:10px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:19px;line-height:1.3}
+.page .wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-24deg);font-size:190px;font-weight:700;color:rgba(200,40,40,.16);white-space:nowrap}
+.page .sample{position:absolute;top:120px;left:34px;background:#c62828;color:#fff;font-size:30px;font-weight:700;padding:6px 22px;border-radius:12px}
+
+/* taps */
+.tapdot{position:absolute;left:50%;top:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;background:rgba(255,255,255,.55);border:4px solid rgba(0,109,78,.85);pointer-events:none;opacity:0;z-index:30}
+
+/* end card */
+#endcard{background:radial-gradient(1100px 1300px at 50% 35%,#0c6a4c 0%,#0B3D2E 60%,#072a20 100%);color:#fff;text-align:center}
+.logo-ph{position:absolute;top:150px;left:200px;width:680px;height:220px;border:4px dashed var(--gold);border-radius:34px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.logo-ph .w1{font-size:92px;font-weight:700;line-height:1.1}
+.logo-ph .w2{font-family:Inter;font-weight:800;font-size:46px;letter-spacing:1px;color:#ffe9a6}
+.logo-tag{position:absolute;top:384px;left:0;right:0;font-size:22px;color:var(--gold);font-family:Naskh,Inter}
+.end-photo{position:absolute;top:450px;left:330px;width:420px;height:525px;border-radius:40px;overflow:hidden;box-shadow:0 0 0 6px var(--gold),0 30px 70px rgba(0,0,0,.45)}
+.end-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.end-name{position:absolute;top:1000px;left:0;right:0;font-size:56px;font-weight:700}
+.end-lat{position:absolute;top:1082px;left:0;right:0;font-family:Inter;font-size:34px;color:#cdebdf}
+.cta{position:absolute;top:1160px;left:90px;right:90px;height:104px;border-radius:52px;background:#fff;color:var(--forest);display:flex;align-items:center;justify-content:center;gap:18px;font-size:38px;font-weight:700}
+.num-ph{position:absolute;top:1284px;left:220px;right:220px;height:70px;border-radius:35px;border:3px dashed var(--gold);display:flex;align-items:center;justify-content:center;font-size:28px;color:#ffe9a6;gap:10px}
+.disc{position:absolute;top:1376px;left:80px;right:80px;font-size:36px;color:#fff;background:rgba(0,0,0,.22);border-radius:22px;padding:12px 20px}
+
+/* overlays */
+#cap{position:absolute;left:60px;right:60px;top:1440px;display:flex;justify-content:center;pointer-events:none;z-index:50}
+#cap div{background:rgba(7,36,28,.86);color:#fff;font-size:44px;font-weight:700;line-height:1.6;padding:16px 34px 20px;border-radius:26px;text-align:center;max-width:960px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+#tag{position:absolute;top:34px;left:0;right:0;display:flex;justify-content:center;z-index:50}
+#tag span{background:rgba(255,255,255,.88);color:#3f4943;font-size:25px;border-radius:999px;padding:4px 22px}
+#fade{position:absolute;inset:0;background:#000;z-index:60;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- OUTDOOR -->
+  <div class="layer" id="outdoor"><div class="cam" id="outCam">
+    <svg class="land" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#bcd6df"/><stop offset=".55" stop-color="#f1e2c8"/><stop offset="1" stop-color="#f6d9b0"/>
+        </linearGradient>
+        <linearGradient id="gr" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#d9bb8e"/><stop offset="1" stop-color="#c4a074"/>
+        </linearGradient>
+        <linearGradient id="wallg" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#c79c6c"/><stop offset="1" stop-color="#b98c5d"/>
+        </linearGradient>
+      </defs>
+      <rect width="1080" height="1000" fill="url(#sky)"/>
+      <circle cx="820" cy="430" r="80" fill="#fff3d6" opacity=".9"/>
+      <path d="M0 800 L120 690 L230 760 L380 620 L520 740 L640 650 L780 760 L900 680 L1080 790 L1080 1000 L0 1000Z" fill="#a8b7bd"/>
+      <path d="M0 870 L160 770 L300 850 L430 760 L600 860 L760 780 L920 870 L1080 820 L1080 1000 L0 1000Z" fill="#b89a7a"/>
+      <path d="M0 930 L200 870 L420 920 L640 880 L860 930 L1080 900 L1080 1000 L0 1000Z" fill="#c9a983"/>
+      <rect y="960" width="1080" height="960" fill="url(#gr)"/>
+      <!-- road winding to distant mountains -->
+      <path d="M470 960 C 520 990, 380 1010, 420 1040 C 470 1080, 300 1100, 260 1180 L 360 1180 C 400 1110, 560 1080, 500 1040 C 460 1010, 560 990, 490 960 Z" fill="#ead6b2" opacity=".9"/>
+      <!-- low courtyard wall -->
+      <rect x="0" y="1060" width="600" height="120" fill="#c69e70"/>
+      <rect x="0" y="1052" width="600" height="14" fill="#b38b5f"/>
+      <!-- house -->
+      <rect x="560" y="760" width="520" height="420" fill="url(#wallg)"/>
+      <rect x="548" y="744" width="532" height="26" fill="#a87f53"/>
+      <g stroke="#a98055" stroke-width="3" opacity=".5">
+        <line x1="560" y1="830" x2="1080" y2="830"/><line x1="560" y1="900" x2="1080" y2="900"/>
+        <line x1="560" y1="1110" x2="1080" y2="1110"/>
+      </g>
+      <rect x="620" y="870" width="100" height="100" rx="6" fill="#5b3f28"/>
+      <g stroke="#8a6440" stroke-width="6"><line x1="670" y1="870" x2="670" y2="970"/><line x1="620" y1="920" x2="720" y2="920"/></g>
+      <rect x="780" y="920" width="140" height="260" rx="8" fill="#6e4a2c"/>
+      <rect x="796" y="940" width="50" height="220" rx="4" fill="#7d5636"/>
+      <rect x="854" y="940" width="50" height="220" rx="4" fill="#7d5636"/>
+      <circle cx="848" cy="1060" r="6" fill="#d5b26a"/>
+      <!-- tree -->
+      <rect x="150" y="840" width="34" height="250" rx="10" fill="#6c4a2e"/>
+      <circle cx="120" cy="820" r="90" fill="#7d9858"/><circle cx="220" cy="790" r="100" fill="#89a463"/>
+      <circle cx="170" cy="720" r="85" fill="#93ad6c"/><circle cx="260" cy="860" r="70" fill="#7a9455"/>
+      <!-- charpai -->
+      <g>
+        <rect x="320" y="1340" width="500" height="34" rx="6" fill="#8a5a33"/>
+        <rect x="336" y="1318" width="468" height="30" rx="6" fill="#dcc69a"/>
+        <g stroke="#bfa676" stroke-width="3">
+          <line x1="350" y1="1320" x2="380" y2="1346"/><line x1="400" y1="1320" x2="430" y2="1346"/><line x1="450" y1="1320" x2="480" y2="1346"/>
+          <line x1="660" y1="1320" x2="690" y2="1346"/><line x1="710" y1="1320" x2="740" y2="1346"/><line x1="760" y1="1320" x2="790" y2="1346"/>
+        </g>
+        <rect x="330" y="1370" width="26" height="120" rx="8" fill="#7a4d2b"/>
+        <rect x="784" y="1370" width="26" height="120" rx="8" fill="#7a4d2b"/>
+        <ellipse cx="570" cy="1500" rx="300" ry="20" fill="#000" opacity=".08"/>
+        <!-- tea set -->
+        <rect x="712" y="1282" width="44" height="40" rx="10" fill="#4f7c8a"/>
+        <path d="M756 1294 q22 0 18 18" stroke="#4f7c8a" stroke-width="6" fill="none"/>
+        <rect x="674" y="1300" width="24" height="22" rx="5" fill="#f4efe4"/>
+      </g>
+      <g id="patientWide" transform="translate(390 880) scale(0.9)"></g>
+      <!-- notification bubble above phone -->
+      <g id="notif" opacity="0">
+        <rect x="598" y="1010" width="96" height="74" rx="22" fill="#fff"/>
+        <path d="M618 1084 l-6 22 l26 -22z" fill="#fff"/>
+        <circle cx="646" cy="1047" r="22" fill="#006d4e"/>
+        <path d="M635 1047 l8 8 l14 -16" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </svg>
+  </div></div>
+
+  <!-- ADMIN -->
+  <div class="layer" id="admin"><div class="cam" id="admCam">
+    <div class="panel">
+      <div class="bar">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+        <span>اډمین پینل · د غوښتنې کتنه</span>
+        <div class="dots"><i></i><i></i><i></i></div>
+      </div>
+      <div class="body">
+        <div class="case">
+          <div class="av" id="admAv"></div>
+          <div>
+            <div class="nm">احمد ګل <span style="font-size:26px;color:var(--muted);font-weight:400">(فرضي ناروغ)</span></div>
+            <div class="sub">د واټساپ له لارې نوې غوښتنه</div>
+          </div>
+          <div class="pill" id="admPill">نوې غوښتنه</div>
+        </div>
+        <div class="steps" id="admSteps"></div>
+        <div class="sent" id="admSent">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="#005139"><path d="M3 20l18-8L3 4v6l12 2-12 2z"/></svg>
+          <span>تایید ناروغ ته په همدې واټساپ کې ولېږل شو</span>
+        </div>
+      </div>
+    </div>
+    <div class="side-tag">د اډمین اړخ · یوازې د ښودلو لپاره</div>
+  </div></div>
+
+  <!-- PHONE -->
+  <div class="layer" id="phone"><div class="cam" id="phCam">
+    <div class="device"><div class="screen" id="screen">
+      <div class="island"></div>
+      <div class="sbar" id="sbar"><span>10:04</span><span class="ic">
+        <svg width="34" height="22" viewBox="0 0 34 22" fill="currentColor"><rect x="0" y="14" width="6" height="8" rx="1"/><rect x="9" y="10" width="6" height="12" rx="1"/><rect x="18" y="5" width="6" height="17" rx="1"/><rect x="27" y="0" width="6" height="22" rx="1" opacity=".4"/></svg>
+        <svg width="48" height="24" viewBox="0 0 48 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="2" width="40" height="20" rx="6"/><rect x="5" y="6" width="26" height="12" rx="3" fill="currentColor"/><rect x="43" y="8" width="3" height="8" rx="1" fill="currentColor"/></svg>
+      </span></div>
+
+      <!-- chat -->
+      <div class="scr chat" id="sChat">
+        <div class="hdr">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" style="margin-bottom:22px"><path d="M9 5l7 7-7 7"/></svg>
+          <div class="av"><span>ای</span></div>
+          <div>
+            <div class="nm">ای طبیب<b>eTabeeb</b></div>
+            <div class="st">آنلاین طبي مشوره</div>
+          </div>
+          <svg class="more" width="36" height="36" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+        </div>
+        <div class="wall"><div class="msgs" id="msgs"><div class="day">نن</div></div></div>
+        <div class="inbar">
+          <div class="field" id="field"><span id="fieldTxt" class="txt"></span><span class="caret" id="caret"></span><span id="fieldPh">پیغام ولیکئ</span></div>
+          <div class="btn" id="sendBtn"><svg width="38" height="38" viewBox="0 0 24 24" fill="#fff" style="transform:scaleX(-1)"><path d="M3 20l18-8L3 4v6l12 2-12 2z"/></svg></div>
+        </div>
+      </div>
+
+      <!-- waiting room -->
+      <div class="scr wait" id="sWait">
+        <div class="url"><svg width="26" height="26" viewBox="0 0 24 24" fill="#3f4943"><path d="M7 10V8a5 5 0 0110 0v2h1v11H6V10zm2 0h6V8a3 3 0 00-6 0z"/></svg><span>د مشورې خونه</span></div>
+        <div class="card">
+          <div class="brand">ای طبیب · <span class="lat">eTabeeb</span></div>
+          <h2>د مشورې خونه</h2>
+          <div class="ph"><img src="../assets/doctor/dr-jalaluddin__headshot-white-coat-01.png" alt=""></div>
+          <div class="dn">ډاکټر جلال الدین</div>
+          <div class="dl">Dr. Jalaluddin</div>
+          <div class="status" id="wStatus"><span id="wStatusTxt">ډاکټر ته انتظار</span><span class="dotz" id="wDots"><i></i><i></i><i></i></span></div>
+          <div class="perms">
+            <span><svg width="28" height="28" viewBox="0 0 24 24" fill="#5D6F69"><path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.9V21h2v-3.1A7 7 0 0019 11z"/></svg>مایکروفون</span>
+            <span><svg width="28" height="28" viewBox="0 0 24 24" fill="#5D6F69"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11z"/></svg>کمره</span>
+          </div>
+        </div>
+        <div class="join off" id="wJoin">ګډون وکړئ<div class="tapdot" id="tapJoin"></div></div>
+      </div>
+
+      <!-- consultation -->
+      <div class="scr call" id="sCall">
+        <div class="top">د مشورې خونه · ای طبیب</div>
+        <div class="doc">
+          <img src="../assets/doctor/dr-jalaluddin__headshot-white-coat-01.png" alt="">
+          <div class="tag">د ډاکټر پروفایل انځور</div>
+          <div class="nm">ډاکټر جلال الدین<small>Dr. Jalaluddin</small></div>
+        </div>
+        <div class="me"><svg viewBox="96 20 208 250" id="patientTile"></svg><div class="lb">تاسو</div></div>
+        <div class="chips" id="chips"></div>
+        <div class="ctrls">
+          <div><svg width="44" height="44" viewBox="0 0 24 24" fill="#fff"><path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.9V21h2v-3.1A7 7 0 0019 11z"/></svg></div>
+          <div><svg width="44" height="44" viewBox="0 0 24 24" fill="#fff"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11z"/></svg></div>
+          <div class="end"><svg width="48" height="48" viewBox="0 0 24 24" fill="#fff"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 010-1.36C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.72c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 00-2.67-1.85.996.996 0 01-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg></div>
+        </div>
+      </div>
+
+      <!-- document viewer -->
+      <div class="scr viewer" id="sDoc">
+        <div class="vh">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M9 5l7 7-7 7"/></svg>
+          <span>نسخه — نمونه</span>
+        </div>
+        <div class="page">
+          <div class="ph">
+            <div><div class="b1">ای طبیب</div><div class="b2">eTabeeb</div></div>
+            <div class="dr">ډاکټر جلال الدین<small>Dr. Jalaluddin</small></div>
+          </div>
+          <div class="row"><span>د ناروغ نوم:</span><span class="ln"></span></div>
+          <div class="row"><span>نېټه:</span><span class="ln"></span><span>عمر:</span><span class="ln"></span></div>
+          <div class="rx">Rx</div>
+          <div class="bars"><i style="width:88%"></i><i style="width:70%"></i><i style="width:80%"></i><i style="width:55%"></i></div>
+          <div class="row" style="margin-top:34px"><span>لارښوونې:</span><span class="ln"></span></div>
+          <div class="bars" style="margin-top:20px"><i style="width:92%"></i><i style="width:64%"></i></div>
+          <div class="wm">نمونه</div>
+          <div class="sample">نمونه</div>
+          <div class="foot"><div class="qr">د تایید<br>کوډ</div><div>دا یوازې د ښودلو لپاره نمونه ده</div></div>
+        </div>
+      </div>
+    </div></div>
+  </div></div>
+
+  <!-- END CARD -->
+  <div class="layer" id="endcard">
+    <div class="logo-ph"><div class="w1">ای طبیب</div><div class="w2">eTabeeb</div></div>
+    <div class="logo-tag">د رسمي لوګو ځای · LOGO PLACEHOLDER</div>
+    <div class="end-photo"><img src="../assets/doctor/dr-jalaluddin__clinical-white-coat-01.png" alt=""></div>
+    <div class="end-name">ډاکټر جلال الدین</div>
+    <div class="end-lat">Dr. Jalaluddin</div>
+    <div class="cta">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="#006d4e"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/></svg>
+      <span>په واټساپ کې ای طبیب ته پیغام واستوئ</span>
+    </div>
+    <div class="num-ph">[ تایید شوې واټساپ شمېره ] <span class="lat" style="font-size:20px">PLACEHOLDER</span></div>
+    <div class="disc">دا خدمت د بیړنیو حالاتو لپاره نه دی.</div>
+  </div>
+
+  <div id="tag"><span id="tagTxt"></span></div>
+  <div id="cap"><div id="capTxt"></div></div>
+  <div id="fade"></div>
+</div>
+
+<script>
+/* ---------- fictional illustrated patient (adult Afghan man, ~55, pakol, grey-flecked short beard) ---------- */
+const EYES_DOWN = `<ellipse cx="181" cy="129" rx="6" ry="3.5" fill="#2a1d15"/><ellipse cx="219" cy="129" rx="6" ry="3.5" fill="#2a1d15"/>
+  <path d="M170 125 Q181 121 192 125" stroke="#3a2a20" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M208 125 Q219 121 230 125" stroke="#3a2a20" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+const EYES_OPEN = `<ellipse cx="181" cy="124" rx="9" ry="6" fill="#fff"/><ellipse cx="219" cy="124" rx="9" ry="6" fill="#fff"/><circle cx="181" cy="124" r="4.6" fill="#2a1d15"/><circle cx="219" cy="124" r="4.6" fill="#2a1d15"/>
+  <path d="M170 120 Q181 114 192 120" stroke="#3a2a20" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M208 120 Q219 114 230 120" stroke="#3a2a20" stroke-width="3.4" fill="none" stroke-linecap="round"/>`;
+const PATIENT_T = (EYES) => `
+<g>
+  <!-- legs hanging over charpai -->
+  <rect x="128" y="468" width="150" height="66" rx="30" fill="#e7dfcc"/>
+  <rect x="140" y="500" width="48" height="100" rx="18" fill="#e3d9c3"/>
+  <rect x="214" y="500" width="48" height="100" rx="18" fill="#e3d9c3"/>
+  <ellipse cx="160" cy="604" rx="34" ry="12" fill="#5a3a24"/>
+  <ellipse cx="242" cy="604" rx="34" ry="12" fill="#5a3a24"/>
+  <!-- body: perahan -->
+  <path d="M104 262 Q116 214 200 208 Q284 214 296 262 L310 490 L90 490 Z" fill="#ece5d3"/>
+  <!-- waistcoat -->
+  <path d="M112 262 Q132 222 182 214 L200 290 L218 214 Q268 222 288 262 L300 490 L100 490 Z" fill="#4c5a3e"/>
+  <path d="M182 214 L200 290 L218 214 Z" fill="#ece5d3"/>
+  <circle cx="196" cy="320" r="5" fill="#2f3826"/><circle cx="196" cy="360" r="5" fill="#2f3826"/>
+  <!-- patu shawl over shoulder -->
+  <path d="M100 258 Q138 214 176 214 Q130 300 132 490 L94 490 Q86 360 100 258 Z" fill="#8c6b4c"/>
+  <path d="M104 300 L128 300 M100 350 L130 350 M98 400 L130 400" stroke="#a5846a" stroke-width="4"/>
+  <!-- arms -->
+  <path d="M128 280 Q104 360 132 404 Q158 420 186 398" stroke="#e3dbc8" stroke-width="48" fill="none" stroke-linecap="round"/>
+  <path d="M272 280 Q296 360 268 404 Q242 420 214 398" stroke="#e3dbc8" stroke-width="48" fill="none" stroke-linecap="round"/>
+  <!-- phone -->
+  <rect x="170" y="318" width="60" height="100" rx="10" fill="#1c1e1f"/>
+  <rect x="175" y="324" width="50" height="86" rx="6" class="pscreen" fill="#9fe6c6"/>
+  <!-- hands -->
+  <ellipse cx="180" cy="396" rx="20" ry="24" fill="#bf855c"/>
+  <ellipse cx="220" cy="396" rx="20" ry="24" fill="#bf855c"/>
+  <!-- neck -->
+  <rect x="180" y="180" width="40" height="40" rx="10" fill="#b37a53"/>
+  <!-- ears -->
+  <ellipse cx="149" cy="132" rx="10" ry="17" fill="#b67c55"/>
+  <ellipse cx="251" cy="132" rx="10" ry="17" fill="#b67c55"/>
+  <!-- face -->
+  <ellipse cx="200" cy="128" rx="51" ry="62" fill="#c68b62"/>
+  <!-- beard (short, salt-and-pepper) -->
+  <path d="M150 128 Q150 186 176 204 Q200 220 224 204 Q250 186 250 128 Q244 160 226 166 Q200 158 174 166 Q156 160 150 128 Z" fill="#8a837d"/>
+  <path d="M176 166 Q200 154 224 166 Q200 172 176 166 Z" fill="#6f6863"/>
+  <g stroke="#c9c4be" stroke-width="2.4" stroke-linecap="round">
+    <line x1="168" y1="182" x2="172" y2="192"/><line x1="186" y1="196" x2="188" y2="206"/><line x1="212" y1="196" x2="210" y2="206"/>
+    <line x1="230" y1="182" x2="226" y2="192"/><line x1="200" y1="200" x2="200" y2="210"/><line x1="158" y1="160" x2="161" y2="170"/><line x1="242" y1="160" x2="239" y2="170"/>
+  </g>
+  <!-- eyes looking down at phone -->
+  ${EYES}
+  <path d="M166 108 Q180 100 194 106" stroke="#8f8984" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M206 106 Q220 100 234 108" stroke="#8f8984" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M200 124 Q194 146 196 152 Q201 156 207 152" stroke="#9c6646" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M172 92 Q186 88 196 92" stroke="#b07650" stroke-width="2" fill="none" opacity=".6"/>
+  <!-- pakol cap -->
+  <ellipse cx="200" cy="62" rx="60" ry="24" fill="#cdb38c"/>
+  <rect x="140" y="62" width="120" height="34" rx="17" fill="#b9996f"/>
+  <path d="M146 78 Q200 70 254 78" stroke="#a6875f" stroke-width="3" fill="none"/>
+</g>`;
+
+const TL = window.TL;
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eOut = (x) => 1 - Math.pow(1 - x, 3);
+const seg = (t, a, b) => ease(lin(t, a, b));
+const mix = (a, b, p) => a + (b - a) * p;
+
+function layerOpacity(spans, t, fade = 0.5) {
+  let o = 0;
+  for (const [a, b] of spans) {
+    const fi = a <= 0 ? 1 : lin(t, a, a + fade);
+    const fo = 1 - lin(t, b - fade, b);
+    if (t >= a && t <= b) o = Math.max(o, Math.min(fi, fo));
+  }
+  return o;
+}
+
+/* ---------- build DOM ---------- */
+const ICON = {
+  thermo: '<svg width="30" height="30" viewBox="0 0 24 24" fill="#006d4e"><path d="M15 13V5a3 3 0 00-6 0v8a5 5 0 106 0zm-3 7a3 3 0 01-1-5.83V5a1 1 0 012 0v9.17A3 3 0 0112 20z"/></svg>',
+  history: '<svg width="30" height="30" viewBox="0 0 24 24" fill="#006d4e"><path d="M13 3a9 9 0 00-9 9H1l4 4 4-4H6a7 7 0 117 7 7 7 0 01-4.9-2l-1.4 1.4A9 9 0 1013 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z"/></svg>',
+  pill: '<svg width="30" height="30" viewBox="0 0 24 24" fill="#006d4e"><path d="M4.2 13.8l6-6a4.2 4.2 0 016 6l-6 6a4.2 4.2 0 01-6-6zm1.4 1.4a2.2 2.2 0 003.1 3.1l2.8-2.8-3.1-3.1z"/></svg>',
+  report: '<svg width="30" height="30" viewBox="0 0 24 24" fill="#006d4e"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zm-1 7V3.5L18.5 9zM8 13h8v2H8zm0 4h8v2H8z"/></svg>',
+};
+const TICK = '<svg width="26" height="18" viewBox="0 0 26 18" fill="none" stroke="#34a3e0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 9l5 5L15 3"/><path d="M10 13l1 1L22 3"/></svg>';
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+
+function build() {
+  $('patientWide').innerHTML = PATIENT_T(EYES_DOWN);
+  $('patientTile').innerHTML = '<rect x="96" y="20" width="208" height="250" fill="#d9e6df"/>' + PATIENT_T(EYES_OPEN);
+  $('admAv').innerHTML = '<svg viewBox="130 30 140 140" width="96" height="96"><rect x="130" y="30" width="140" height="140" fill="#e8dccb"/>' + PATIENT_T(EYES_OPEN) + '</svg>';
+
+  const msgs = $('msgs');
+  for (const m of TL.messages) {
+    const w = document.createElement('div');
+    w.className = 'mw ' + m.dir; w.id = 'w_' + m.id;
+    const b = document.createElement('div');
+    b.className = 'm ' + m.dir + (m.kind === 'doc' ? ' doc' : '');
+    let inner = '';
+    if (m.kind === 'doc') {
+      inner = `<div class="docbox"><div class="ico">${ICON.report.replace('width="30" height="30"', 'width="44" height="44"')}</div>
+        <div><div class="t1">${m.text}</div><div class="t2">سند · د ښودلو لپاره</div></div><div class="tapdot" id="tapDoc"></div></div>`;
+    } else if (m.kind === 'confirm') {
+      inner = `<div>${m.text}</div>
+        <div class="slot"><svg width="28" height="28" viewBox="0 0 24 24" fill="#005139"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 10.4l3.5 2.1-.8 1.3L11 13V6h2z"/></svg>${m.slot}</div>
+        <div class="link"><svg width="30" height="30" viewBox="0 0 24 24" fill="#0a6fb5"><path d="M10.6 13.4a1 1 0 010-1.4l3.5-3.5a3 3 0 114.2 4.2l-2 2-1.4-1.4 2-2a1 1 0 10-1.4-1.4L12 13.4a1 1 0 01-1.4 0zM13.4 10.6a1 1 0 010 1.4l-3.5 3.5a3 3 0 11-4.2-4.2l2-2 1.4 1.4-2 2a1 1 0 101.4 1.4L12 10.6a1 1 0 011.4 0z"/></svg><u>${m.link}</u><div class="tapdot" id="tapLink"></div></div>`;
+    } else {
+      inner = m.ltr ? `<span class="ltr">${m.text}</span>` : `<span class="tx">${m.text}</span>`;
+    }
+    b.innerHTML = inner + (m.time ? `<div class="meta"><span>${m.time}</span>${m.dir === 'out' ? TICK : ''}</div>` : '');
+    w.appendChild(b); msgs.appendChild(w);
+  }
+  const ty = document.createElement('div');
+  ty.className = 'mw in'; ty.id = 'typingW';
+  ty.innerHTML = '<div class="typing"><i></i><i></i><i></i></div>';
+  msgs.appendChild(ty);
+
+  const steps = $('admSteps');
+  TL.admin.steps.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'step'; d.id = 'st' + i;
+    d.innerHTML = `<div class="ck">${CHECK}</div><span>${s.label}</span>`;
+    steps.appendChild(d);
+  });
+  const chips = $('chips');
+  TL.callChips.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'chip'; d.id = 'chip' + i;
+    d.innerHTML = `<div class="ci">${ICON[c.icon]}</div><span>${c.label}</span>`;
+    chips.appendChild(d);
+  });
+}
+
+let H = {};
+function measure() {
+  for (const m of TL.messages) H[m.id] = $('w_' + m.id).getBoundingClientRect().height;
+  H.typing = $('typingW').getBoundingClientRect().height;
+}
+
+/* ---------- render a frame at time t (seconds) ---------- */
+function render(t) {
+  // layers
+  for (const k of Object.keys(TL.layers)) $(k).style.opacity = layerOpacity(TL.layers[k], t);
+  $('fade').style.opacity = Math.max(1 - lin(t, 0, 0.8), lin(t, 89.3, 90));
+
+  // outdoor camera + state
+  let s = 1, tx = 0, ty = 0;
+  if (t < 10) { const p = seg(t, 0, 7.8); s = mix(1.0, 1.14, p); ty = mix(0, -20, p); }
+  else if (t < 40) { const p = seg(t, 29, 31.8); s = mix(1.32, 1.24, p); ty = -40; }
+  else { const p = seg(t, 79, 84.8); s = mix(1.42, 1.52, p); ty = -60; }
+  $('outCam').style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
+  const notifP = t > 29 && t < 40 ? eOut(lin(t, 30.4, 30.9)) : 0;
+  $('notif').setAttribute('opacity', notifP);
+  $('notif').setAttribute('transform', `translate(0 ${(1 - notifP) * 20})`);
+  document.querySelectorAll('.pscreen').forEach((el) => el.setAttribute('fill', t > 75 ? '#ffffff' : '#9fe6c6'));
+
+  // admin
+  $('admCam').style.transform = `scale(${mix(1.0, 1.03, seg(t, 19.8, 29.4))})`;
+  TL.admin.steps.forEach((st, i) => {
+    const el = $('st' + i);
+    el.classList.toggle('done', t >= st.t);
+    const p = eOut(lin(t, st.t, st.t + 0.3));
+    el.querySelector('.ck').style.transform = `scale(${t >= st.t ? mix(0.6, 1, p) : 1})`;
+    el.style.opacity = t >= st.t - 0.6 ? 1 : 0.55;
+  });
+  let ps = TL.admin.status[0][1];
+  for (const [a, label] of TL.admin.status) if (t >= a) ps = label;
+  $('admPill').textContent = ps;
+  $('admPill').classList.toggle('ok', ps === 'تایید شوې');
+  const sp = eOut(lin(t, 27.4, 27.9));
+  $('admSent').style.opacity = sp; $('admSent').style.transform = `translateY(${(1 - sp) * 20}px)`;
+
+  // phone camera
+  let ph = 1;
+  if (t < 25) ph = mix(0.97, 1.04, seg(t, 7.4, 20));
+  else if (t < 47.6) ph = mix(1.0, 1.03, seg(t, 31.4, 47.6));
+  else if (t < 65.2) ph = mix(1.03, 1.055, seg(t, 47.6, 50.5));
+  else ph = mix(1.055, 1.0, seg(t, 65.2, 66.4)) * mix(1, 1.035, seg(t, 66.4, 79));
+  $('phCam').style.transform = `scale(${ph})`;
+
+  // screens
+  const scr = { chat: 'sChat', wait: 'sWait', call: 'sCall', doc: 'sDoc' };
+  for (const id of Object.values(scr)) $(id).style.opacity = 0;
+  for (const [name, a, b] of TL.screens) {
+    if (t >= a - 0.001 && t < b) {
+      $(scr[name]).style.opacity = a < 1 ? 1 : eOut(lin(t, a, a + 0.35));
+      // keep previous screen underneath during crossfade
+      const prev = TL.screens.find((x) => Math.abs(x[2] - a) < 1e-6);
+      if (prev && t < a + 0.35) $(scr[prev[0]]).style.opacity = 1, $(scr[name]).style.zIndex = 2, $(scr[prev[0]]).style.zIndex = 1;
+    }
+  }
+  const darkBar = (t >= 38.2 && t < 48) ;
+  $('sbar').classList.toggle('dark', darkBar);
+
+  // chat messages
+  let typingOn = false;
+  for (const m of TL.messages) {
+    const w = $('w_' + m.id);
+    const b = w.firstChild;
+    if (t < m.t) { w.style.height = '0px'; w.style.visibility = 'hidden'; if (m.typing && t >= m.typing) typingOn = true; continue; }
+    const p = eOut(lin(t, m.t, m.t + 0.32));
+    const h0 = m.typing ? Math.min(H.typing, H[m.id]) : 0;
+    w.style.visibility = 'visible';
+    w.style.height = mix(h0, H[m.id], p) + 'px';
+    b.style.opacity = clamp(p * 1.6);
+    b.style.transform = `scale(${mix(0.92, 1, p)})`;
+  }
+  const tw = $('typingW');
+  tw.style.display = typingOn ? 'flex' : 'none';
+  if (typingOn) {
+    tw.querySelectorAll('i').forEach((d, i) => { d.style.opacity = 0.35 + 0.65 * Math.max(0, Math.sin((t * 6 - i * 0.9))); });
+  }
+
+  // input field typing for outgoing messages
+  let txt = '';
+  for (const m of TL.messages) {
+    if (m.dir !== 'out') continue;
+    const a = m.t - 1.3, b = m.t - 0.25;
+    if (t >= a && t < m.t) {
+      const chars = [...m.text];
+      txt = chars.slice(0, Math.ceil(chars.length * lin(t, a, b))).join('');
+      $('fieldTxt').style.direction = m.ltr ? 'ltr' : 'rtl';
+    }
+  }
+  $('fieldTxt').textContent = txt;
+  $('fieldPh').style.display = txt ? 'none' : 'inline';
+  $('caret').style.opacity = txt && Math.floor(t * 3) % 2 === 0 ? 1 : (txt ? 0 : 0);
+
+  // taps
+  const tapEl = { link: 'tapLink', join: 'tapJoin', doc: 'tapDoc' };
+  for (const tp of TL.taps) {
+    const el = $(tapEl[tp.target]); if (!el) continue;
+    const p = lin(t, tp.t - 0.25, tp.t + 0.45);
+    const on = t >= tp.t - 0.25 && t <= tp.t + 0.45;
+    el.style.opacity = on ? (p < 0.35 ? p / 0.35 : 1 - (p - 0.35) / 0.65) : 0;
+    el.style.transform = `scale(${on ? mix(0.6, 1.25, p) : 1})`;
+  }
+
+  // waiting room
+  const joined = t >= TL.wait.doctorJoined;
+  $('wStatusTxt').textContent = joined ? 'ډاکټر چمتو دی' : 'ډاکټر ته انتظار';
+  $('wStatus').classList.toggle('ok', joined);
+  $('wDots').style.display = joined ? 'none' : 'inline-flex';
+  $('wDots').querySelectorAll('i').forEach((d, i) => { d.style.opacity = 0.3 + 0.7 * Math.max(0, Math.sin(t * 5 - i))});
+  $('wJoin').classList.toggle('off', !joined);
+
+  // call chips
+  TL.callChips.forEach((c, i) => {
+    const p = eOut(lin(t, c.t, c.t + 0.4));
+    const el = $('chip' + i);
+    el.style.opacity = p; el.style.transform = `translateX(${(1 - p) * -30}px)`;
+  });
+
+  // top tag
+  let tag = '';
+  if (t < 7.6 || (t >= 29 && t < 31.6) || (t >= 79 && t < 84.6)) tag = 'انځوریز فرضي ناروغ';
+  else if (t < 84.6) tag = 'انځوریز مثال · ټول معلومات فرضي دي';
+  $('tagTxt').textContent = tag;
+  $('tag').style.opacity = tag ? 1 : 0;
+
+  // captions (end-card disclaimer is already printed on screen)
+  let cap = null;
+  for (const c of TL.captions) if (t >= c[0] && t < c[1]) cap = c;
+  if (cap && t < 84.4) {
+    const o = Math.min(lin(t, cap[0], cap[0] + 0.25), 1 - lin(t, cap[1] - 0.2, cap[1]));
+    $('capTxt').textContent = cap[2];
+    $('cap').style.opacity = o;
+  } else $('cap').style.opacity = 0;
+}
+
+window.__setup = async () => {
+  build();
+  await document.fonts.ready;
+  await Promise.all([...document.images].map((im) => im.decode().catch(() => {})));
+  // measure with chat visible
+  $('phone').style.opacity = 1; $('sChat').style.opacity = 1;
+  measure();
+  render(0);
+  return true;
+};
+window.render = render;
+</script>
+</body>
+</html>
