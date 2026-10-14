@@ -3,15 +3,15 @@
 A 90-second Pashto storytelling video. It follows one fictional Afghan patient through the real eTabeeb V1 flow:
 WhatsApp intake → admin review → doctor confirmation → consultation link → prescription in the same chat.
 
-## Deliverables (`out/`)
+## Deliverables (`deliverables/`)
 
 | File | What it is |
 |---|---|
-| `etabeeb-journey_1080x1920.mp4` | **Final video.** H.264 High, 1080×1920, 30 fps, AAC 48 kHz stereo, 90.0 s. Pashto captions burned in; music and sound effects; **no voiceover yet**. |
+| `etabeeb-journey_1080x1920.mp4` | **Final video.** H.264 High, 1080×1920, 30 fps, AAC 48 kHz stereo, 90.0 s. Pashto voiceover (supplied take `vo/Chaman_6_original.m4a`, edited), Pashto captions burned in and synced to the speech, ducked music bed and sound effects. -16 LUFS integrated, -2.5 dBTP. |
 | `etabeeb-journey_thumbnail.jpg` | 1080×1920 thumbnail, taken from the consultation scene. |
 | `etabeeb-journey_preview_15s.mp4` | Short representative preview covering booking, doctor connection and prescription delivery. |
 | `etabeeb-journey_ps.srt` | Pashto captions as a sidecar file (same timings as the voiceover slots). |
-| `mix_music_sfx.wav`, `stem_music.wav`, `stem_ambience_sfx.wav` | Audio bed and stems for the voiceover mix. |
+| `../vo/lines/vo_01.wav … vo_07.wav` | The voiceover split into its 7 lines, cleaned and level-matched (48 kHz / 24-bit). |
 | `../NARRATION_SCRIPT.md` | Full Pashto narration, meanings and timed voiceover slots. |
 
 ## Tooling
@@ -51,7 +51,7 @@ SHA-256 of the copied doctor photos (identical to the sources):
 - **Call modes:** the V1 backend uses an external https consultation link (`docs/ETABIB_V1_BACKEND.md` §9) and doesn't specify the modes. The video says "online consultation" and doesn't claim audio-or-video. The UI shows only a neutral room with mic and camera controls.
 - **Prescription format:** there is no PDF renderer yet (§11; only a `pdf_key` column exists). The attachment is shown as a generic document «سند», with no format named. The preview is marked «نمونه» (sample), contains no medicines, doses or patient data, and has an empty verification-code box.
 - **Fee, timetable, response time:** none are shown. The confirmation uses «وخت: ستاسو ټاکل شوی وخت» (your scheduled time).
-- **Pashto voiceover:** a human recording is needed; see `NARRATION_SCRIPT.md`.
+- **Pashto voiceover:** supplied (`Chaman_6.m4a`) and edited; see "Voiceover edit" below. No speech-recognition model was reachable, so the take was mapped to the script by its pause structure (all 7 lines, with their sentence breaks, match). A Pashto speaker should still listen once to confirm the wording, especially line 4.
 - **Patient footage:** none was supplied, so a tasteful illustrated fictional patient is used.
 
 ## Workflow fidelity
@@ -63,3 +63,18 @@ The on-screen flow mirrors the V1 state machine:
 - The prescription arrives as an attachment in that same chat.
 
 Internal admin and doctor notifications are shown only on the admin panel, never as patient-facing messages. There is one eTabeeb chat identity throughout, and no native WhatsApp call buttons appear.
+
+## Voiceover edit (`src/vo_edit.py`)
+
+1. **Clean (whole take, so the tone stays consistent):**
+   - 75 Hz high-pass
+   - gentle FFT denoise (noise floor down about 4 dB)
+   - -2 dB at 250 Hz (boxiness) and +2 dB at 3.5 kHz (clarity)
+   - light de-esser
+   - 2.5:1 compression
+   - two-pass loudness normalisation to -16 LUFS / -1.5 dBTP (the raw take was -28 LUFS)
+2. **Split:** 7 lines cut at the natural pauses, with 0.15 s pre-roll, 0.30 s tail and short fades. Every cut was checked to start and end below -34 dB, so no word is clipped; the head of line 3 is a soft breath. The opening click (0–0.45 s) and the long silences between lines were removed.
+3. **Place:** each line starts with its scene (speech onsets at 0.6, 8.4, 20.8, 35.4, 49.3, 66.2 and 80.4 s). The captions were retimed to the actual speech phrases, and the end card moved 0.4 s earlier to meet the spoken disclaimer.
+4. **Mix:** the music and sound-effect bed is side-chain ducked under the voice (voice about 12 dB above the bed). The final mix is loudness-normalised to -16 LUFS integrated.
+
+Re-run: `python3 src/vo_edit.py vo/Chaman_6_original.m4a`, then render and mux.

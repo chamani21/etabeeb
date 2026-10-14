@@ -1,6 +1,6 @@
 # eTabeeb Journey — Pashto Narration Script and Voiceover Slots
 
-**Status: a human Pashto voiceover is still needed.** No authorised Pashto voice or reliable Pashto TTS was reachable from the production environment, because the network policy blocks the neural TTS endpoint. The delivered MP4 carries Pashto on-screen captions, a quiet music bed and UI sound effects. It has **no narration track**.
+**Status: recorded and integrated.** The supplied take `vo/Chaman_6_original.m4a` was split into `vo/lines/vo_01.wav … vo_07.wav`, cleaned and placed in the final video (see README → "Voiceover edit"). The slot times below were the recording guide; the final speech onsets are 0.6, 8.4, 20.8, 35.4, 49.3, 66.2 and 80.4 s.
 
 Record each line below inside its slot. The slots match the burned-in captions and `out/etabeeb-journey_ps.srt`.
 

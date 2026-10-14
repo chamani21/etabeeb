@@ -643,15 +643,15 @@ function render(t) {
 
   // top tag
   let tag = '';
-  if (t < 7.6 || (t >= 29 && t < 31.6) || (t >= 79 && t < 84.6)) tag = 'انځوریز فرضي ناروغ';
-  else if (t < 84.6) tag = 'انځوریز مثال · ټول معلومات فرضي دي';
+  if (t < 7.6 || (t >= 29 && t < 31.6) || (t >= 79 && t < 84.2)) tag = 'انځوریز فرضي ناروغ';
+  else if (t < 84.2) tag = 'انځوریز مثال · ټول معلومات فرضي دي';
   $('tagTxt').textContent = tag;
   $('tag').style.opacity = tag ? 1 : 0;
 
-  // captions (end-card disclaimer is already printed on screen)
+  // captions (the final disclaimer line is printed on the end card instead)
   let cap = null;
   for (const c of TL.captions) if (t >= c[0] && t < c[1]) cap = c;
-  if (cap && t < 84.4) {
+  if (cap && cap !== TL.captions[TL.captions.length - 1]) {
     const o = Math.min(lin(t, cap[0], cap[0] + 0.25), 1 - lin(t, cap[1] - 0.2, cap[1]));
     $('capTxt').textContent = cap[2];
     $('cap').style.opacity = o;

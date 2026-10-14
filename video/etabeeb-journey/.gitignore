@@ -1,3 +1,4 @@
-out/*.wav
-out/*.parts/
-out/video_silent.mp4
+out/
+vo/vo_raw_take.wav
+vo/vo_processed_take.wav
+vo/vo_track_90s.wav

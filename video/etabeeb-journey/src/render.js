@@ -54,7 +54,7 @@ async function renderRange(browser, f0, f1, out) {
     const start = Number(rest[0] ?? 0), end = Number(rest[1] ?? TL.duration), workers = Number(rest[2] ?? 4);
     const F0 = Math.round(start * TL.fps), F1 = Math.round(end * TL.fps);
     const per = Math.ceil((F1 - F0) / workers);
-    const tmp = out + '.parts'; fs.mkdirSync(tmp, { recursive: true });
+    const tmp = path.resolve(out + '.parts'); fs.mkdirSync(tmp, { recursive: true });
     const parts = [];
     const jobs = [];
     for (let i = 0; i < workers; i++) {
