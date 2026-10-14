@@ -79,3 +79,34 @@ Internal admin and doctor notifications are shown only on the admin panel, never
 4. **Mix:** the music and sound-effect bed is side-chain ducked under the voice (voice about 12 dB above the bed). The final mix is loudness-normalised to -16 LUFS integrated.
 
 Re-run: `python3 src/vo_edit.py vo/Chaman_6_original.m4a`, then render and mux.
+
+## v2: trailer-style opening (`deliverables/v2/`)
+
+`etabeeb-journey-trailer-opening-v2.mp4` is 94.0 s, 1080×1920, 30 fps, H.264 High and AAC 48 kHz, at -16.1 LUFS. It is the approved story with a 4.0 s teaser in front. The original deliverables are unchanged.
+
+| Teaser time | Shot | Title |
+|---|---|---|
+| 0.00–0.85 | Closer crop of the indoor patient photo, push-in 1.42→1.56× toward his face and phone | «ډاکټر ته تګ درته ګران دی؟» |
+| 0.85–1.65 | Tight crop of the real chat UI (story 8.9 s); the patient's message arrives at 1.00 | «په واټساپ کې پیغام» |
+| 1.65–2.45 | Consultation mock (story 49.2 s), static doctor photo with its «پروفایل انځور» label; scale 1.42→1.50 | «له ډاکټر سره مشوره» |
+| 2.45–3.25 | Same chat (story 67.75 s); the «نسخه — نمونه» attachment arrives at 2.60, crop enlarges 1.80→2.06 | «نسخه په واټساپ کې» |
+| 3.25–4.00 | Official logo in for about 0.5 s while the courtyard photo pulls back 1.32→1.00, landing exactly on the story's first frame | — |
+
+**How it's built**
+- `src/v2.html` wraps the **unmodified** `src/composition.html` in an iframe. Teaser shots freeze the composition at the story times above, with story captions hidden.
+- From 4.0 s the iframe plays `render(t − 4)`. Only the story's original 0.8 s fade-from-black is suppressed.
+- `src/render_v2.js` serves the project on localhost and renders the frames.
+
+**Audio** (`src/teaser_audio.py`)
+- A slice of the project's own music stem (36.0–40.9 s), which ends on the bar the story's music starts on.
+- Five synthesised cues: an opening accent, the message sound, two transition accents (1.58 s and 3.18 s) and the attachment arrival.
+- The teaser music ducks to silence between 3.6 and 4.7 s, under the first word at 4.6 s. The approved story mix is added after a 4.000 s delay and is otherwise untouched; it is bit-exact from story 0.7 s onward.
+- The teaser plays at -19.2 LUFS against -14.4 LUFS for the speech section.
+
+**Checks:** story frames compared with the approved MP4 at +4 s give a PSNR of 47–55 dB (encoder noise only). Captions are shifted by +4 s in `etabeeb-journey-trailer-opening-v2_ps.srt`.
+
+Re-render:
+```bash
+python3 src/teaser_audio.py
+node src/render_v2.js video out/v2_silent.mp4 0 94 4
+```

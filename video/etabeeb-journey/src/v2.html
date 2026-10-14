@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ps" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>eTabeeb Journey v2 (trailer opening)</title>
+<style>
+@font-face{font-family:Naskh;src:url(../assets/fonts/noto-naskh-arabic-arabic-700-normal.woff2) format("woff2");font-weight:700}
+@font-face{font-family:Naskh;src:url(../assets/fonts/noto-naskh-arabic-arabic-400-normal.woff2) format("woff2");font-weight:400}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#000;font-family:Naskh,sans-serif}
+#stage{position:absolute;inset:0;overflow:hidden;background:#0a241d}
+/* the unmodified story composition */
+#mainWrap{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:0 0}
+#main{width:1080px;height:1920px;border:0;display:block}
+/* teaser photo shots */
+.shot{position:absolute;inset:0;overflow:hidden;opacity:0}
+.shot img{position:absolute;display:block;max-width:none}
+#s1 img{left:0;top:0;width:1024px;height:1536px}
+#s5 img{left:0;top:0;width:1080px;height:1919px}
+.grade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.20) 0%,rgba(0,0,0,0) 20%,rgba(0,0,0,0) 60%,rgba(0,0,0,.40) 100%)}
+/* teaser titles: one per shot, brand green, far larger than chat text */
+.title{position:absolute;left:70px;right:70px;display:flex;justify-content:center;opacity:0;z-index:20}
+.title div{background:rgba(11,61,46,.94);color:#fff;font-weight:700;line-height:1.45;text-align:center;
+  padding:18px 44px 26px;border-radius:30px;box-shadow:0 18px 50px rgba(0,0,0,.35);border-bottom:6px solid #cca72f}
+.title.big div{font-size:84px}
+.title.mid div{font-size:96px}
+/* small honesty chip, same style as the story */
+.chip{position:absolute;top:34px;left:0;right:0;display:flex;justify-content:center;z-index:21;opacity:0}
+.chip span{background:rgba(255,255,255,.96);color:#3f4943;font-size:25px;border-radius:999px;padding:4px 22px}
+/* official logo, brought in briefly on the last teaser shot */
+.logo{position:absolute;top:150px;left:50%;width:300px;height:300px;margin-left:-150px;border-radius:34px;background:#fff;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);opacity:0;z-index:22}
+.logo img{width:100%;height:100%;display:block}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="mainWrap"><iframe id="main" src="composition.html" scrolling="no"></iframe></div>
+
+  <div class="shot" id="s1"><img src="../assets/patient/patient-ai__indoor-phone-01.webp" alt=""><div class="grade"></div></div>
+  <div class="shot" id="s5"><img src="../assets/patient/patient-ai__courtyard-messaging-01.webp" alt=""><div class="grade"></div></div>
+  <div class="logo" id="logo"><img src="../assets/brand/etabeeb-logo-official.webp" alt="eTabeeb"></div>
+
+  <div class="chip" id="chip"><span id="chipTxt"></span></div>
+  <div class="title big" id="t1" style="top:1380px"><div>ډاکټر ته تګ درته ګران دی؟</div></div>
+  <div class="title mid" id="t2" style="top:170px"><div>په واټساپ کې پیغام</div></div>
+  <div class="title mid" id="t3" style="top:150px"><div>له ډاکټر سره مشوره</div></div>
+  <div class="title mid" id="t4" style="top:170px"><div>نسخه په واټساپ کې</div></div>
+</div>
+<script>
+const T = 4.0;                       // teaser length; the story starts here
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eOut = (x) => 1 - Math.pow(1 - x, 3);
+const mix = (a, b, p) => a + (b - a) * p;
+const $ = (id) => document.getElementById(id);
+let M;                                // story window (iframe)
+
+/* Shots 2–4 freeze the story composition at the matching moment and crop it.
+   story(t) maps teaser time to story time; crop = [cx, cy, scaleFrom, scaleTo]. */
+const SHOTS = [
+  { a: 0.85, b: 1.65, story: (t) => 8.88 + (t - 0.85), crop: [520, 975, 1.82, 1.92], title: 't2' },  // patient message arrives at story 9.0
+  { a: 1.65, b: 2.45, story: () => 49.2,               crop: [540, 640, 1.42, 1.50], title: 't3' },  // consultation mock, doctor photo static
+  { a: 2.45, b: 3.25, story: (t) => 67.75 + (t - 2.45), crop: [600, 990, 1.80, 2.06], title: 't4' }, // prescription attachment arrives at 67.9
+];
+
+function setTitle(id, t, a) {
+  const p = eOut(lin(t, a + 0.04, a + 0.22));
+  $(id).style.opacity = p;
+  $(id).style.transform = `translateY(${(1 - p) * 26}px)`;
+}
+
+function render(t) {
+  for (const id of ['s1', 's5', 't1', 't2', 't3', 't4']) $(id).style.opacity = 0;
+  $('logo').style.opacity = 0; $('chip').style.opacity = 0;
+  const md = M.document;
+
+  if (t >= T) {
+    // ---- the original story, unchanged, shifted by +4 s ----
+    $('mainWrap').style.transform = 'none';
+    $('mainWrap').style.opacity = 1;
+    md.getElementById('cap').style.visibility = 'visible';
+    md.getElementById('tag').style.visibility = 'visible';
+    const st = t - T;
+    M.render(st);
+    // the teaser now leads in, so drop only the original 0.8 s fade-from-black
+    if (st < 1) md.getElementById('fade').style.opacity = 0;
+    return;
+  }
+
+  // ---- teaser ----
+  md.getElementById('cap').style.visibility = 'hidden';   // story captions stay with the narration
+  md.getElementById('tag').style.visibility = 'hidden';
+  $('mainWrap').style.opacity = 0;
+
+  if (t < 0.85) {
+    // 1. closer crop of the patient holding his phone, short push-in to face and phone
+    const s = mix(1.42, 1.56, ease(lin(t, 0, 0.85)));
+    $('s1').style.opacity = 1;
+    const img = $('s1').querySelector('img');
+    // keep face (560,320) and phone (240,640) in frame; origin between them
+    const ox = 420, oy = 480;
+    img.style.transformOrigin = `${ox}px ${oy}px`;
+    img.style.transform = `translate(${540 - ox}px, ${680 - oy}px) scale(${s})`;   // top edge stays covered
+    $('t1').style.opacity = eOut(lin(t, 0.0, 0.08));
+    $('t1').style.transform = `translateY(${(1 - eOut(lin(t, 0, 0.12))) * 18}px)`;
+    $('chipTxt').textContent = 'د AI جوړ انځور · فرضي ناروغ'; $('chip').style.opacity = 1;
+  } else if (t < 3.25) {
+    // 2–4. tight crops of the existing interface
+    const sh = SHOTS.find((x) => t >= x.a && t < x.b);
+    const p = ease(lin(t, sh.a, sh.b));
+    const [cx, cy, s0, s1] = sh.crop;
+    const s = mix(s0, s1, p);
+    M.render(sh.story(t));
+    md.getElementById('fade').style.opacity = 0;
+    $('mainWrap').style.opacity = 1;
+    $('mainWrap').style.transform = `translate(${540 - cx * s}px, ${960 - cy * s}px) scale(${s})`;
+    setTitle(sh.title, t, sh.a);
+    $('chipTxt').textContent = 'انځوریز مثال · ټول معلومات فرضي دي'; $('chip').style.opacity = 1;
+  } else {
+    // 5. logo comes in briefly while we pull back into the story's courtyard opening frame
+    const p = ease(lin(t, 3.25, T));
+    const s = mix(1.32, 1.0, p);                     // ends exactly on the story's t=0 framing (scale 1.0)
+    $('s5').style.opacity = 1;
+    const img = $('s5').querySelector('img');
+    img.style.transformOrigin = '420px 760px';         // same origin the story uses for this shot
+    img.style.transform = `scale(${s})`;
+    const lp = eOut(lin(t, 3.27, 3.45)) * (1 - lin(t, 3.78, 3.97));
+    $('logo').style.opacity = lp;
+    $('logo').style.transform = `scale(${mix(0.92, 1, eOut(lin(t, 3.27, 3.5)))})`;
+    $('chipTxt').textContent = 'د AI جوړ انځور · فرضي ناروغ'; $('chip').style.opacity = 1;
+  }
+}
+
+window.__setup = async () => {
+  await new Promise((r) => { const f = $('main'); if (f.contentWindow && f.contentWindow.__setup) r(); else f.addEventListener('load', r, { once: true }); });
+  M = $('main').contentWindow;
+  await M.__setup();
+  await document.fonts.ready;
+  await Promise.all([...document.images].map((im) => im.decode().catch(() => {})));
+  render(0);
+  return true;
+};
+window.render = render;
+</script>
+</body>
+</html>
