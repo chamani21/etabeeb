@@ -110,3 +110,46 @@ Re-render:
 python3 src/teaser_audio.py
 node src/render_v2.js video out/v2_silent.mp4 0 94 4
 ```
+
+## v3: cinematic cut (`deliverables/v3/`, HyperFrames)
+
+`etabeeb-journey-cinematic-v3.mp4` is 94.5 s, 1080×1920, 30 fps, H.264 High yuv420p, AAC 48 kHz stereo, at -16.0 LUFS and -2.3 dBTP. It is the approved story re-shot as a short film with a 4.5 s cinematic cold open. v1 and v2 are unchanged.
+
+The plan, timeline and asset manifest are in `v3/PLAN.md`.
+
+**What changed from v2**
+- **Opening:** the 4 s cut-montage teaser is replaced by a 4.5 s cold open on the courtyard.
+  - A slow push with soft-focus depth (a masked blur layer, no warping), drifting dust in the light and wind.
+  - One two-line Pashto title, «له خپل ځایه، طبي مشوره».
+  - The official logo rises on an ivory card and keeps moving out, with a soft light leak.
+- **Interface scenes:** shown as phone close-ups in his world (his courtyard or room, blurred behind), with slight perspective and slow motivated camera moves. The admin step is a monitor in a dim, warm office.
+- **Fewer boxes:** captions have no pill and use a soft shadow; the call-screen chips are a quiet list; the honesty labels are small and unboxed.
+- **Grade and texture:** a warm grade on the patient photos only, film grain at opacity 0.055 and a light warm vignette. The doctor's photos, the logo and the UI pixels are not graded.
+- **Sound:** a new synthesised score (slow pad and sparse plucks), courtyard wind and room tone, and restrained cues. Everything is ducked about 12 dB under the unaltered voice lines.
+- **End card:** the same facts with a calmer layout: logo, real portrait, name, CTA, +92 310 0006526 and the disclaimer.
+- **Unchanged:** narration (lines, wording, no speed change), story order, chat texts, admin steps, fictional data, the «نمونه» sample, and every fact and limit listed above.
+
+**Timing:** v1 story time + 4.5 s. Speech onsets are 5.1, 12.9, 25.3, 39.9, 53.8, 70.7 and 84.9 s. The captions in `etabeeb-journey-cinematic-v3_ps.srt` are v1 + 4.5 s.
+
+**How it's built (HyperFrames 0.8.152, `general-video` workflow)**
+- `v3/src/index.template.html` is the composition template.
+- `v3/src/build_v3.py` writes `v3/index.html` and the time-remapped 15 s preview project.
+- `v3/src/audio_v3.py` (numpy) writes the score, ambience, cues and voice placement, ducked.
+- Registry blocks: `grain-overlay`, `vignette`, `organic-light-leak-overlay`.
+
+```bash
+cd v3
+python3 src/audio_v3.py assets/audio            # needs numpy
+ffmpeg -i assets/audio/mix_v3_raw.wav -af "volume=-1.2dB,alimiter=limit=0.83:attack=3:release=60:level=disabled" -c:a pcm_s24le assets/audio/mix_v3.wav
+python3 src/build_v3.py
+npx hyperframes check .
+npx hyperframes render . --fps 30 -q high -o ../deliverables/v3/etabeeb-journey-cinematic-v3_raw.mp4
+# delivered file: video re-encoded libx264 CRF 17 / preset slow (as v1/v2), audio copied
+```
+
+**Checks done**
+- `hyperframes check` passes, with 0 lint errors and 35/35 WCAG AA text checks.
+  - The remaining warnings are the intended 0.35 s screen crossfades, and duplicate image nodes used for the depth layers.
+- The seven voice lines are in sync with their placement (0 ms offset by cross-correlation).
+- Frames were inspected at every scene midpoint for Pashto joining, the doctor photo, patient identity and safe areas.
+- All copied assets are byte-identical to the originals (`cmp`).

@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="ps">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>eTabeeb Journey v3</title>
+<script src="assets/vendor/gsap.min.js"></script>
+<style>
+@font-face{font-family:"Noto Naskh Arabic";src:url(assets/fonts/noto-naskh-arabic-arabic-400-normal.woff2) format("woff2");font-weight:400;font-display:block}
+@font-face{font-family:"Noto Naskh Arabic";src:url(assets/fonts/noto-naskh-arabic-arabic-700-normal.woff2) format("woff2");font-weight:700;font-display:block}
+@font-face{font-family:"Inter";src:url(assets/fonts/inter-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:block}
+@font-face{font-family:"Inter";src:url(assets/fonts/inter-latin-600-normal.woff2) format("woff2");font-weight:600;font-display:block}
+@font-face{font-family:"Inter";src:url(assets/fonts/inter-latin-800-normal.woff2) format("woff2");font-weight:800;font-display:block}
+:root{
+  --primary:#00523a; --primary-c:#006d4e; --forest:#0B3D2E; --gold:#cca72f; --ivory:#F8F5ED;
+  --navy:#0b3a5c; --teal:#0f5f73;
+  --muted:#5D6F69; --out:#d9fdd3; --in:#ffffff; --wall:#efe7dc;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#0c0906}
+body{font-family:"Noto Naskh Arabic","Inter",serif;color:#10231d}
+.lat{font-family:"Inter",sans-serif}
+#root{position:relative;width:100%;height:100%;overflow:hidden;background:#0c0906}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;background:#0c0906;transform-origin:0 0;direction:rtl}
+.layer{position:absolute;inset:0;opacity:0;overflow:hidden}
+
+/* ---------- outdoor photographs (AI-generated fictional patient) ---------- */
+.shot{position:absolute;inset:0;opacity:0;overflow:hidden}
+.cam{position:absolute;inset:0}
+.ph{position:absolute;display:block;max-width:none}
+#shotA .ph{left:0;top:0;width:1080px;height:1919px}
+#shotB .ph{left:-100px;top:0;width:1280px;height:1920px}
+.dof{position:absolute;inset:0;filter:blur(6px);
+  -webkit-mask-image:radial-gradient(ellipse 38% 34% at 54% 57%,transparent 55%,#000 100%);
+          mask-image:radial-gradient(ellipse 38% 34% at 54% 57%,transparent 55%,#000 100%)}
+#shotB .dof{-webkit-mask-image:radial-gradient(ellipse 40% 34% at 40% 36%,transparent 55%,#000 100%);
+          mask-image:radial-gradient(ellipse 40% 34% at 40% 36%,transparent 55%,#000 100%)}
+#dust{position:absolute;inset:0;pointer-events:none}
+#dust i{position:absolute;left:0;top:0;display:block;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,244,214,.95) 0%,rgba(255,236,190,.35) 45%,rgba(255,236,190,0) 72%)}
+.warmth{position:absolute;inset:0;background:radial-gradient(1200px 900px at 70% 8%,rgba(255,196,120,.16),rgba(255,196,120,0) 70%);mix-blend-mode:soft-light}
+.notif{position:absolute;left:150px;right:150px;top:150px;background:rgba(250,248,244,.96);border-radius:30px;padding:18px 24px;display:flex;gap:18px;align-items:center;box-shadow:0 18px 50px rgba(0,0,0,.35);opacity:0}
+.notif .lg{width:72px;height:72px;border-radius:18px;flex:none}
+.notif b{display:block;font-size:30px;line-height:1.3}
+.notif span{font-size:27px;color:#3f4943;line-height:1.35}
+.emblem{background-image:url(assets/brand/etabeeb-logo-official.webp);background-repeat:no-repeat;background-color:#fff}
+
+/* ---------- phone close-ups ---------- */
+#phBg{position:absolute;inset:-60px}
+#phBg .bgimg{position:absolute;inset:0;opacity:0;overflow:hidden;filter:blur(22px) brightness(.72) saturate(.92)}
+#phBg .bgimg img{position:absolute;max-width:none;display:block}
+#bgA img{left:-40px;top:-40px;width:1240px;height:2203px}
+#bgB img{left:-160px;top:-60px;width:1400px;height:2100px}
+#phShade{position:absolute;inset:0;background:radial-gradient(900px 1200px at 50% 42%,rgba(20,12,4,0) 0%,rgba(20,12,4,.38) 70%,rgba(12,8,4,.62) 100%)}
+#phRig{position:absolute;inset:0;perspective:2600px;perspective-origin:540px 730px}
+#phCam{position:absolute;inset:0;transform-origin:540px 730px;transform-style:preserve-3d}
+.device{position:absolute;left:200px;top:80px;width:680px;height:1300px;border-radius:96px;background:#16191a;padding:16px;
+  box-shadow:0 0 0 3px #3b4245 inset,0 60px 120px rgba(0,0,0,.55),0 18px 40px rgba(0,0,0,.35)}
+.device:before{content:"";position:absolute;right:-6px;top:300px;width:6px;height:130px;border-radius:4px;background:#2a2f31}
+.device:after{content:"";position:absolute;left:-6px;top:260px;width:6px;height:90px;border-radius:4px;background:#2a2f31}
+.glass{position:absolute;inset:16px;border-radius:80px;pointer-events:none;z-index:40;
+  background:linear-gradient(115deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,0) 32%,rgba(255,255,255,0) 70%,rgba(255,255,255,.05) 100%)}
+.screen{position:relative;width:648px;height:1268px;border-radius:80px;overflow:hidden;background:var(--wall)}
+.island{position:absolute;top:18px;left:50%;width:180px;height:50px;margin-left:-90px;border-radius:30px;background:#000;z-index:20}
+.sbar{position:absolute;top:0;left:0;right:0;height:84px;display:flex;align-items:center;justify-content:space-between;padding:20px 62px 0;font-family:"Inter",sans-serif;font-weight:600;font-size:26px;z-index:19;direction:ltr;color:#fff}
+.sbar.dark{color:#10231d}
+.sbar .ic{display:flex;gap:10px;align-items:center}
+.scr{position:absolute;inset:0;opacity:0}
+
+/* chat */
+.chat .hdr{position:absolute;top:0;left:0;right:0;height:196px;background:var(--primary-c);display:flex;align-items:flex-end;gap:16px;padding:0 24px 22px;color:#fff;z-index:5}
+.chat .hdr .av{width:84px;height:84px;border-radius:50%;background-color:#fff;flex:none;border:3px solid var(--gold)}
+.chat .hdr .nm{font-size:34px;font-weight:700;line-height:1.25}
+.chat .hdr .nm b{font-family:"Inter",sans-serif;font-weight:600;font-size:26px;opacity:.85;margin-inline-start:8px}
+.chat .hdr .st{font-size:24px;opacity:.85;line-height:1.3}
+.chat .hdr .more{margin-inline-start:auto;margin-bottom:22px}
+.chat .wall{position:absolute;top:196px;bottom:118px;left:0;right:0;overflow:hidden;background-color:var(--wall);
+  background-image:radial-gradient(rgba(11,61,46,.06) 2px,transparent 2.5px),radial-gradient(rgba(204,167,47,.07) 2px,transparent 2.5px);
+  background-size:46px 46px,46px 46px;background-position:0 0,23px 23px}
+.msgs{position:absolute;left:0;right:0;bottom:0;padding:0 22px 18px;display:flex;flex-direction:column}
+.day{align-self:center;background:#fff;border-radius:14px;font-size:22px;padding:4px 18px;color:var(--muted);margin:16px 0 10px;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.mw{overflow:visible;position:relative}
+.m{position:relative;max-width:84%;padding:14px 22px 12px;border-radius:24px;font-size:33px;line-height:1.62;box-shadow:0 1.5px 1px rgba(0,0,0,.10);margin-top:12px;transform-origin:bottom}
+.m .tx{white-space:pre-line}
+.m.in{align-self:flex-start;background:var(--in);border-start-start-radius:6px;margin-inline-end:auto}
+.m.out{align-self:flex-end;background:var(--out);border-start-end-radius:6px;margin-inline-start:auto}
+.mw.in{display:flex;justify-content:flex-start}
+.mw.out{display:flex;justify-content:flex-end}
+.m .meta{display:flex;justify-content:flex-start;gap:6px;align-items:center;font-family:"Inter",sans-serif;font-size:19px;color:#6b7c76;margin-top:2px;direction:ltr}
+.m .ltr{direction:ltr;unicode-bidi:isolate;font-family:"Inter",sans-serif;letter-spacing:2px;font-size:31px}
+.m .slot{display:inline-flex;align-items:center;gap:10px;margin-top:8px;padding:6px 16px;border-radius:14px;background:#eef6f2;font-size:29px;color:#005139}
+.m .link{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:31px;color:#0a6fb5;font-weight:700;position:relative}
+.m .link u{text-decoration-thickness:2px;text-underline-offset:6px}
+.m.doc{padding:12px}
+.docbox{display:flex;align-items:center;gap:18px;background:#f2f4f3;border-radius:18px;padding:18px 20px;width:420px;position:relative}
+.docbox .ico{width:66px;height:80px;border-radius:10px;background:#fff;border:2px solid #cfd8d4;display:flex;align-items:center;justify-content:center;flex:none}
+.docbox .t1{font-size:31px;font-weight:700;line-height:1.4}
+.docbox .t2{font-size:23px;color:var(--muted)}
+.typing{align-self:flex-start;background:#fff;border-radius:24px;border-start-start-radius:6px;padding:20px 26px;display:flex;gap:10px;margin-top:12px;box-shadow:0 1.5px 1px rgba(0,0,0,.10)}
+.typing i{width:14px;height:14px;border-radius:50%;background:#9aaaa4;display:block}
+.inbar{position:absolute;left:0;right:0;bottom:0;height:118px;background:#f0ebe3;display:flex;align-items:flex-start;gap:14px;padding:14px 18px 0}
+.inbar .field{flex:1;height:72px;background:#fff;border-radius:36px;display:flex;align-items:center;padding:0 26px;font-size:30px;color:#94a19c;gap:14px;overflow:hidden;white-space:nowrap}
+.inbar .field .txt{color:#10231d}
+.inbar .field .caret{width:3px;height:36px;background:var(--primary-c)}
+.inbar .btn{width:72px;height:72px;border-radius:50%;background:var(--primary-c);display:flex;align-items:center;justify-content:center;flex:none}
+
+/* waiting room */
+.wait{background:var(--ivory)}
+.wait .url{position:absolute;top:84px;left:22px;right:22px;height:64px;border-radius:32px;background:#e9e4d8;display:flex;align-items:center;justify-content:center;gap:12px;font-size:27px;color:#3f4943}
+.wait .card{position:absolute;top:200px;left:34px;right:34px;background:#fff;border-radius:40px;padding:46px 34px 40px;text-align:center;box-shadow:0 20px 50px rgba(11,61,46,.12)}
+.wait .brand{font-size:30px;color:var(--primary);font-weight:700}
+.wait h2{font-size:44px;font-weight:700;margin:6px 0 24px}
+.wait .phc{width:250px;height:250px;border-radius:50%;margin:0 auto;padding:7px;background:linear-gradient(135deg,var(--primary),var(--gold))}
+.wait .phc img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;background:#fff}
+.wait .dn{font-size:42px;font-weight:700;margin-top:22px}
+.wait .dl{font-family:"Inter",sans-serif;font-size:26px;color:var(--muted);margin-top:-4px}
+.wait .status{margin:30px auto 0;display:inline-flex;align-items:center;gap:14px;font-size:31px;padding:12px 28px;border-radius:999px;background:#fff6dc;color:#5b4800}
+.wait .status.ok{background:#d6f5e6;color:#005139}
+.wait .dotz{display:inline-flex;gap:8px}
+.wait .dotz i{width:11px;height:11px;border-radius:50%;background:currentColor;display:block}
+.wait .perms{display:flex;justify-content:center;gap:22px;margin-top:30px;font-size:27px;color:var(--muted)}
+.wait .perms span{display:inline-flex;align-items:center;gap:8px;background:#f2f5f4;padding:10px 20px;border-radius:16px}
+.wait .join{position:absolute;left:60px;right:60px;top:1060px;height:110px;border-radius:55px;background:var(--primary-c);color:#fff;font-size:40px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:16px}
+.wait .join.off{background:#7b8f88}
+
+/* consultation */
+.call{background:#0e1d18}
+.call .top{position:absolute;top:96px;left:0;right:0;text-align:center;color:#d6efe5;font-size:28px}
+.call .doc{position:absolute;top:150px;left:20px;right:20px;height:600px;border-radius:36px;overflow:hidden;background:#d9d9d6}
+.call .doc img{width:100%;height:100%;object-fit:cover;object-position:50% 30%;display:block}
+.call .doc .nm{position:absolute;bottom:22px;right:22px;background:rgba(10,30,24,.78);color:#fff;border-radius:18px;padding:8px 22px;font-size:32px;font-weight:700}
+.call .doc .nm small{display:block;font-family:"Inter",sans-serif;font-weight:400;font-size:21px;opacity:.85;margin-top:-4px}
+.call .doc .tag{position:absolute;top:20px;left:20px;background:rgba(255,255,255,.88);color:#10231d;border-radius:14px;padding:4px 16px;font-size:23px}
+.call .me{position:absolute;top:770px;left:24px;width:190px;height:236px;border-radius:26px;overflow:hidden;background:#cfe0d8;border:3px solid #2f5246}
+.call .me .lb{position:absolute;bottom:8px;right:10px;background:rgba(10,30,24,.75);color:#fff;font-size:22px;border-radius:10px;padding:0 12px}
+.call .chips{position:absolute;top:780px;right:30px;width:390px;display:flex;flex-direction:column;gap:18px}
+.chip{display:flex;align-items:center;gap:14px;font-size:30px;font-weight:700;color:#e9f6f0;opacity:0;padding:4px 0;border-bottom:1px solid rgba(214,239,229,.18)}
+.chip .ci{width:46px;height:46px;border-radius:50%;background:rgba(214,239,229,.12);display:flex;align-items:center;justify-content:center;flex:none}
+.call .ctrls{position:absolute;bottom:40px;left:0;right:0;display:flex;justify-content:center;gap:36px}
+.call .ctrls div{width:92px;height:92px;border-radius:50%;background:#2b3e38;display:flex;align-items:center;justify-content:center}
+.call .ctrls .end{background:#d93a33}
+
+/* document viewer */
+.viewer{background:#1f2624}
+.viewer .vh{position:absolute;top:84px;left:0;right:0;height:90px;display:flex;align-items:center;gap:18px;padding:0 30px;color:#fff;font-size:32px;font-weight:700}
+.page{position:absolute;top:196px;left:34px;right:34px;height:900px;background:#fff;border-radius:10px;padding:36px 34px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.page .phd{display:flex;align-items:center;justify-content:space-between;border-bottom:4px solid var(--primary-c);padding-bottom:14px}
+.page .phd .b1{font-size:40px;font-weight:700;color:var(--forest);line-height:1.2}
+.page .phd .b2{font-family:"Inter",sans-serif;font-size:22px;color:var(--muted)}
+.page .dr{font-size:30px;font-weight:700;text-align:left;line-height:1.3}
+.page .dr small{display:block;font-family:"Inter",sans-serif;font-size:20px;font-weight:400;color:var(--muted)}
+.page .row{display:flex;gap:16px;align-items:center;font-size:28px;margin-top:20px;color:#3f4943}
+.page .row .ln{flex:1;height:3px;background:repeating-linear-gradient(90deg,#c8d2ce 0 12px,transparent 12px 20px)}
+.page .rx{font-family:"Inter",sans-serif;font-weight:800;font-size:64px;color:var(--primary-c);margin-top:24px}
+.page .bars{display:flex;flex-direction:column;gap:22px;margin-top:10px}
+.page .bars i{display:block;height:22px;border-radius:11px;background:#e5ebe8}
+.page .foot{position:absolute;bottom:30px;left:34px;right:34px;display:flex;justify-content:space-between;align-items:flex-end;font-size:24px;color:var(--muted)}
+.page .qr{width:110px;height:110px;border:3px dashed #b5c2bd;border-radius:10px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:19px;line-height:1.3}
+.page .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:190px;font-weight:700;color:rgba(200,40,40,.16);white-space:nowrap}
+.page .wm span{display:block;rotate:-24deg}
+.page .sample{position:absolute;top:120px;left:34px;background:#c62828;color:#fff;font-size:30px;font-weight:700;padding:6px 22px;border-radius:12px}
+.tapdot{position:absolute;left:50%;top:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;background:rgba(255,255,255,.55);border:4px solid rgba(0,109,78,.85);pointer-events:none;opacity:0;z-index:30}
+
+/* ---------- admin desk ---------- */
+#admin{background:radial-gradient(1300px 1500px at 55% 40%,#3a2b1c 0%,#1d150d 55%,#0d0906 100%)}
+#bokeh{position:absolute;inset:0}
+#bokeh i{position:absolute;left:0;top:0;display:block;border-radius:50%;filter:blur(16px)}
+#admRig{position:absolute;inset:0;perspective:2600px;perspective-origin:540px 760px}
+#admCam{position:absolute;inset:0;transform-origin:540px 700px}
+.monitor{position:absolute;left:52px;top:150px;width:976px;padding:18px;border-radius:40px;background:#121416;box-shadow:0 0 0 3px #2c3236 inset,0 60px 120px rgba(0,0,0,.6)}
+.panel{width:940px;background:#fff;border-radius:26px;overflow:hidden}
+.panel .bar{height:96px;background:var(--forest);display:flex;align-items:center;gap:18px;padding:0 34px;color:#fff;font-size:36px;font-weight:700}
+.panel .bar .dots{margin-inline-start:auto;display:flex;gap:10px}
+.panel .bar .dots i{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.35);display:block}
+.panel .body{padding:34px 40px 40px}
+.case{display:flex;align-items:center;gap:22px;padding-bottom:26px;border-bottom:2px solid #e3ece8}
+.case .av{width:96px;height:96px;border-radius:50%;background:#e8dccb;overflow:hidden;flex:none;position:relative}
+.case .nm{font-size:38px;font-weight:700}
+.case .sub{font-size:28px;color:var(--muted)}
+.pill{margin-inline-start:auto;padding:8px 24px;border-radius:999px;font-size:28px;font-weight:700;background:#fff4d6;color:#6b5400;white-space:nowrap}
+.pill.ok{background:#d6f5e6;color:#005139}
+.steps{margin-top:26px;display:flex;flex-direction:column;gap:18px}
+.step{display:flex;align-items:center;gap:22px;font-size:36px;padding:16px 22px;border-radius:20px;background:#f5f8f7}
+.step .ck{width:54px;height:54px;border-radius:50%;border:4px solid #c3d0cb;flex:none;display:flex;align-items:center;justify-content:center}
+.step .ck svg{width:34px;height:34px;opacity:0}
+.step.done .ck{background:var(--primary-c);border-color:var(--primary-c)}
+.step.done .ck svg{opacity:1}
+.sent{margin-top:26px;display:flex;align-items:center;gap:18px;font-size:32px;color:#005139;background:#e3f7ee;border-radius:20px;padding:18px 24px;opacity:0}
+
+/* ---------- intro titles ---------- */
+#introT{position:absolute;left:120px;right:120px;top:250px;text-align:center;pointer-events:none}
+#t1rule{display:block;width:140px;height:3px;margin:0 auto 26px;background:var(--gold)}
+#t1 .tl{display:block}
+#t1{display:block;font-size:96px;font-weight:700;line-height:1.35;color:#fbf6ea;
+  text-shadow:0 4px 18px rgba(30,18,6,.55),0 0 60px rgba(30,18,6,.35)}
+#introLogo{position:absolute;left:380px;top:200px;width:320px;height:320px;border-radius:44px;overflow:hidden;background:#fff;
+  box-shadow:0 30px 70px rgba(20,12,4,.45);opacity:0}
+#introLogo img{width:100%;height:100%;display:block}
+#leakWrap{position:absolute;inset:0;opacity:.4;pointer-events:none}
+
+/* ---------- end card ---------- */
+#endcard{background:radial-gradient(1100px 1300px at 50% 28%,#0f5f73 0%,#0b3a5c 58%,#06243a 100%);color:#fff;text-align:center}
+#endIn{position:absolute;inset:0}
+.e{position:absolute;opacity:0}
+.logo-card{top:150px;left:375px;width:330px;height:330px;border-radius:40px;background:#fff;overflow:hidden;box-shadow:0 26px 60px rgba(0,0,0,.35)}
+.logo-card img{width:100%;height:100%;display:block}
+.end-photo{top:540px;left:395px;width:290px;height:362px;border-radius:30px;overflow:hidden;box-shadow:0 0 0 4px #c8a15a,0 26px 60px rgba(0,0,0,.45)}
+.end-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.end-name{top:930px;left:120px;right:120px;font-size:56px;font-weight:700;line-height:1.3}
+.end-lat{top:1010px;left:120px;right:120px;font-family:"Inter",sans-serif;font-size:30px;color:#cfe6ee;letter-spacing:.5px}
+.end-rule{top:1078px;left:480px;width:120px;height:3px;background:#cca72f}
+.cta{top:1110px;left:130px;right:130px;font-size:42px;font-weight:700;line-height:1.5}
+.num{top:1210px;left:280px;right:280px;height:92px;border-radius:46px;background:#1f8f58;color:#fff;display:flex;align-items:center;justify-content:center;gap:14px;font-family:"Inter",sans-serif;font-weight:800;font-size:40px;direction:ltr;letter-spacing:.5px;box-shadow:0 14px 34px rgba(0,0,0,.3)}
+.disc{top:1350px;left:130px;right:130px;font-size:34px;line-height:1.5;color:#f3e7c6}
+
+/* ---------- overlays ---------- */
+#legib{position:absolute;left:0;right:0;bottom:0;height:640px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(10,7,4,0) 0%,rgba(10,7,4,.42) 55%,rgba(10,7,4,.62) 100%)}
+#topShade{position:absolute;left:0;right:0;top:0;height:260px;pointer-events:none;background:linear-gradient(180deg,rgba(10,7,4,.5) 0%,rgba(10,7,4,0) 100%)}
+#cap{position:absolute;left:120px;right:120px;bottom:330px;display:flex;justify-content:center;pointer-events:none}
+#capTxt{color:#fff;font-size:46px;font-weight:700;line-height:1.55;text-align:center;
+  text-shadow:0 2px 3px rgba(0,0,0,.75),0 0 26px rgba(0,0,0,.55)}
+#tag{position:absolute;top:56px;left:120px;right:120px;text-align:center;pointer-events:none}
+#tagTxt{font-size:24px;color:rgba(255,250,240,.86);text-shadow:0 1px 3px rgba(0,0,0,.7)}
+#fade{position:absolute;inset:0;background:#000;pointer-events:none}
+#hf-vignette{background:radial-gradient(ellipse at center,transparent 52%,rgba(18,10,2,.48) 100%)}
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="etabeeb-v3" data-start="0" data-duration="94.5" data-fps="30" data-width="1080" data-height="1920">
+<div id="stage">
+
+  <!-- OUTDOOR / INDOOR PHOTOGRAPHS -->
+  <div class="layer" id="outdoor" data-layout-allow-overlap="true">
+    <div class="shot" id="shotA"><div class="cam" id="camA">
+      <img class="ph" id="imgA" src="assets/patient/patient-ai__courtyard-messaging-01.webp" alt="">
+      <div class="dof"><img class="ph" id="imgAd" src="assets/patient/patient-ai__courtyard-messaging-01.webp" alt=""></div>
+      <div id="dust"></div>
+      <div class="warmth"></div>
+    </div></div>
+    <div class="shot" id="shotB"><div class="cam" id="camB">
+      <img class="ph" id="imgB" src="assets/patient/patient-ai__indoor-phone-01.webp" alt="">
+      <div class="dof"><img class="ph" id="imgBd" src="assets/patient/patient-ai__indoor-phone-01.webp" alt=""></div>
+      <div class="warmth"></div>
+    </div></div>
+    <div class="notif" id="notif"><div class="lg emblem" style="background-size:136px;background-position:-33px -10px"></div>
+      <div><b>ای طبیب</b><span>ستاسو مشوره تایید شوه</span></div></div>
+  </div>
+
+  <!-- INTRO TYPOGRAPHY + LOGO MOMENT -->
+  <div id="introT"><span id="t1rule"></span><span id="t1"><span class="tl">له خپل ځایه،</span><span class="tl">طبي مشوره</span></span></div>
+  <div id="introLogo"><img src="assets/brand/etabeeb-logo-official.webp" alt="eTabeeb"></div>
+  <div id="leakWrap"><div id="leak1" data-composition-id="organic-light-leak-overlay" data-composition-src="compositions/organic-light-leak-overlay.html" data-start="3.4" data-duration="2" data-width="1080" data-height="1920" data-track-index="9"></div></div>
+
+  <!-- ADMIN DESK -->
+  <div class="layer" id="admin" data-layout-allow-overlap="true"><div id="bokeh"></div><div id="admRig"><div id="admCam">
+    <div class="monitor"><div class="panel">
+      <div class="bar">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+        <span>اډمین پینل · د غوښتنې کتنه</span>
+        <div class="dots"><i></i><i></i><i></i></div>
+      </div>
+      <div class="body">
+        <div class="case">
+          <div class="av"><img src="assets/patient/patient-ai__indoor-phone-01.webp" alt="" style="position:absolute;width:328px;height:492px;left:-131px;top:-42px;max-width:none"></div>
+          <div>
+            <div class="nm">احمد ګل <span style="font-size:26px;color:var(--muted);font-weight:400">(فرضي ناروغ)</span></div>
+            <div class="sub">د واټساپ له لارې نوې غوښتنه</div>
+          </div>
+          <div class="pill" id="admPill">نوې غوښتنه</div>
+        </div>
+        <div class="steps" id="admSteps"></div>
+        <div class="sent" id="admSent">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="#005139"><path d="M3 20l18-8L3 4v6l12 2-12 2z"/></svg>
+          <span>تایید ناروغ ته په همدې واټساپ کې ولېږل شو</span>
+        </div>
+      </div>
+    </div></div>
+  </div></div></div>
+
+  <!-- PHONE CLOSE-UPS -->
+  <div class="layer" id="phone" data-layout-allow-overlap="true">
+    <div id="phBg">
+      <div class="bgimg" id="bgA"><img id="bgAimg" src="assets/patient/patient-ai__courtyard-messaging-01.webp" alt=""></div>
+      <div class="bgimg" id="bgB"><img id="bgBimg" src="assets/patient/patient-ai__indoor-phone-01.webp" alt=""></div>
+    </div>
+    <div id="phShade"></div>
+    <div id="phRig"><div id="phCam">
+    <div class="device"><div class="glass"></div><div class="screen" id="screen">
+      <div class="island"></div>
+      <div class="sbar" id="sbar"><span>10:04</span><span class="ic">
+        <svg width="34" height="22" viewBox="0 0 34 22" fill="currentColor"><rect x="0" y="14" width="6" height="8" rx="1"/><rect x="9" y="10" width="6" height="12" rx="1"/><rect x="18" y="5" width="6" height="17" rx="1"/><rect x="27" y="0" width="6" height="22" rx="1" opacity=".4"/></svg>
+        <svg width="48" height="24" viewBox="0 0 48 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="2" width="40" height="20" rx="6"/><rect x="5" y="6" width="26" height="12" rx="3" fill="currentColor"/><rect x="43" y="8" width="3" height="8" rx="1" fill="currentColor"/></svg>
+      </span></div>
+
+      <div class="scr chat" id="sChat" data-layout-allow-overlap="true">
+        <div class="hdr">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" style="margin-bottom:22px"><path d="M9 5l7 7-7 7"/></svg>
+          <div class="av emblem" style="background-size:148px;background-position:-36px -11px"></div>
+          <div>
+            <div class="nm">ای طبیب<b>eTabeeb</b></div>
+            <div class="st">آنلاین طبي مشوره</div>
+          </div>
+          <svg class="more" width="36" height="36" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+        </div>
+        <div class="wall"><div class="msgs" id="msgs"><div class="day">نن</div></div></div>
+        <div class="inbar">
+          <div class="field" id="field"><span id="fieldTxt" class="txt"></span><span class="caret" id="caret"></span><span id="fieldPh">پیغام ولیکئ</span></div>
+          <div class="btn"><svg width="38" height="38" viewBox="0 0 24 24" fill="#fff" style="transform:scaleX(-1)"><path d="M3 20l18-8L3 4v6l12 2-12 2z"/></svg></div>
+        </div>
+      </div>
+
+      <div class="scr wait" id="sWait" data-layout-allow-overlap="true">
+        <div class="url"><svg width="26" height="26" viewBox="0 0 24 24" fill="#3f4943"><path d="M7 10V8a5 5 0 0110 0v2h1v11H6V10zm2 0h6V8a3 3 0 00-6 0z"/></svg><span>د مشورې خونه</span></div>
+        <div class="card">
+          <div class="brand" style="display:flex;align-items:center;justify-content:center;gap:12px"><span class="emblem" style="width:56px;height:56px;border-radius:50%;background-size:106px;background-position:-26px -8px;display:inline-block"></span>ای طبیب · <span class="lat">eTabeeb</span></div>
+          <h2>د مشورې خونه</h2>
+          <div class="phc"><img src="assets/doctor/dr-jalaluddin__headshot-white-coat-01.png" alt=""></div>
+          <div class="dn">ډاکټر جلال الدین</div>
+          <div class="dl">Dr. Jalaluddin</div>
+          <div class="status" id="wStatus"><span id="wStatusTxt">ډاکټر ته انتظار</span><span class="dotz" id="wDots"><i></i><i></i><i></i></span></div>
+          <div class="perms">
+            <span><svg width="28" height="28" viewBox="0 0 24 24" fill="#5D6F69"><path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.9V21h2v-3.1A7 7 0 0019 11z"/></svg>مایکروفون</span>
+            <span><svg width="28" height="28" viewBox="0 0 24 24" fill="#5D6F69"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11z"/></svg>کمره</span>
+          </div>
+        </div>
+        <div class="join off" id="wJoin">ګډون وکړئ<div class="tapdot" id="tapJoin"></div></div>
+      </div>
+
+      <div class="scr call" id="sCall" data-layout-allow-overlap="true">
+        <div class="top">د مشورې خونه · ای طبیب</div>
+        <div class="doc">
+          <img src="assets/doctor/dr-jalaluddin__headshot-white-coat-01.png" alt="">
+          <div class="tag">د ډاکټر پروفایل انځور</div>
+          <div class="nm">ډاکټر جلال الدین<small>Dr. Jalaluddin</small></div>
+        </div>
+        <div class="me" data-layout-allow-overflow="true"><img src="assets/patient/patient-ai__indoor-phone-01.webp" alt="" style="position:absolute;width:463px;height:694px;left:-158px;top:-58px;max-width:none"><div class="lb">تاسو</div></div>
+        <div class="chips" id="chips"></div>
+        <div class="ctrls">
+          <div><svg width="44" height="44" viewBox="0 0 24 24" fill="#fff"><path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.9V21h2v-3.1A7 7 0 0019 11z"/></svg></div>
+          <div><svg width="44" height="44" viewBox="0 0 24 24" fill="#fff"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11z"/></svg></div>
+          <div class="end"><svg width="48" height="48" viewBox="0 0 24 24" fill="#fff"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.870 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 010-1.36C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.72c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.270 11.270 0 00-2.67-1.85.996.996 0 01-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg></div>
+        </div>
+      </div>
+
+      <div class="scr viewer" id="sDoc" data-layout-allow-overlap="true">
+        <div class="vh">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M9 5l7 7-7 7"/></svg>
+          <span>نسخه — نمونه</span>
+        </div>
+        <div class="page">
+          <div class="phd">
+            <div style="display:flex;align-items:center;gap:14px"><span class="emblem" style="width:78px;height:78px;border-radius:14px;background-size:148px;background-position:-36px -11px;display:inline-block"></span><div><div class="b1">ای طبیب</div><div class="b2">eTabeeb</div></div></div>
+            <div class="dr">ډاکټر جلال الدین<small>Dr. Jalaluddin</small></div>
+          </div>
+          <div class="row"><span>د ناروغ نوم:</span><span class="ln"></span></div>
+          <div class="row"><span>نېټه:</span><span class="ln"></span><span>عمر:</span><span class="ln"></span></div>
+          <div class="rx">Rx</div>
+          <div class="bars"><i style="width:88%"></i><i style="width:70%"></i><i style="width:80%"></i><i style="width:55%"></i></div>
+          <div class="row" style="margin-top:34px"><span>لارښوونې:</span><span class="ln"></span></div>
+          <div class="bars" style="margin-top:20px"><i style="width:92%"></i><i style="width:64%"></i></div>
+          <div class="wm"><span>نمونه</span></div>
+          <div class="sample">نمونه</div>
+          <div class="foot"><div class="qr">د تایید کوډ</div><div>دا یوازې د ښودلو لپاره نمونه ده</div></div>
+        </div>
+      </div>
+    </div></div>
+    </div></div>
+  </div>
+
+  <!-- END CARD -->
+  <div class="layer" id="endcard" data-layout-allow-overlap="true"><div id="endIn">
+    <div class="e logo-card" id="eLogo"><img src="assets/brand/etabeeb-logo-official.webp" alt="eTabeeb"></div>
+    <div class="e end-photo" id="ePhoto"><img src="assets/doctor/dr-jalaluddin__clinical-white-coat-01.png" alt=""></div>
+    <div class="e end-name" id="eName">ډاکټر جلال الدین</div>
+    <div class="e end-lat" id="eLat">Dr. Jalaluddin</div>
+    <div class="e end-rule" id="eRule"></div>
+    <div class="e cta" id="eCta">په واټساپ کې ای طبیب ته پیغام واستوئ</div>
+    <div class="e num" id="eNum"><svg width="44" height="44" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm4.6 13.9c-.2.6-1.2 1.1-1.7 1.2-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.6-2.6-1.1-4.3-3.8-4.4-4-.1-.2-1-1.4-1-2.6s.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 1.9 1.1.9 2 1.2 2.3 1.4.3.1.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.3.1.4.2.5.3.1.2.1.6-.1 1.2z"/></svg>+92 310 0006526</div>
+    <div class="e disc" id="eDisc">دا خدمت د بیړنیو حالاتو لپاره نه دی.</div>
+  </div></div>
+
+  <div id="legib"></div>
+  <div id="topShade"></div>
+  <div id="cap"><div id="capTxt"></div></div>
+  <div id="tag"><span id="tagTxt"></span></div>
+
+  <div id="hf-vignette" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:90"></div>
+  <div id="grain-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100">
+    <div class="grain-texture"></div>
+  </div>
+  <style>
+  @keyframes hf-grain-noise{0%,100%{transform:translate(0,0)}10%{transform:translate(-5%,-5%)}20%{transform:translate(-10%,5%)}30%{transform:translate(5%,-10%)}40%{transform:translate(-5%,15%)}50%{transform:translate(-10%,5%)}60%{transform:translate(15%,0)}70%{transform:translate(0,10%)}80%{transform:translate(-15%,0)}90%{transform:translate(10%,5%)}}
+  #grain-overlay .grain-texture{position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+    background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity:.055;animation:hf-grain-noise .5s steps(1) infinite}
+  </style>
+  <div id="fade"></div>
+</div>
+<audio id="mix" src="assets/audio/mix_v3.wav" data-start="0" data-duration="94.5" data-track-index="20" data-volume="1"></audio>
+</div>
+
+<script>
+(function () {
+const TL = {"fps": 30, "duration": 90, "width": 1080, "height": 1920, "note": "All chat names, numbers, times and documents are illustrative/fictional. No real patient data.", "layers": {"outdoor": [[0, 7.8], [29.0, 31.8], [79.0, 84.4]], "admin": [[19.8, 29.4]], "phone": [[7.4, 20.2], [31.4, 79.4]], "endcard": [[84.0, 90]]}, "screens": [["chat", 0, 38.2], ["wait", 38.2, 48.0], ["call", 48.0, 65.2], ["chat", 65.2, 71.4], ["doc", 71.4, 90]], "messages": [{"id": "m1", "dir": "out", "t": 9.0, "text": "سلام، له ډاکټر سره مشوره غواړم.", "time": "10:02"}, {"id": "m2", "dir": "in", "t": 10.8, "typing": 9.8, "text": "السلام علیکم! ای طبیب ته ښه راغلاست.\nمهرباني وکړئ د ناروغ بشپړ نوم ولیکئ.", "time": "10:02"}, {"id": "m3", "dir": "out", "t": 13.0, "text": "احمد ګل", "time": "10:03"}, {"id": "m4", "dir": "in", "t": 14.7, "typing": 13.8, "text": "مننه احمد ګل.\nاوس مهرباني وکړئ د اړیکې د تلیفون شمېره ولیکئ.", "time": "10:03"}, {"id": "m5", "dir": "out", "t": 16.7, "text": "07•• ••• •••", "ltr": true, "time": "10:03"}, {"id": "m6", "dir": "in", "t": 18.3, "typing": 17.4, "text": "مننه! ستاسو معلومات ترلاسه شول.\nزموږ همکار به له تاسو سره اړیکه ونیسي.", "time": "10:04"}, {"id": "m7", "dir": "in", "t": 32.2, "kind": "confirm", "text": "ستاسو مشوره له ډاکټر جلال الدین سره تایید شوه.", "slot": "وخت: ستاسو ټاکل شوی وخت", "link": "د مشورې لینک خلاص کړئ", "time": ""}, {"id": "m8", "dir": "in", "t": 66.8, "typing": 66.0, "text": "ستاسو نسخه چمتو ده او له دې پیغام سره درلېږل کېږي.", "time": ""}, {"id": "m9", "dir": "in", "t": 67.9, "kind": "doc", "text": "نسخه — نمونه", "time": ""}], "taps": [{"t": 37.4, "target": "link"}, {"t": 46.2, "target": "join"}, {"t": 70.7, "target": "doc"}], "admin": {"steps": [{"t": 21.0, "label": "نوم او د اړیکې شمېره"}, {"t": 22.3, "label": "عمر، جنس او ځای"}, {"t": 23.6, "label": "اصلي شکایت"}, {"t": 25.0, "label": "د فیس ورکړه تایید شوه"}, {"t": 26.6, "label": "ډاکټر وخت تایید کړ"}], "status": [[19.8, "نوې غوښتنه"], [23.9, "د فیس انتظار"], [25.3, "د ډاکټر تایید ته انتظار"], [26.9, "تایید شوې"]]}, "wait": {"doctorJoined": 43.8}, "callChips": [{"t": 50.6, "icon": "thermo", "label": "نښې"}, {"t": 52.6, "icon": "history", "label": "پخوانۍ ناروغۍ"}, {"t": 54.6, "icon": "pill", "label": "کارېدونکي درمل"}, {"t": 57.2, "icon": "report", "label": "پخواني راپورونه"}], "captions": [[0.5, 3.05, "ډاکټر ته تګ درته ګران دی؟"], [3.0, 7.2, "له ای طبیب سره له خپل ځایه طبي مشوره ترلاسه کولی شئ."], [8.3, 12.55, "په واټساپ کې ای طبیب ته پیغام واستوئ او خپل نوم ولیکئ."], [12.6, 15.2, "ستاسو د مشورې غوښتنه ثبتېږي."], [20.7, 24.35, "اډمین ستاسو معلومات او د فیس ورکړه تاییدوي."], [24.3, 28.6, "بیا د مشورې وخت له ډاکټر سره برابرېږي"], [28.55, 32.1, "او تاسو ته په همدې واټساپ کې خبر درکول کېږي."], [35.3, 38.23, "په ټاکلي وخت د مشورې لینک خلاص کړئ"], [38.18, 40.45, "او له ډاکټر سره آنلاین مشوره وکړئ."], [49.2, 54.75, "خپلې نښې، پخوانۍ ناروغۍ او کارېدونکي درمل له ډاکټر سره شریک کړئ."], [54.7, 58.3, "که پخواني راپورونه لرئ، هغه هم ورولېږئ."], [66.1, 70.06, "له مشورې وروسته، ډاکټر نسخه او لازمې لارښوونې چمتو کوي"], [70.01, 73.05, "او په همدې واټساپ کې یې ترلاسه کوئ."], [80.3, 84.0, "د مشورې لپاره ای طبیب ته په واټساپ کې پیغام واستوئ."], [83.95, 88.2, "دا خدمت د بیړنیو حالاتو لپاره نه دی."]], "sfx": [{"t": 0.0, "type": "ambience_in"}, {"t": 31.8, "type": "notify"}, {"t": 47.7, "type": "connect"}, {"t": 79.6, "type": "chime_soft"}], "vo": [{"line": 1, "file": "vo/lines/vo_01.wav", "at": 0.45, "duration": 6.6, "speech": [0.6, 6.75]}, {"line": 2, "file": "vo/lines/vo_02.wav", "at": 8.25, "duration": 6.8, "speech": [8.4, 14.75]}, {"line": 3, "file": "vo/lines/vo_03.wav", "at": 20.65, "duration": 11.3, "speech": [20.8, 31.65]}, {"line": 4, "file": "vo/lines/vo_04.wav", "at": 35.25, "duration": 5.05, "speech": [35.4, 40.0]}, {"line": 5, "file": "vo/lines/vo_05.wav", "at": 49.15, "duration": 9.0, "speech": [49.3, 57.85]}, {"line": 6, "file": "vo/lines/vo_06.wav", "at": 66.05, "duration": 6.85, "speech": [66.2, 72.6]}, {"line": 7, "file": "vo/lines/vo_07.wav", "at": 80.25, "duration": 7.8, "speech": [80.4, 87.75]}]};
+const OFF = 4.5;
+const DUR = 94.5;
+const FILM = TL.duration + OFF;   // full-film length (the preview remaps into it)
+const REMAP = null;   // null for the full film; [[outStart, srcStart, len], ...] for the preview
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const sine = (x) => -(Math.cos(Math.PI * x) - 1) / 2;
+const eOut = (x) => 1 - Math.pow(1 - x, 3);
+const seg = (t, a, b) => ease(lin(t, a, b));
+const sseg = (t, a, b) => sine(lin(t, a, b));
+const mix = (a, b, p) => a + (b - a) * p;
+function hash(n) { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+function layerOpacity(spans, s, fade = 0.5) {
+  let o = 0;
+  for (const [a, b] of spans) {
+    const fi = a <= -OFF ? 1 : lin(s, a, a + fade);
+    const fo = 1 - lin(s, b - fade, b);
+    if (s >= a && s <= b) o = Math.max(o, Math.min(fi, fo));
+  }
+  return o;
+}
+
+const ICON = {
+  thermo: '<svg width="28" height="28" viewBox="0 0 24 24" fill="#bfe9d6"><path d="M15 13V5a3 3 0 00-6 0v8a5 5 0 106 0zm-3 7a3 3 0 01-1-5.83V5a1 1 0 012 0v9.17A3 3 0 0112 20z"/></svg>',
+  history: '<svg width="28" height="28" viewBox="0 0 24 24" fill="#bfe9d6"><path d="M13 3a9 9 0 00-9 9H1l4 4 4-4H6a7 7 0 117 7 7 7 0 01-4.9-2l-1.4 1.4A9 9 0 1013 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z"/></svg>',
+  pill: '<svg width="28" height="28" viewBox="0 0 24 24" fill="#bfe9d6"><path d="M4.2 13.8l6-6a4.2 4.2 0 016 6l-6 6a4.2 4.2 0 01-6-6zm1.4 1.4a2.2 2.2 0 003.1 3.1l2.8-2.8-3.1-3.1z"/></svg>',
+  report: '<svg width="28" height="28" viewBox="0 0 24 24" fill="#bfe9d6"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zm-1 7V3.5L18.5 9zM8 13h8v2H8zm0 4h8v2H8z"/></svg>',
+  doc: '<svg width="44" height="44" viewBox="0 0 24 24" fill="#006d4e"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zm-1 7V3.5L18.5 9zM8 13h8v2H8zm0 4h8v2H8z"/></svg>',
+};
+const TICK = '<svg width="26" height="18" viewBox="0 0 26 18" fill="none" stroke="#34a3e0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 9l5 5L15 3"/><path d="M10 13l1 1L22 3"/></svg>';
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+
+const NDUST = 34, NBOKEH = 11;
+function build() {
+  const msgs = $('msgs');
+  for (const m of TL.messages) {
+    const w = document.createElement('div');
+    w.className = 'mw ' + m.dir; w.id = 'w_' + m.id;
+    const b = document.createElement('div');
+    b.className = 'm ' + m.dir + (m.kind === 'doc' ? ' doc' : '');
+    let inner = '';
+    if (m.kind === 'doc') {
+      inner = `<div class="docbox"><div class="ico">${ICON.doc}</div><div><div class="t1">${m.text}</div><div class="t2">سند · د ښودلو لپاره</div></div><div class="tapdot" id="tapDoc"></div></div>`;
+    } else if (m.kind === 'confirm') {
+      inner = `<div>${m.text}</div>
+        <div class="slot"><svg width="28" height="28" viewBox="0 0 24 24" fill="#005139"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 10.4l3.5 2.1-.8 1.3L11 13V6h2z"/></svg>${m.slot}</div>
+        <div class="link"><svg width="30" height="30" viewBox="0 0 24 24" fill="#0a6fb5"><path d="M10.6 13.4a1 1 0 010-1.4l3.5-3.5a3 3 0 114.2 4.2l-2 2-1.4-1.4 2-2a1 1 0 10-1.4-1.4L12 13.4a1 1 0 01-1.4 0zM13.4 10.6a1 1 0 010 1.4l-3.5 3.5a3 3 0 11-4.2-4.2l2-2 1.4 1.4-2 2a1 1 0 101.4 1.4L12 10.6a1 1 0 011.4 0z"/></svg><u>${m.link}</u><div class="tapdot" id="tapLink"></div></div>`;
+    } else {
+      inner = m.ltr ? `<span class="ltr">${m.text}</span>` : `<span class="tx">${m.text}</span>`;
+    }
+    b.innerHTML = inner + (m.time ? `<div class="meta"><span>${m.time}</span>${m.dir === 'out' ? TICK : ''}</div>` : '');
+    w.appendChild(b); msgs.appendChild(w);
+  }
+  const ty = document.createElement('div');
+  ty.className = 'mw in'; ty.id = 'typingW';
+  ty.innerHTML = '<div class="typing"><i></i><i></i><i></i></div>';
+  msgs.appendChild(ty);
+
+  TL.admin.steps.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'step'; d.id = 'st' + i;
+    d.innerHTML = `<div class="ck">${CHECK}</div><span>${s.label}</span>`;
+    $('admSteps').appendChild(d);
+  });
+  TL.callChips.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'chip'; d.id = 'chip' + i;
+    d.innerHTML = `<div class="ci">${ICON[c.icon]}</div><span>${c.label}</span>`;
+    $('chips').appendChild(d);
+  });
+  for (let i = 0; i < NDUST; i++) {
+    const d = document.createElement('i'); d.id = 'du' + i;
+    const sz = 5 + hash(i + 3) * 11; d.style.width = d.style.height = sz + 'px';
+    $('dust').appendChild(d);
+  }
+  const warm = ['rgba(255,190,110,', 'rgba(255,226,170,', 'rgba(210,150,80,', 'rgba(255,240,210,'];
+  for (let i = 0; i < NBOKEH; i++) {
+    const d = document.createElement('i'); d.id = 'bk' + i;
+    const sz = 70 + hash(i + 40) * 170; d.style.width = d.style.height = sz + 'px';
+    d.style.background = warm[i % 4] + (0.16 + hash(i + 80) * 0.18).toFixed(2) + ')';
+    $('bokeh').appendChild(d);
+  }
+}
+
+let H = {};
+function measure() {
+  for (const m of TL.messages) H[m.id] = $('w_' + m.id).getBoundingClientRect().height;
+  H.typing = $('typingW').getBoundingClientRect().height;
+}
+
+// phone camera keys (story time, scale, rotateY, rotateX)
+const PK = [[7.4, .975, -7, 3], [20.2, 1.035, -2, 1.5], [31.4, .99, 6, 2.2], [38.2, 1.02, 2, 1.5],
+            [48.0, 1.03, -1, 1], [65.2, 1.07, -3, .8], [71.4, 1.02, -1, 1.5], [79.4, 1.045, 1.5, 1]];
+function phoneCam(s) {
+  if (s <= PK[0][0]) return PK[0];
+  for (let i = 0; i < PK.length - 1; i++) {
+    const a = PK[i], b = PK[i + 1];
+    if (s <= b[0]) {
+      // 20.2 -> 31.4 is off-screen; jump instead of interpolating
+      if (a[0] === 20.2) return s < 31.4 ? a : b;
+      const p = sseg(s, a[0], b[0]);
+      return [s, mix(a[1], b[1], p), mix(a[2], b[2], p), mix(a[3], b[3], p)];
+    }
+  }
+  return PK[PK.length - 1];
+}
+
+function renderFilm(t) {
+  const s = t - OFF;                                  // story time (v1 timeline)
+  // layers (story-time spans; the cold open extends the first courtyard span)
+  const L = TL.layers;
+  const outSpans = [[-OFF, L.outdoor[0][1]], L.outdoor[1], L.outdoor[2]];
+  $('outdoor').style.opacity = layerOpacity(outSpans, s);
+  $('admin').style.opacity = layerOpacity(L.admin, s);
+  $('phone').style.opacity = layerOpacity(L.phone, s);
+  $('endcard').style.opacity = layerOpacity(L.endcard, s, 0.6);
+  $('fade').style.opacity = Math.max(1 - lin(t, 0, 1.0), lin(t, FILM - 0.7, FILM));
+
+  // ---- photographs: motivated camera ----
+  let shot = 'A';
+  if (s >= 20 && s < 40) shot = 'B';
+  $('shotA').style.opacity = shot === 'A' ? 1 : 0;
+  $('shotB').style.opacity = shot === 'B' ? 1 : 0;
+  if (shot === 'A') {
+    let sc, ox = 560, oy = 860, dx = 0;
+    if (s < 40) { const p = sseg(s, -OFF, 7.8); sc = mix(1.0, 1.06, p); dx = mix(8, -6, p); }
+    else { const p = sseg(s, 79.0, 84.4); sc = mix(1.06, 1.0, p); dx = mix(-6, 6, p); }
+    $('camA').style.transformOrigin = `${ox}px ${oy}px`;
+    $('camA').style.transform = `translateX(${dx.toFixed(2)}px) scale(${sc.toFixed(5)})`;
+    for (let i = 0; i < NDUST; i++) {
+      const vx = 5 + hash(i + 7) * 12, vy = 6 + hash(i + 11) * 14;
+      const x = ((hash(i + 1) * 1180 + t * vx) % 1180) - 50;
+      const y = ((hash(i + 2) * 2000 - t * vy) % 2000 + 2000) % 2000 - 40;
+      const o = (0.18 + 0.32 * hash(i + 19)) * (0.55 + 0.45 * Math.sin(t * (0.6 + hash(i + 23)) + i));
+      const el = $('du' + i);
+      el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+      el.style.opacity = o.toFixed(3);
+    }
+  } else {
+    const p = sseg(s, 29.0, 31.8);
+    $('camB').style.transformOrigin = '400px 640px';
+    $('camB').style.transform = `scale(${mix(1.06, 1.0, p).toFixed(5)})`;
+  }
+  const np = s > 29 && s < 40 ? eOut(lin(s, 30.3, 30.85)) : 0;
+  $('notif').style.opacity = np;
+  $('notif').style.transform = `translateY(${((1 - np) * -40).toFixed(1)}px)`;
+
+  // ---- cold-open title + logo moment ----
+  const tIn = eOut(lin(t, 0.8, 1.8)), tOut = lin(t, 2.45, 3.0);
+  $('t1').style.clipPath = `inset(0 0 0 ${((1 - tIn) * 100).toFixed(2)}%)`;
+  $('t1').style.filter = `blur(${((1 - tIn) * 6 + tOut * 6).toFixed(2)}px)`;
+  $('introT').style.opacity = (Math.min(lin(t, 0.8, 1.2), 1 - tOut)).toFixed(3);
+  $('introT').style.transform = `translateY(${(-tOut * 18).toFixed(1)}px)`;
+  $('t1rule').style.transform = `scaleX(${eOut(lin(t, 0.7, 1.5)).toFixed(3)})`;
+  const lIn = eOut(lin(t, 2.8, 3.5)), lOut = lin(t, 4.15, 4.8);
+  $('introLogo').style.opacity = Math.min(lIn, 1 - lOut).toFixed(3);
+  $('introLogo').style.transform = `translateY(${(mix(30, 0, lIn) - sseg(t, 3.3, 4.8) * 70).toFixed(1)}px) scale(${mix(.96, 1, lIn).toFixed(4)})`;
+
+  // ---- admin desk ----
+  const ap = sseg(s, 19.8, 29.4);
+  $('admCam').style.transform = `scale(${mix(.94, .99, ap).toFixed(4)}) rotateY(${mix(5, 2, ap).toFixed(3)}deg) rotateX(${mix(2.5, 1.5, ap).toFixed(3)}deg)`;
+  for (let i = 0; i < NBOKEH; i++) {
+    const x = hash(i + 50) * 1080 + Math.sin(t * 0.21 + i) * 26;
+    const y = hash(i + 60) * 1920 + Math.cos(t * 0.17 + i * 1.7) * 30;
+    $('bk' + i).style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+  }
+  TL.admin.steps.forEach((st, i) => {
+    const el = $('st' + i);
+    el.classList.toggle('done', s >= st.t);
+    const p = eOut(lin(s, st.t, st.t + 0.3));
+    el.querySelector('.ck').style.transform = `scale(${s >= st.t ? mix(0.6, 1, p) : 1})`;
+    el.style.opacity = s >= st.t - 0.6 ? 1 : 0.55;
+  });
+  let ps = TL.admin.status[0][1];
+  for (const [a, label] of TL.admin.status) if (s >= a) ps = label;
+  $('admPill').textContent = ps;
+  $('admPill').classList.toggle('ok', ps === 'تایید شوې');
+  const sp = eOut(lin(s, 27.4, 27.9));
+  $('admSent').style.opacity = sp; $('admSent').style.transform = `translateY(${(1 - sp) * 20}px)`;
+
+  // ---- phone close-ups ----
+  const [, psc, ry, rx] = phoneCam(s);
+  $('phCam').style.transform = `scale(${psc.toFixed(5)}) rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg)`;
+  const useB = s >= 25;
+  $('bgA').style.opacity = useB ? 0 : 1; $('bgB').style.opacity = useB ? 1 : 0;
+  $('phBg').style.transform = `translateX(${(ry * 5).toFixed(1)}px) scale(${(1 + (psc - 1) * 0.4).toFixed(4)})`;
+
+  const scr = { chat: 'sChat', wait: 'sWait', call: 'sCall', doc: 'sDoc' };
+  for (const id of Object.values(scr)) { $(id).style.opacity = 0; $(id).style.zIndex = 0; }
+  for (const [name, a, b] of TL.screens) {
+    if (s >= a - 0.001 && s < b) {
+      $(scr[name]).style.opacity = a < 1 ? 1 : eOut(lin(s, a, a + 0.35));
+      const prev = TL.screens.find((x) => Math.abs(x[2] - a) < 1e-6);
+      if (prev && s < a + 0.35) { $(scr[prev[0]]).style.opacity = 1; $(scr[name]).style.zIndex = 2; $(scr[prev[0]]).style.zIndex = 1; }
+    }
+  }
+  if (s < 0) $('sChat').style.opacity = 1;
+  $('sbar').classList.toggle('dark', s >= 38.2 && s < 48);
+
+  let typingOn = false;
+  for (const m of TL.messages) {
+    const w = $('w_' + m.id), b = w.firstChild;
+    if (s < m.t) { w.style.height = '0px'; w.style.visibility = 'hidden'; if (m.typing && s >= m.typing) typingOn = true; continue; }
+    const p = eOut(lin(s, m.t, m.t + 0.32));
+    const h0 = m.typing ? Math.min(H.typing, H[m.id]) : 0;
+    w.style.visibility = 'visible';
+    w.style.height = mix(h0, H[m.id], p) + 'px';
+    b.style.opacity = clamp(p * 1.6);
+    b.style.transform = `scale(${mix(0.92, 1, p)})`;
+  }
+  const tw = $('typingW');
+  tw.style.display = typingOn ? 'flex' : 'none';
+  if (typingOn) tw.querySelectorAll('i').forEach((d, i) => { d.style.opacity = 0.35 + 0.65 * Math.max(0, Math.sin((s * 6 - i * 0.9))); });
+
+  let txt = '';
+  for (const m of TL.messages) {
+    if (m.dir !== 'out') continue;
+    const a = m.t - 1.3, b = m.t - 0.25;
+    if (s >= a && s < m.t) {
+      const chars = [...m.text];
+      txt = chars.slice(0, Math.ceil(chars.length * lin(s, a, b))).join('');
+      $('fieldTxt').style.direction = m.ltr ? 'ltr' : 'rtl';
+    }
+  }
+  $('fieldTxt').textContent = txt;
+  $('fieldPh').style.display = txt ? 'none' : 'inline';
+  $('caret').style.opacity = txt && Math.floor(s * 3) % 2 === 0 ? 1 : 0;
+
+  const tapEl = { link: 'tapLink', join: 'tapJoin', doc: 'tapDoc' };
+  for (const tp of TL.taps) {
+    const el = $(tapEl[tp.target]); if (!el) continue;
+    const p = lin(s, tp.t - 0.25, tp.t + 0.45);
+    const on = s >= tp.t - 0.25 && s <= tp.t + 0.45;
+    el.style.opacity = on ? (p < 0.35 ? p / 0.35 : 1 - (p - 0.35) / 0.65) : 0;
+    el.style.transform = `scale(${on ? mix(0.6, 1.25, p) : 1})`;
+  }
+
+  const joined = s >= TL.wait.doctorJoined;
+  $('wStatusTxt').textContent = joined ? 'ډاکټر چمتو دی' : 'ډاکټر ته انتظار';
+  $('wStatus').classList.toggle('ok', joined);
+  $('wDots').style.display = joined ? 'none' : 'inline-flex';
+  $('wDots').querySelectorAll('i').forEach((d, i) => { d.style.opacity = 0.3 + 0.7 * Math.max(0, Math.sin(s * 5 - i)); });
+  $('wJoin').classList.toggle('off', !joined);
+  TL.callChips.forEach((c, i) => {
+    const p = eOut(lin(s, c.t, c.t + 0.5));
+    const el = $('chip' + i);
+    el.style.opacity = p; el.style.transform = `translateX(${((1 - p) * -24).toFixed(1)}px)`;
+  });
+
+  // ---- end card ----
+  const E = [['eLogo', 84.15], ['ePhoto', 84.45], ['eName', 84.75], ['eLat', 84.85], ['eRule', 85.0], ['eCta', 85.1], ['eNum', 85.35], ['eDisc', 85.6]];
+  for (const [id, a] of E) {
+    const p = eOut(lin(s, a, a + 0.7));
+    $(id).style.opacity = p.toFixed(3);
+    $(id).style.transform = id === 'eRule' ? `scaleX(${p.toFixed(3)})` : `translateY(${((1 - p) * 26).toFixed(1)}px)`;
+  }
+  $('endIn').style.transform = `scale(${mix(1.0, 1.015, sseg(s, 84, 90)).toFixed(4)})`;
+
+  // ---- honesty label ----
+  let tag = '';
+  if (s < 7.6 || (s >= 29 && s < 31.6) || (s >= 79 && s < 84.2)) tag = 'د AI جوړ انځور · فرضي ناروغ';
+  else if (s < 84.2) tag = 'انځوریز مثال · ټول معلومات فرضي دي';
+  $('tagTxt').textContent = tag;
+  $('tag').style.opacity = tag ? (t < 0.9 ? lin(t, 0.4, 0.9) : 1) : 0;
+
+  // ---- captions (final disclaimer line is printed on the end card) ----
+  let cap = null;
+  for (const c of TL.captions) if (s >= c[0] && s < c[1]) cap = c;
+  let co = 0;
+  if (cap && cap !== TL.captions[TL.captions.length - 1]) {
+    co = Math.min(lin(s, cap[0], cap[0] + 0.25), 1 - lin(s, cap[1] - 0.2, cap[1]));
+    $('capTxt').textContent = cap[2];
+  }
+  $('cap').style.opacity = co.toFixed(3);
+  $('topShade').style.opacity = layerOpacity(outSpans, s).toFixed(3);
+  $('legib').style.opacity = (layerOpacity(outSpans, s) * (1 - layerOpacity(L.endcard, s, 0.6))).toFixed(3);
+}
+
+function mapTime(t) {
+  if (!REMAP) return t;
+  for (const [o, src, len] of REMAP) if (t >= o && t < o + len) return src + (t - o);
+  const last = REMAP[REMAP.length - 1];
+  return last[1] + last[2];
+}
+
+async function setup() {
+  build();
+  await document.fonts.ready;
+  await Promise.all([...document.images].map((im) => (im.decode ? im.decode().catch(() => {}) : null)));
+  $('phone').style.opacity = 1; $('sChat').style.opacity = 1;
+  measure();
+  renderFilm(mapTime(0));
+  const tl = gsap.timeline({ paused: true });
+  const clock = { t: 0 };
+  tl.fromTo(clock, { t: 0 }, { t: DUR, duration: DUR, ease: 'none', onUpdate: () => renderFilm(mapTime(clock.t)) }, 0);
+  window.__timelines['etabeeb-v3'] = tl;
+  if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+}
+setup();
+})();
+</script>
+</body>
+</html>

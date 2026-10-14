@@ -2,3 +2,11 @@ out/
 vo/vo_raw_take.wav
 vo/vo_processed_take.wav
 vo/vo_track_90s.wav
+
+# v3 (HyperFrames): regenerable outputs
+v3/preview/
+v3/.hyperframes/
+v3/assets/audio/*.wav
+v3/renders/
+deliverables/v3/*_raw.mp4
+deliverables/v3/.render_v3.log
