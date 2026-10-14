@@ -20,9 +20,18 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
 #stage{position:absolute;inset:0;overflow:hidden;background:#000}
 .layer{position:absolute;inset:0;opacity:0}
 
-/* ---------- outdoor ---------- */
-#outdoor svg.land{position:absolute;inset:0;width:1080px;height:1920px}
-#outdoor .cam{position:absolute;inset:0;transform-origin:540px 1150px}
+/* ---------- outdoor (supplied AI photos of the fictional patient) ---------- */
+#outdoor{background:#000}
+#outdoor .shot{position:absolute;inset:0;opacity:0;overflow:hidden}
+#outdoor .shot img{position:absolute;display:block}
+#shotA img{left:0;top:0;width:1080px;height:1919px}            /* 941x1672 -> x1.148 */
+#shotB img{left:-100px;top:0;width:1280px;height:1920px}       /* 1024x1536 -> x1.25, centred crop */
+#outdoor .grade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.18) 0%,rgba(0,0,0,0) 18%,rgba(0,0,0,0) 62%,rgba(0,0,0,.35) 100%)}
+.notif{position:absolute;left:330px;top:560px;width:360px;background:#fff;border-radius:26px;padding:16px 20px;display:flex;gap:14px;align-items:center;box-shadow:0 16px 40px rgba(0,0,0,.35);opacity:0}
+.notif .lg{width:64px;height:64px;border-radius:50%;flex:none}
+.notif b{display:block;font-size:28px;line-height:1.3}
+.notif span{font-size:24px;color:#3f4943;line-height:1.3}
+.emblem{background-image:url(../assets/brand/etabeeb-logo-official.webp);background-repeat:no-repeat;background-color:#fff}
 
 /* ---------- admin ---------- */
 #admin{background:linear-gradient(180deg,#e9f3ef,#d7ebe3)}
@@ -63,7 +72,7 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
 
 /* chat */
 .chat .hdr{position:absolute;top:0;left:0;right:0;height:196px;background:var(--primary-c);display:flex;align-items:flex-end;gap:16px;padding:0 24px 22px;color:#fff;z-index:5}
-.chat .hdr .av{width:84px;height:84px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;border:3px solid var(--gold)}
+.chat .hdr .av{width:84px;height:84px;border-radius:50%;background-color:#fff;display:flex;align-items:center;justify-content:center;flex:none;border:3px solid var(--gold)}
 .chat .hdr .av span{font-size:30px;font-weight:700;color:var(--forest);line-height:1}
 .chat .hdr .nm{font-size:34px;font-weight:700;line-height:1.25}
 .chat .hdr .nm b{font-family:Inter;font-weight:600;font-size:26px;opacity:.85;margin-inline-start:8px}
@@ -161,18 +170,16 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
 .tapdot{position:absolute;left:50%;top:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;background:rgba(255,255,255,.55);border:4px solid rgba(0,109,78,.85);pointer-events:none;opacity:0;z-index:30}
 
 /* end card */
-#endcard{background:radial-gradient(1100px 1300px at 50% 35%,#0c6a4c 0%,#0B3D2E 60%,#072a20 100%);color:#fff;text-align:center}
-.logo-ph{position:absolute;top:150px;left:200px;width:680px;height:220px;border:4px dashed var(--gold);border-radius:34px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.logo-ph .w1{font-size:92px;font-weight:700;line-height:1.1}
-.logo-ph .w2{font-family:Inter;font-weight:800;font-size:46px;letter-spacing:1px;color:#ffe9a6}
-.logo-tag{position:absolute;top:384px;left:0;right:0;font-size:22px;color:var(--gold);font-family:Naskh,Inter}
-.end-photo{position:absolute;top:450px;left:330px;width:420px;height:525px;border-radius:40px;overflow:hidden;box-shadow:0 0 0 6px var(--gold),0 30px 70px rgba(0,0,0,.45)}
+#endcard{background:radial-gradient(1100px 1300px at 50% 30%,#0f5f73 0%,#0b3a5c 58%,#06243a 100%);color:#fff;text-align:center}
+.logo-card{position:absolute;top:96px;left:310px;width:460px;height:460px;border-radius:44px;background:#fff;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.logo-card img{width:100%;height:100%;display:block}
+.end-photo{position:absolute;top:600px;left:375px;width:330px;height:412px;border-radius:34px;overflow:hidden;box-shadow:0 0 0 5px #c8a15a,0 24px 60px rgba(0,0,0,.45)}
 .end-photo img{width:100%;height:100%;object-fit:cover;display:block}
-.end-name{position:absolute;top:1000px;left:0;right:0;font-size:56px;font-weight:700}
-.end-lat{position:absolute;top:1082px;left:0;right:0;font-family:Inter;font-size:34px;color:#cdebdf}
-.cta{position:absolute;top:1160px;left:90px;right:90px;height:104px;border-radius:52px;background:#fff;color:var(--forest);display:flex;align-items:center;justify-content:center;gap:18px;font-size:38px;font-weight:700}
-.num-ph{position:absolute;top:1284px;left:220px;right:220px;height:70px;border-radius:35px;border:3px dashed var(--gold);display:flex;align-items:center;justify-content:center;font-size:28px;color:#ffe9a6;gap:10px}
-.disc{position:absolute;top:1376px;left:80px;right:80px;font-size:36px;color:#fff;background:rgba(0,0,0,.22);border-radius:22px;padding:12px 20px}
+.end-name{position:absolute;top:1030px;left:0;right:0;font-size:52px;font-weight:700}
+.end-lat{position:absolute;top:1108px;left:0;right:0;font-family:Inter;font-size:32px;color:#cfe6ee}
+.cta{position:absolute;top:1180px;left:90px;right:90px;height:100px;border-radius:50px;background:#fff;color:#0b3a5c;display:flex;align-items:center;justify-content:center;gap:18px;font-size:37px;font-weight:700}
+.num{position:absolute;top:1300px;left:250px;right:250px;height:84px;border-radius:42px;background:#25a366;color:#fff;display:flex;align-items:center;justify-content:center;gap:14px;font-family:Inter;font-weight:800;font-size:40px;direction:ltr;letter-spacing:.5px}
+.disc{position:absolute;top:1412px;left:80px;right:80px;font-size:34px;color:#fff;background:rgba(0,0,0,.25);border-radius:22px;padding:12px 20px}
 
 /* overlays */
 #cap{position:absolute;left:60px;right:60px;top:1440px;display:flex;justify-content:center;pointer-events:none;z-index:50}
@@ -186,73 +193,13 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
 <div id="stage">
 
   <!-- OUTDOOR -->
-  <div class="layer" id="outdoor"><div class="cam" id="outCam">
-    <svg class="land" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#bcd6df"/><stop offset=".55" stop-color="#f1e2c8"/><stop offset="1" stop-color="#f6d9b0"/>
-        </linearGradient>
-        <linearGradient id="gr" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#d9bb8e"/><stop offset="1" stop-color="#c4a074"/>
-        </linearGradient>
-        <linearGradient id="wallg" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#c79c6c"/><stop offset="1" stop-color="#b98c5d"/>
-        </linearGradient>
-      </defs>
-      <rect width="1080" height="1000" fill="url(#sky)"/>
-      <circle cx="820" cy="430" r="80" fill="#fff3d6" opacity=".9"/>
-      <path d="M0 800 L120 690 L230 760 L380 620 L520 740 L640 650 L780 760 L900 680 L1080 790 L1080 1000 L0 1000Z" fill="#a8b7bd"/>
-      <path d="M0 870 L160 770 L300 850 L430 760 L600 860 L760 780 L920 870 L1080 820 L1080 1000 L0 1000Z" fill="#b89a7a"/>
-      <path d="M0 930 L200 870 L420 920 L640 880 L860 930 L1080 900 L1080 1000 L0 1000Z" fill="#c9a983"/>
-      <rect y="960" width="1080" height="960" fill="url(#gr)"/>
-      <!-- road winding to distant mountains -->
-      <path d="M470 960 C 520 990, 380 1010, 420 1040 C 470 1080, 300 1100, 260 1180 L 360 1180 C 400 1110, 560 1080, 500 1040 C 460 1010, 560 990, 490 960 Z" fill="#ead6b2" opacity=".9"/>
-      <!-- low courtyard wall -->
-      <rect x="0" y="1060" width="600" height="120" fill="#c69e70"/>
-      <rect x="0" y="1052" width="600" height="14" fill="#b38b5f"/>
-      <!-- house -->
-      <rect x="560" y="760" width="520" height="420" fill="url(#wallg)"/>
-      <rect x="548" y="744" width="532" height="26" fill="#a87f53"/>
-      <g stroke="#a98055" stroke-width="3" opacity=".5">
-        <line x1="560" y1="830" x2="1080" y2="830"/><line x1="560" y1="900" x2="1080" y2="900"/>
-        <line x1="560" y1="1110" x2="1080" y2="1110"/>
-      </g>
-      <rect x="620" y="870" width="100" height="100" rx="6" fill="#5b3f28"/>
-      <g stroke="#8a6440" stroke-width="6"><line x1="670" y1="870" x2="670" y2="970"/><line x1="620" y1="920" x2="720" y2="920"/></g>
-      <rect x="780" y="920" width="140" height="260" rx="8" fill="#6e4a2c"/>
-      <rect x="796" y="940" width="50" height="220" rx="4" fill="#7d5636"/>
-      <rect x="854" y="940" width="50" height="220" rx="4" fill="#7d5636"/>
-      <circle cx="848" cy="1060" r="6" fill="#d5b26a"/>
-      <!-- tree -->
-      <rect x="150" y="840" width="34" height="250" rx="10" fill="#6c4a2e"/>
-      <circle cx="120" cy="820" r="90" fill="#7d9858"/><circle cx="220" cy="790" r="100" fill="#89a463"/>
-      <circle cx="170" cy="720" r="85" fill="#93ad6c"/><circle cx="260" cy="860" r="70" fill="#7a9455"/>
-      <!-- charpai -->
-      <g>
-        <rect x="320" y="1340" width="500" height="34" rx="6" fill="#8a5a33"/>
-        <rect x="336" y="1318" width="468" height="30" rx="6" fill="#dcc69a"/>
-        <g stroke="#bfa676" stroke-width="3">
-          <line x1="350" y1="1320" x2="380" y2="1346"/><line x1="400" y1="1320" x2="430" y2="1346"/><line x1="450" y1="1320" x2="480" y2="1346"/>
-          <line x1="660" y1="1320" x2="690" y2="1346"/><line x1="710" y1="1320" x2="740" y2="1346"/><line x1="760" y1="1320" x2="790" y2="1346"/>
-        </g>
-        <rect x="330" y="1370" width="26" height="120" rx="8" fill="#7a4d2b"/>
-        <rect x="784" y="1370" width="26" height="120" rx="8" fill="#7a4d2b"/>
-        <ellipse cx="570" cy="1500" rx="300" ry="20" fill="#000" opacity=".08"/>
-        <!-- tea set -->
-        <rect x="712" y="1282" width="44" height="40" rx="10" fill="#4f7c8a"/>
-        <path d="M756 1294 q22 0 18 18" stroke="#4f7c8a" stroke-width="6" fill="none"/>
-        <rect x="674" y="1300" width="24" height="22" rx="5" fill="#f4efe4"/>
-      </g>
-      <g id="patientWide" transform="translate(390 880) scale(0.9)"></g>
-      <!-- notification bubble above phone -->
-      <g id="notif" opacity="0">
-        <rect x="598" y="1010" width="96" height="74" rx="22" fill="#fff"/>
-        <path d="M618 1084 l-6 22 l26 -22z" fill="#fff"/>
-        <circle cx="646" cy="1047" r="22" fill="#006d4e"/>
-        <path d="M635 1047 l8 8 l14 -16" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </g>
-    </svg>
-  </div></div>
+  <div class="layer" id="outdoor">
+    <div class="shot" id="shotA"><img id="imgA" src="../assets/patient/patient-ai__courtyard-messaging-01.webp" alt=""></div>
+    <div class="shot" id="shotB"><img id="imgB" src="../assets/patient/patient-ai__indoor-phone-01.webp" alt=""></div>
+    <div class="grade"></div>
+    <div class="notif" id="notif"><div class="lg emblem" style="background-size:122px;background-position:-29px -9px"></div>
+      <div><b>ای طبیب</b><span>ستاسو مشوره تایید شوه</span></div></div>
+  </div>
 
   <!-- ADMIN -->
   <div class="layer" id="admin"><div class="cam" id="admCam">
@@ -264,7 +211,7 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
       </div>
       <div class="body">
         <div class="case">
-          <div class="av" id="admAv"></div>
+          <div class="av" id="admAv" style="position:relative"><img src="../assets/patient/patient-ai__indoor-phone-01.webp" alt="" style="position:absolute;width:328px;height:492px;left:-131px;top:-42px;max-width:none"></div>
           <div>
             <div class="nm">احمد ګل <span style="font-size:26px;color:var(--muted);font-weight:400">(فرضي ناروغ)</span></div>
             <div class="sub">د واټساپ له لارې نوې غوښتنه</div>
@@ -294,7 +241,7 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
       <div class="scr chat" id="sChat">
         <div class="hdr">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" style="margin-bottom:22px"><path d="M9 5l7 7-7 7"/></svg>
-          <div class="av"><span>ای</span></div>
+          <div class="av emblem" style="background-size:148px;background-position:-36px -11px"></div>
           <div>
             <div class="nm">ای طبیب<b>eTabeeb</b></div>
             <div class="st">آنلاین طبي مشوره</div>
@@ -312,7 +259,7 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
       <div class="scr wait" id="sWait">
         <div class="url"><svg width="26" height="26" viewBox="0 0 24 24" fill="#3f4943"><path d="M7 10V8a5 5 0 0110 0v2h1v11H6V10zm2 0h6V8a3 3 0 00-6 0z"/></svg><span>د مشورې خونه</span></div>
         <div class="card">
-          <div class="brand">ای طبیب · <span class="lat">eTabeeb</span></div>
+          <div class="brand" style="display:flex;align-items:center;justify-content:center;gap:12px"><span class="emblem" style="width:56px;height:56px;border-radius:50%;background-size:106px;background-position:-26px -8px;display:inline-block"></span>ای طبیب · <span class="lat">eTabeeb</span></div>
           <h2>د مشورې خونه</h2>
           <div class="ph"><img src="../assets/doctor/dr-jalaluddin__headshot-white-coat-01.png" alt=""></div>
           <div class="dn">ډاکټر جلال الدین</div>
@@ -334,7 +281,7 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
           <div class="tag">د ډاکټر پروفایل انځور</div>
           <div class="nm">ډاکټر جلال الدین<small>Dr. Jalaluddin</small></div>
         </div>
-        <div class="me"><svg viewBox="96 20 208 250" id="patientTile"></svg><div class="lb">تاسو</div></div>
+        <div class="me"><img src="../assets/patient/patient-ai__indoor-phone-01.webp" alt="" style="position:absolute;width:463px;height:694px;left:-158px;top:-58px;max-width:none"><div class="lb">تاسو</div></div>
         <div class="chips" id="chips"></div>
         <div class="ctrls">
           <div><svg width="44" height="44" viewBox="0 0 24 24" fill="#fff"><path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.9V21h2v-3.1A7 7 0 0019 11z"/></svg></div>
@@ -351,7 +298,7 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
         </div>
         <div class="page">
           <div class="ph">
-            <div><div class="b1">ای طبیب</div><div class="b2">eTabeeb</div></div>
+            <div style="display:flex;align-items:center;gap:14px"><span class="emblem" style="width:78px;height:78px;border-radius:14px;background-size:148px;background-position:-36px -11px;display:inline-block"></span><div><div class="b1">ای طبیب</div><div class="b2">eTabeeb</div></div></div>
             <div class="dr">ډاکټر جلال الدین<small>Dr. Jalaluddin</small></div>
           </div>
           <div class="row"><span>د ناروغ نوم:</span><span class="ln"></span></div>
@@ -370,16 +317,15 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
 
   <!-- END CARD -->
   <div class="layer" id="endcard">
-    <div class="logo-ph"><div class="w1">ای طبیب</div><div class="w2">eTabeeb</div></div>
-    <div class="logo-tag">د رسمي لوګو ځای · LOGO PLACEHOLDER</div>
+    <div class="logo-card"><img src="../assets/brand/etabeeb-logo-official.webp" alt="eTabeeb"></div>
     <div class="end-photo"><img src="../assets/doctor/dr-jalaluddin__clinical-white-coat-01.png" alt=""></div>
     <div class="end-name">ډاکټر جلال الدین</div>
     <div class="end-lat">Dr. Jalaluddin</div>
     <div class="cta">
-      <svg width="52" height="52" viewBox="0 0 24 24" fill="#006d4e"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/></svg>
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="#0b3a5c"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/></svg>
       <span>په واټساپ کې ای طبیب ته پیغام واستوئ</span>
     </div>
-    <div class="num-ph">[ تایید شوې واټساپ شمېره ] <span class="lat" style="font-size:20px">PLACEHOLDER</span></div>
+    <div class="num"><svg width="44" height="44" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm4.6 13.9c-.2.6-1.2 1.1-1.7 1.2-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.6-2.6-1.1-4.3-3.8-4.4-4-.1-.2-1-1.4-1-2.6s.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 1.9 1.1.9 2 1.2 2.3 1.4.3.1.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.3.1.4.2.5.3.1.2.1.6-.1 1.2z"/></svg>+92 310 3336526</div>
     <div class="disc">دا خدمت د بیړنیو حالاتو لپاره نه دی.</div>
   </div>
 
@@ -389,62 +335,6 @@ body{font-family:Naskh,Inter,sans-serif;color:#10231d}
 </div>
 
 <script>
-/* ---------- fictional illustrated patient (adult Afghan man, ~55, pakol, grey-flecked short beard) ---------- */
-const EYES_DOWN = `<ellipse cx="181" cy="129" rx="6" ry="3.5" fill="#2a1d15"/><ellipse cx="219" cy="129" rx="6" ry="3.5" fill="#2a1d15"/>
-  <path d="M170 125 Q181 121 192 125" stroke="#3a2a20" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M208 125 Q219 121 230 125" stroke="#3a2a20" stroke-width="4" fill="none" stroke-linecap="round"/>`;
-const EYES_OPEN = `<ellipse cx="181" cy="124" rx="9" ry="6" fill="#fff"/><ellipse cx="219" cy="124" rx="9" ry="6" fill="#fff"/><circle cx="181" cy="124" r="4.6" fill="#2a1d15"/><circle cx="219" cy="124" r="4.6" fill="#2a1d15"/>
-  <path d="M170 120 Q181 114 192 120" stroke="#3a2a20" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M208 120 Q219 114 230 120" stroke="#3a2a20" stroke-width="3.4" fill="none" stroke-linecap="round"/>`;
-const PATIENT_T = (EYES) => `
-<g>
-  <!-- legs hanging over charpai -->
-  <rect x="128" y="468" width="150" height="66" rx="30" fill="#e7dfcc"/>
-  <rect x="140" y="500" width="48" height="100" rx="18" fill="#e3d9c3"/>
-  <rect x="214" y="500" width="48" height="100" rx="18" fill="#e3d9c3"/>
-  <ellipse cx="160" cy="604" rx="34" ry="12" fill="#5a3a24"/>
-  <ellipse cx="242" cy="604" rx="34" ry="12" fill="#5a3a24"/>
-  <!-- body: perahan -->
-  <path d="M104 262 Q116 214 200 208 Q284 214 296 262 L310 490 L90 490 Z" fill="#ece5d3"/>
-  <!-- waistcoat -->
-  <path d="M112 262 Q132 222 182 214 L200 290 L218 214 Q268 222 288 262 L300 490 L100 490 Z" fill="#4c5a3e"/>
-  <path d="M182 214 L200 290 L218 214 Z" fill="#ece5d3"/>
-  <circle cx="196" cy="320" r="5" fill="#2f3826"/><circle cx="196" cy="360" r="5" fill="#2f3826"/>
-  <!-- patu shawl over shoulder -->
-  <path d="M100 258 Q138 214 176 214 Q130 300 132 490 L94 490 Q86 360 100 258 Z" fill="#8c6b4c"/>
-  <path d="M104 300 L128 300 M100 350 L130 350 M98 400 L130 400" stroke="#a5846a" stroke-width="4"/>
-  <!-- arms -->
-  <path d="M128 280 Q104 360 132 404 Q158 420 186 398" stroke="#e3dbc8" stroke-width="48" fill="none" stroke-linecap="round"/>
-  <path d="M272 280 Q296 360 268 404 Q242 420 214 398" stroke="#e3dbc8" stroke-width="48" fill="none" stroke-linecap="round"/>
-  <!-- phone -->
-  <rect x="170" y="318" width="60" height="100" rx="10" fill="#1c1e1f"/>
-  <rect x="175" y="324" width="50" height="86" rx="6" class="pscreen" fill="#9fe6c6"/>
-  <!-- hands -->
-  <ellipse cx="180" cy="396" rx="20" ry="24" fill="#bf855c"/>
-  <ellipse cx="220" cy="396" rx="20" ry="24" fill="#bf855c"/>
-  <!-- neck -->
-  <rect x="180" y="180" width="40" height="40" rx="10" fill="#b37a53"/>
-  <!-- ears -->
-  <ellipse cx="149" cy="132" rx="10" ry="17" fill="#b67c55"/>
-  <ellipse cx="251" cy="132" rx="10" ry="17" fill="#b67c55"/>
-  <!-- face -->
-  <ellipse cx="200" cy="128" rx="51" ry="62" fill="#c68b62"/>
-  <!-- beard (short, salt-and-pepper) -->
-  <path d="M150 128 Q150 186 176 204 Q200 220 224 204 Q250 186 250 128 Q244 160 226 166 Q200 158 174 166 Q156 160 150 128 Z" fill="#8a837d"/>
-  <path d="M176 166 Q200 154 224 166 Q200 172 176 166 Z" fill="#6f6863"/>
-  <g stroke="#c9c4be" stroke-width="2.4" stroke-linecap="round">
-    <line x1="168" y1="182" x2="172" y2="192"/><line x1="186" y1="196" x2="188" y2="206"/><line x1="212" y1="196" x2="210" y2="206"/>
-    <line x1="230" y1="182" x2="226" y2="192"/><line x1="200" y1="200" x2="200" y2="210"/><line x1="158" y1="160" x2="161" y2="170"/><line x1="242" y1="160" x2="239" y2="170"/>
-  </g>
-  <!-- eyes looking down at phone -->
-  ${EYES}
-  <path d="M166 108 Q180 100 194 106" stroke="#8f8984" stroke-width="5" fill="none" stroke-linecap="round"/>
-  <path d="M206 106 Q220 100 234 108" stroke="#8f8984" stroke-width="5" fill="none" stroke-linecap="round"/>
-  <path d="M200 124 Q194 146 196 152 Q201 156 207 152" stroke="#9c6646" stroke-width="3" fill="none" stroke-linecap="round"/>
-  <path d="M172 92 Q186 88 196 92" stroke="#b07650" stroke-width="2" fill="none" opacity=".6"/>
-  <!-- pakol cap -->
-  <ellipse cx="200" cy="62" rx="60" ry="24" fill="#cdb38c"/>
-  <rect x="140" y="62" width="120" height="34" rx="17" fill="#b9996f"/>
-  <path d="M146 78 Q200 70 254 78" stroke="#a6875f" stroke-width="3" fill="none"/>
-</g>`;
 
 const TL = window.TL;
 const $ = (id) => document.getElementById(id);
@@ -476,9 +366,6 @@ const TICK = '<svg width="26" height="18" viewBox="0 0 26 18" fill="none" stroke
 const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
 
 function build() {
-  $('patientWide').innerHTML = PATIENT_T(EYES_DOWN);
-  $('patientTile').innerHTML = '<rect x="96" y="20" width="208" height="250" fill="#d9e6df"/>' + PATIENT_T(EYES_OPEN);
-  $('admAv').innerHTML = '<svg viewBox="130 30 140 140" width="96" height="96"><rect x="130" y="30" width="140" height="140" fill="#e8dccb"/>' + PATIENT_T(EYES_OPEN) + '</svg>';
 
   const msgs = $('msgs');
   for (const m of TL.messages) {
@@ -533,16 +420,18 @@ function render(t) {
   for (const k of Object.keys(TL.layers)) $(k).style.opacity = layerOpacity(TL.layers[k], t);
   $('fade').style.opacity = Math.max(1 - lin(t, 0, 0.8), lin(t, 89.3, 90));
 
-  // outdoor camera + state
-  let s = 1, tx = 0, ty = 0;
-  if (t < 10) { const p = seg(t, 0, 7.8); s = mix(1.0, 1.14, p); ty = mix(0, -20, p); }
-  else if (t < 40) { const p = seg(t, 29, 31.8); s = mix(1.32, 1.24, p); ty = -40; }
-  else { const p = seg(t, 79, 84.8); s = mix(1.42, 1.52, p); ty = -60; }
-  $('outCam').style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
-  const notifP = t > 29 && t < 40 ? eOut(lin(t, 30.4, 30.9)) : 0;
-  $('notif').setAttribute('opacity', notifP);
-  $('notif').setAttribute('transform', `translate(0 ${(1 - notifP) * 20})`);
-  document.querySelectorAll('.pscreen').forEach((el) => el.setAttribute('fill', t > 75 ? '#ffffff' : '#9fe6c6'));
+  // outdoor: supplied photos, restrained push/pull
+  let shot = 'A', s = 1, ox = 420, oy = 760;
+  if (t < 10) { s = mix(1.0, 1.06, seg(t, 0, 7.8)); }
+  else if (t < 40) { shot = 'B'; s = mix(1.06, 1.0, seg(t, 29, 31.8)); ox = 300; oy = 760; }
+  else { s = mix(1.10, 1.15, seg(t, 79, 84.4)); ox = 430; oy = 820; }
+  $('shotA').style.opacity = shot === 'A' ? 1 : 0;
+  $('shotB').style.opacity = shot === 'B' ? 1 : 0;
+  const cur = $(shot === 'A' ? 'shotA' : 'shotB');
+  cur.style.transformOrigin = `${ox}px ${oy}px`; cur.style.transform = `scale(${s})`;
+  const notifP = t > 29 && t < 40 ? eOut(lin(t, 30.3, 30.8)) : 0;
+  $('notif').style.opacity = notifP;
+  $('notif').style.transform = `translateY(${(1 - notifP) * 24}px)`;
 
   // admin
   $('admCam').style.transform = `scale(${mix(1.0, 1.03, seg(t, 19.8, 29.4))})`;
@@ -643,7 +532,7 @@ function render(t) {
 
   // top tag
   let tag = '';
-  if (t < 7.6 || (t >= 29 && t < 31.6) || (t >= 79 && t < 84.2)) tag = 'انځوریز فرضي ناروغ';
+  if (t < 7.6 || (t >= 29 && t < 31.6) || (t >= 79 && t < 84.2)) tag = 'د AI جوړ انځور · فرضي ناروغ';
   else if (t < 84.2) tag = 'انځوریز مثال · ټول معلومات فرضي دي';
   $('tagTxt').textContent = tag;
   $('tag').style.opacity = tag ? 1 : 0;

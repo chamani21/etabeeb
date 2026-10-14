@@ -8,7 +8,7 @@ WhatsApp intake → admin review → doctor confirmation → consultation link �
 | File | What it is |
 |---|---|
 | `etabeeb-journey_1080x1920.mp4` | **Final video.** H.264 High, 1080×1920, 30 fps, AAC 48 kHz stereo, 90.0 s. Pashto voiceover (supplied take `vo/Chaman_6_original.m4a`, edited), Pashto captions burned in and synced to the speech, ducked music bed and sound effects. -16 LUFS integrated, -2.5 dBTP. |
-| `etabeeb-journey_thumbnail.jpg` | 1080×1920 thumbnail, taken from the consultation scene. |
+| `etabeeb-journey_thumbnail.jpg` | 1080×1920 thumbnail (patient in his courtyard, opening shot). |
 | `etabeeb-journey_preview_15s.mp4` | Short representative preview covering booking, doctor connection and prescription delivery. |
 | `etabeeb-journey_ps.srt` | Pashto captions as a sidecar file (same timings as the voiceover slots). |
 | `../vo/lines/vo_01.wav … vo_07.wav` | The voiceover split into its 7 lines, cleaned and level-matched (48 kHz / 24-bit). |
@@ -34,7 +34,8 @@ python3 src/audio.py out                            # audio stems + mix
 |---|---|---|---|
 | Dr. Jalaluddin headshot | `apps/web/public/doctors/dr-jalaluddin/dr-jalaluddin__headshot-white-coat-01.png` (1254×1254 PNG), copied byte-for-byte | Waiting room (circle), consultation tile | `object-fit: cover`: cropped, never stretched; no retouching, no animation, no mouth movement. Labelled «د ډاکټر پروفایل انځور» (doctor profile photo) on the call screen. |
 | Dr. Jalaluddin clinical portrait | `…/dr-jalaluddin__clinical-white-coat-01.png` (1122×1402 PNG), copied byte-for-byte | End card | Displayed at its native 4:5 ratio (420×525), downscaled only. |
-| Patient | Original SVG illustration (fictional adult Afghan man, about 55: pakol, grey-flecked short beard, waistcoat and patu) | Every patient shot and the self-view tile | Clearly different from the doctor (age, beard, cap, illustrated rather than photographic). Labelled «انځوریز فرضي ناروغ». |
+| Patient (supplied) | `assets/patient/patient-ai__courtyard-messaging-01.webp` (941×1672) and `patient-ai__indoor-phone-01.webp` (1024×1536). These are AI-generated images of a fictional man, supplied by the client. | Opening and closing courtyard shots, the confirmation moment indoors, the call self-view tile and the admin avatar | Byte-for-byte copies. Shown with `cover`/crop only, never stretched; the courtyard image is upscaled 1.148× to fill the frame, with camera moves kept to ≤1.15×. Labelled «د AI جوړ انځور · فرضي ناروغ» on screen. Clearly different from the doctor (turban, older, grey beard). |
+| eTabeeb logo (supplied) | `assets/brand/etabeeb-logo-official.webp` (1254×1254) | End card (full logo on a white card); emblem crop as the chat avatar, notification, waiting room and prescription header | Unaltered; only cropped and scaled. |
 | Fonts | Noto Naskh Arabic 400/700 and Inter (SIL OFL, via `@fontsource`) | All text | All Pashto letters (ټ ډ ړ ښ ږ ځ څ ګ ڼ ې ۍ) were verified to render and join correctly. |
 | Colours | `apps/web/public/doctors/dr-jalaluddin/index.html` Tailwind tokens: `#00523a`, `#006d4e`, `#0B3D2E`, `#cca72f`, `#F8F5ED` | Whole design | — |
 | Audio | Synthesised in `src/audio.py` | Music, ambience, sound effects | Bed at about -26 LUFS, leaving room for the voiceover. |
@@ -45,14 +46,14 @@ SHA-256 of the copied doctor photos (identical to the sources):
 
 ## Missing or unverified, and how each is handled
 
-- **Official eTabeeb logo:** not in the repository. The end card uses a dashed box labelled «د رسمي لوګو ځای · LOGO PLACEHOLDER», and the chat avatar is a neutral «ای» monogram. Supply the logo (SVG or PNG) to replace both.
-- **Approved WhatsApp number:** the repository contains conflicting numbers (`README.md`: 0333 2357055; public HTML pages: +93 700699337). No number is shown; the end card has a labelled placeholder «[ تایید شوې واټساپ شمېره ] PLACEHOLDER».
+- **Official eTabeeb logo:** supplied and used (see the manifest).
+- **WhatsApp number:** **+92 310 3336526**, as supplied by the client. It is shown on the end card. Note that it differs from the numbers in `README.md` and the public HTML pages, which may need updating.
 - **Doctor qualifications:** the doctor profile page lists credentials, ratings and a licence ID, but it is a generated design mock-up, so none of them are verified. Only the name «ډاکټر جلال الدین / Dr. Jalaluddin» is shown.
 - **Call modes:** the V1 backend uses an external https consultation link (`docs/ETABIB_V1_BACKEND.md` §9) and doesn't specify the modes. The video says "online consultation" and doesn't claim audio-or-video. The UI shows only a neutral room with mic and camera controls.
 - **Prescription format:** there is no PDF renderer yet (§11; only a `pdf_key` column exists). The attachment is shown as a generic document «سند», with no format named. The preview is marked «نمونه» (sample), contains no medicines, doses or patient data, and has an empty verification-code box.
 - **Fee, timetable, response time:** none are shown. The confirmation uses «وخت: ستاسو ټاکل شوی وخت» (your scheduled time).
 - **Pashto voiceover:** supplied (`Chaman_6.m4a`) and edited; see "Voiceover edit" below. No speech-recognition model was reachable, so the take was mapped to the script by its pause structure (all 7 lines, with their sentence breaks, match). A Pashto speaker should still listen once to confirm the wording, especially line 4.
-- **Patient footage:** none was supplied, so a tasteful illustrated fictional patient is used.
+- **Patient:** the client supplied AI-generated images of a fictional patient. They are labelled as AI images of a fictional patient; no real patient data is shown.
 
 ## Workflow fidelity
 
