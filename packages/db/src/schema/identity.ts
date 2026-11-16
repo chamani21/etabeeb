@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   boolean,
+  integer,
   pgEnum,
   unique,
   index,
@@ -41,6 +42,11 @@ export const users = pgTable(
     preferredLocale: text('preferred_locale').default('ps'),
     preferredTimezone: text('preferred_timezone').default('Asia/Kabul'),
     isActive: boolean('is_active').notNull().default(true),
+    // Staff credential hygiene (eTabib V1 P1)
+    mustChangePassword: boolean('must_change_password').notNull().default(false),
+    passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),
+    // Bumped on password change/reset; JWT sessions carrying an older value are rejected
+    sessionVersion: integer('session_version').notNull().default(0),
     deletedAt: timestamp('deleted_at', { withTimezone: true }), // soft delete
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

@@ -15,6 +15,7 @@
     "typecheck": "turbo run typecheck",
     "db:push": "turbo run db:push --filter=@etabeeb/db",
     "db:migrate": "turbo run db:migrate --filter=@etabeeb/db",
+    "db:generate": "npm run db:generate --workspace=@etabeeb/db",
     "db:studio": "turbo run db:studio --filter=@etabeeb/db"
   },
   "devDependencies": {

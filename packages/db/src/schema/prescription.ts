@@ -7,6 +7,8 @@ import {
   integer,
   pgEnum,
   index,
+  jsonb,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { users } from './identity'
 import { encounters } from './clinical'
@@ -31,17 +33,17 @@ export const prescriptions = pgTable(
     publicId: uuid('public_id').notNull().unique().defaultRandom(),
     // High-entropy QR verification token (never the public ID)
     verificationToken: text('verification_token').notNull().unique(),
+    // Nullable since eTabib V1: V1 consultation cases (consultation_cases.prescription_id)
+    // have no appointment/encounter and the WhatsApp patient has no user account.
+    // The legacy appointment flow still always supplies all three (validated in the API).
     encounterId: uuid('encounter_id')
-      .notNull()
       .references(() => encounters.id, { onDelete: 'restrict' }),
     appointmentId: uuid('appointment_id')
-      .notNull()
       .references(() => appointments.id, { onDelete: 'restrict' }),
     prescribedBy: uuid('prescribed_by')
       .notNull()
       .references(() => users.id),
     prescribedForUserId: uuid('prescribed_for_user_id')
-      .notNull()
       .references(() => users.id),
     // Status
     status: prescriptionStatusEnum('status').notNull().default('active'),
@@ -56,6 +58,34 @@ export const prescriptions = pgTable(
     // PDF
     pdfKey: text('pdf_key'), // storage key for signed PDF
     documentHash: text('document_hash'), // SHA-256 of canonical document bytes
+    // eTabib V1 clinical sections (all optional; legacy flow leaves them null)
+    diagnosis: text('diagnosis'), // diagnosis / assessment
+    investigations: text('investigations'),
+    advice: text('advice'),
+    followUp: text('follow_up'),
+    notes: text('notes'), // free-text doctor notes
+    // ---- eTabib V1 prescription stage (draft → finalized/locked → rendered → delivered) ----
+    // consultation_cases.id (FK added in migration 0005; no Drizzle reference to avoid an import cycle)
+    consultationId: uuid('consultation_id'),
+    rxNumber: text('rx_number'), // human-readable ETB-RX-YYYYMMDD-NNNNN, shared by all revisions
+    // Short universal prescription ID (MR-number style, e.g. K7Q4M): printed, searchable,
+    // shared by all revisions, never changes. Unambiguous alphabet (no 0/O, 1/I/L).
+    rxCode: text('rx_code'),
+    revision: integer('revision').notNull().default(1),
+    amendedFromId: uuid('amended_from_id'), // previous revision (never overwritten)
+    // DRAFT (editable) | FINALIZED (locked, immutable clinical content) | SUPERSEDED (an amendment replaced it)
+    workflowStatus: text('workflow_status').notNull().default('FINALIZED'),
+    finalizedAt: timestamp('finalized_at', { withTimezone: true }),
+    lockedAt: timestamp('locked_at', { withTimezone: true }),
+    freeText: text('free_text'), // free-text prescribing in addition to / instead of structured items
+    redFlags: text('red_flags'), // optional urgent-care instructions (doctor-written)
+    followUpInterval: text('follow_up_interval'), // e.g. "7 days"
+    vitals: jsonb('vitals').$type<Record<string, string>>(), // doctor-entered; never invented
+    // Rendered artefacts (private storage keys) — derived from the canonical data above
+    imageKeys: jsonb('image_keys').$type<string[]>(),
+    renderedAt: timestamp('rendered_at', { withTimezone: true }),
+    renderError: text('render_error'),
+    deliveryRequestedAt: timestamp('delivery_requested_at', { withTimezone: true }),
     // Audit
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -64,6 +94,9 @@ export const prescriptions = pgTable(
     encounterIdx: index('prescriptions_encounter_idx').on(t.encounterId),
     tokenIdx: index('prescriptions_token_idx').on(t.verificationToken),
     statusIdx: index('prescriptions_status_idx').on(t.status),
+    consultationIdx: index('prescriptions_consultation_idx').on(t.consultationId),
+    rxRevisionUq: uniqueIndex('prescriptions_rx_revision_uq').on(t.rxNumber, t.revision),
+    rxCodeRevisionUq: uniqueIndex('prescriptions_rx_code_revision_uq').on(t.rxCode, t.revision),
   }),
 )
 
@@ -77,10 +110,17 @@ export const prescriptionItems = pgTable('prescription_items', {
   strength: text('strength'), // e.g. "500mg"
   formulation: text('formulation'), // tablet | capsule | syrup | injection | cream | drops
   route: text('route'), // oral | topical | IV | IM | inhaled
-  dose: text('dose').notNull(), // e.g. "1 tablet"
-  frequency: text('frequency').notNull(), // e.g. "twice daily"
+  dose: text('dose'), // e.g. "1 tablet" (optional: quick prescribing)
+  frequency: text('frequency'), // e.g. "twice daily"
   timing: text('timing'), // e.g. "after meals"
   durationDays: integer('duration_days'),
+  duration: text('duration'), // free text, e.g. "5 days", "2 weeks"
+  // eTabib structured medicine entry (null on older rows → the text columns are used as-is)
+  formCode: text('form_code'), // TABLET | SYRUP | CREAM | INJECTION | OTHER (custom text in formulation)
+  doseQuantity: text('dose_quantity'), // '0.5' | '1' | '2'
+  doseUnit: text('dose_unit'), // TABLET | TEASPOON | AMPULE (custom dose text in dose when OTHER)
+  frequencyCode: text('frequency_code'), // OD | BD | TDS | HS | WEEKLY | OTHER (custom text in frequency)
+  timingCode: text('timing_code'), // BEFORE_MEAL | BEFORE_BREAKFAST | AFTER_MEAL | OTHER (custom text in timing)
   quantity: text('quantity'), // e.g. "30 tablets"
   refills: integer('refills').notNull().default(0),
   indication: text('indication'),
@@ -101,3 +141,28 @@ export const prescriptionVerifications = pgTable('prescription_verifications', {
   userAgent: text('user_agent'),
   // Rate limiting: track accesses without exposing clinical data
 })
+
+// Doctor's optional voice explanation for a prescription (eTabib V1).
+// Audio lives in private storage; only metadata is stored here.
+export const prescriptionVoiceNotes = pgTable(
+  'prescription_voice_notes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    prescriptionId: uuid('prescription_id')
+      .notNull()
+      .references(() => prescriptions.id, { onDelete: 'restrict' }),
+    originalKey: text('original_key').notNull(), // as recorded by the browser
+    originalMimeType: text('original_mime_type').notNull(),
+    audioKey: text('audio_key').notNull(), // WhatsApp-ready OGG/Opus mono
+    mimeType: text('mime_type').notNull().default('audio/ogg'),
+    sizeBytes: integer('size_bytes').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    includeInDelivery: boolean('include_in_delivery').notNull().default(true),
+    createdBy: uuid('created_by').notNull().references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => ({
+    prescriptionIdx: index('prescription_voice_notes_prescription_idx').on(t.prescriptionId),
+  }),
+)

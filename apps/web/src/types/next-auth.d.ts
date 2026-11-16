@@ -9,6 +9,7 @@ declare module 'next-auth' {
       displayName: string
       role: string
       locale: string
+      mustChangePassword?: boolean
     } & DefaultSession['user']
   }
 
@@ -30,5 +31,8 @@ declare module 'next-auth/jwt' {
     displayName: string
     role: string
     locale: string
+    sessionVersion?: number
+    mustChangePassword?: boolean
+    revoked?: boolean
   }
 }

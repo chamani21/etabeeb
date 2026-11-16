@@ -4,6 +4,10 @@ import { notFound } from 'next/navigation'
 import { locales, rtlLocales, type Locale } from '../../i18n'
 import type { Metadata } from 'next'
 
+// Portal pages read the session/request locale at request time; static
+// prerendering fails with next-intl's dynamic APIs, so render on demand.
+export const dynamic = 'force-dynamic'
+
 interface LocaleLayoutProps {
   children: React.ReactNode
   params: { locale: string }
