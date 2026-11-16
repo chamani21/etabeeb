@@ -17,7 +17,7 @@
  */
 import { WebhookReceiver } from 'livekit-server-sdk'
 import { db } from '@etabeeb/db'
-import { caseEvents, consultationCases, consultationVideoSessions } from '@etabeeb/db/schema'
+import { caseEvents, consultationCases, consultationVideoSessions, notificationOutbox } from '@etabeeb/db/schema'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { getDoctorWhatsapp, getLiveKitConfig } from './config'
 import { EtabibError } from './errors'
@@ -28,6 +28,8 @@ import { JOIN_NOTICE_JOB, LIVE_CASE_STATUSES, otherRole, roleConnected, verified
 
 /** A join reported this late (LiveKit retry backlog) is still audited but never notifies. */
 const JOIN_NOTICE_MAX_EVENT_AGE_MS = 5 * 60_000
+/** Upper bound on notices per role per consultation (re-armed only after an unsent, withdrawn one). */
+const JOIN_NOTICE_MAX_REARMS = 5
 
 export interface LiveKitWebhookResult {
   handled: boolean
@@ -142,8 +144,8 @@ async function decideJoinNotice(
   session: VideoSession,
   role: JoinRole,
 ): Promise<string | null> {
-  const [decided] = await tx
-    .select({ id: caseEvents.id })
+  const decisions = await tx
+    .select({ type: caseEvents.eventType, jobId: sql<string | null>`${caseEvents.metadata} ->> 'outboxJobId'` })
     .from(caseEvents)
     .where(
       and(
@@ -152,8 +154,18 @@ async function decideJoinNotice(
         sql`${caseEvents.metadata} ->> 'joinedRole' = ${role}`,
       ),
     )
-    .limit(1)
-  if (decided) return null
+  if (decisions.some((d) => d.type === 'VIDEO_JOIN_NOTICE_SKIPPED')) return null
+  if (decisions.length > 0) {
+    // Re-arm only when every earlier notice was withdrawn because the joiner left before it
+    // could go out (e.g. the doctor peeked in early): the recipient was never told, so this
+    // real join must notify. A sent, pending or otherwise failed notice keeps it at one.
+    if (decisions.length >= JOIN_NOTICE_MAX_REARMS) return null
+    const jobIds = decisions.map((d) => d.jobId).filter((id): id is string => Boolean(id))
+    if (jobIds.length !== decisions.length) return null
+    const jobs = await tx.select({ status: notificationOutbox.status, lastError: notificationOutbox.lastError }).from(notificationOutbox).where(inArray(notificationOutbox.id, jobIds))
+    const withdrawn = (j: (typeof jobs)[number]) => j.status === 'cancelled' && (j.lastError ?? '').startsWith('joined_party_left')
+    if (jobs.length !== jobIds.length || !jobs.every(withdrawn)) return null
+  }
 
   const skip = async (reason: string) => {
     await recordCaseEvent(tx, {
@@ -173,7 +185,9 @@ async function decideJoinNotice(
   if (role === 'DOCTOR' && !patientPhone) return skip('no_patient_whatsapp')
 
   const type = JOIN_NOTICE_JOB[role]
-  const job = await enqueueOutboundJob(tx, { type, consultationId: c.id, dedupeKey: c.id, recipientPhone: role === 'DOCTOR' ? patientPhone : null })
+  // first notice keeps the plain per-case key; a re-armed one gets its own
+  const dedupeKey = decisions.length === 0 ? c.id : `${c.id}:${decisions.length}`
+  const job = await enqueueOutboundJob(tx, { type, consultationId: c.id, dedupeKey, recipientPhone: role === 'DOCTOR' ? patientPhone : null })
   await recordCaseEvent(tx, {
     caseId: c.id,
     eventType: 'VIDEO_JOIN_NOTICE_QUEUED',

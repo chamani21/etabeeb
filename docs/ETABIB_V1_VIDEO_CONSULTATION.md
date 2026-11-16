@@ -69,7 +69,9 @@ with the dashboard case link (login required). Code: `lib/etabib/video-webhook.t
   standard participant (agents, recorders, SIP ignored). Prefix-only identities are audited but never notify.
 - **Once:** one decision per role per consultation (queued or skipped). Reconnects,
   refreshes and LiveKit retries (same event id → ignored) send nothing more. Webhooks of
-  a room are serialized (case → session row lock).
+  a room are serialized (case → session row lock). Exception: a notice withdrawn because
+  the joiner left before it could go out (`joined_party_left`, e.g. the doctor peeked in
+  early) is re-armed, so the next real join still notifies the other side (max 5 per role).
 - **No needless message:** skipped if the recipient is already in the room; at dispatch
   it is re-checked (recipient joined meanwhile, the person who joined left, case closed
   → withdrawn). Cancelling a case withdraws a queued notice.

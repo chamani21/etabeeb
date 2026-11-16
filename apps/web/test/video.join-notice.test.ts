@@ -350,6 +350,40 @@ describe.skipIf(!hasTestDb)('LiveKit room-join notices', () => {
     expect((await noticeJobs()).find((j) => j.id !== job!.id)!.lastError).toMatch(/^joined_party_left/)
   })
 
+  it('12b. a notice withdrawn because the joiner left is re-armed: the next real join still notifies the other side (once)', async () => {
+    // doctor peeks in early, leaves before the patient link opens, comes back at the consultation time
+    const c = await liveCase('CONFIRMED', 50)
+    await join(c, 'doctor', 'PA_early')
+    await settled()
+    await leave(c, 'doctor', 'PA_early')
+    await db.update(consultationVideoSessions).set({ scheduledAt: new Date(Date.now() + 10 * 60_000) }).where(eq(consultationVideoSessions.id, c.sessionId))
+    await dispatchPendingOutboundJobs()
+    expect(sentNotices()).toHaveLength(0)
+    await join(c, 'doctor', 'PA_back')
+    await settled()
+    const sent = sentNotices()
+    expect(sent.map((n: { type: string }) => n.type)).toEqual(['VIDEO_DOCTOR_JOINED_PATIENT'])
+    expect((await patientToken(tokenOf(sent[0].text)!)).status).toBe(200)
+    // once delivered, later reconnects never notify again
+    await leave(c, 'doctor', 'PA_back')
+    await join(c, 'doctor', 'PA_again')
+    await settled()
+    expect(sentNotices()).toHaveLength(1)
+
+    // same for the patient: n8n was down, the patient gave up before the retry, then came back
+    const d = await liveCase()
+    delete process.env.ETABIB_N8N_OUTBOUND_URL
+    await join(d, 'patient', 'PA_p1')
+    await settled()
+    await leave(d, 'patient', 'PA_p1')
+    process.env.ETABIB_N8N_OUTBOUND_URL = 'https://n8n.example.test/webhook/outbound'
+    await dispatchPendingOutboundJobs()
+    expect(sentNotices().filter((n: { type: string }) => n.type === 'VIDEO_PATIENT_JOINED_DOCTOR')).toHaveLength(0)
+    await join(d, 'patient', 'PA_p2')
+    await settled()
+    expect(sentNotices().filter((n: { type: string }) => n.type === 'VIDEO_PATIENT_JOINED_DOCTOR')).toHaveLength(1)
+  })
+
   it('13. join notices leave the existing workflow untouched (statuses, confirmation messages, IN_CONSULTATION rejoin)', async () => {
     const c = await liveCase('IN_CONSULTATION')
     const before = (await jobsOfType('CONSULTATION_CONFIRMED_PATIENT')).length
